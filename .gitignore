@@ -1,0 +1,4 @@
+*.pot
+/result
+/subprojects/*
+!/subprojects/*.wrap
