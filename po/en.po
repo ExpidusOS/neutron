@@ -1,0 +1,68 @@
+# English translations for neutron package.
+# Copyright (C) 2023 Midstall Software
+# This file is distributed under the same license as the neutron package.
+# Automatically generated, 2023.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: neutron 0.1.0-alpha\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-01-07 12:28-0800\n"
+"PO-Revision-Date: 2023-01-07 12:28-0800\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=ASCII\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: core/lib/context.vala:12
+msgid "Global context uses libpeas"
+msgstr "Global context uses libpeas"
+
+#: core/lib/context.vala:15 core/lib/context.vala:26 core/lib/context.vala:37
+#, c-format
+msgid "Failed to create a new context: %s:%d: %s"
+msgstr "Failed to create a new context: %s:%d: %s"
+
+#: core/lib/context.vala:23
+msgid "Global context uses GModule"
+msgstr "Global context uses GModule"
+
+#: core/lib/context.vala:34
+msgid "Using base context as the global context"
+msgstr "Using base context as the global context"
+
+#: core/lib/context/gmodule.vala:68
+msgid "register_neutron_plugin() not found"
+msgstr "register_neutron_plugin() not found"
+
+#: core/lib/context/gmodule.vala:74
+#, c-format
+msgid "Unexpected type: got %s"
+msgstr "Unexpected type: got %s"
+
+#: core/lib/context/gmodule.vala:79
+msgid "Unexpected type: got null"
+msgstr "Unexpected type: got null"
+
+#: core/lib/context/libpeas.vala:46
+#, c-format
+msgid "Removing plugin \"%s\" %p"
+msgstr "Removing plugin \"%s\" %p"
+
+#: core/lib/context/libpeas.vala:58
+#, c-format
+msgid "Discovered plugin %s"
+msgstr "Discovered plugin %s"
+
+#: core/lib/context/libpeas.vala:60
+#, c-format
+msgid "Adding plugin \"%s\" %p"
+msgstr "Adding plugin \"%s\" %p"
+
+#: core/lib/context/libpeas.vala:64
+#, c-format
+msgid "Failed to activate plugin \"%s\", does not extend PeasActivatable"
+msgstr "Failed to activate plugin \"%s\", does not extend PeasActivatable"

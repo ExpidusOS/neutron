@@ -4,7 +4,7 @@ conf_data_core.merge_from(conf_data)
 core_flags = []
 core_reqs = []
 core_extra_deps = ''
-core_rel_sources = ['lib/context.vala']
+core_rel_sources = ['lib/context.vala', 'lib/provider.vala']
 core_sources = []
 core_vala_args = []
 core_deps = [gio, vadi]

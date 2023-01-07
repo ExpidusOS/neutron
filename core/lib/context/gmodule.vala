@@ -63,13 +63,13 @@ namespace Neutron {
       }
 
       void *ptr;
-      module.symbol("register_devident_plugin", out ptr);
+      module.symbol("register_neutron_plugin", out ptr);
       if (ptr == null) {
-        throw new GModuleContextError.MISSING_FUNCTION(N_("register_devident_plugin() not found"));
+        throw new GModuleContextError.MISSING_FUNCTION(N_("register_neutron_plugin() not found"));
       }
 
-      RegisterPluginFunction register_devident_plugin = (RegisterPluginFunction)ptr;
-      var type = register_devident_plugin(module);
+      RegisterPluginFunction register_neutron_plugin = (RegisterPluginFunction)ptr;
+      var type = register_neutron_plugin(module);
       if (!type.is_a(typeof(GModulePlugin))) {
         throw new GModuleContextError.UNEXPECTED_TYPE(N_("Unexpected type: got %s").printf(type.name()));
       }

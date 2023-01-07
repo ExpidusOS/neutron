@@ -1,2 +1,5 @@
 core/lib/build.vala.in
 core/lib/context.vala
+core/lib/provider.vala
+core/lib/context/gmodule.vala
+core/lib/context/libpeas.vala
