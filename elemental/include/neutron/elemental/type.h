@@ -12,6 +12,8 @@
  */
 typedef uint32_t NtType;
 
+#define NT_TYPE_NONE 0
+
 /**
  * NtTypeFlags:
  *
@@ -26,42 +28,15 @@ typedef enum _NtTypeFlags {
   /**
    * Defines a dynamic type, this means the it can be derived.
    */
-  NT_TYPE_FLAG_DYNAMIC = (0 << 1)
+  NT_TYPE_FLAG_DYNAMIC = (0 << 0),
+
+  /**
+   * Defines a type which cannot be referenced
+   */
+  NT_TYPE_FLAG_NOREF = (1 << 1)
 } NtTypeFlags;
 
-/**
- * NtTypeExtensionInfo:
- *
- * Describes what types a type is extending or implementing
- */
-typedef struct _NtTypeExtensionInfo {
-  /**
-   * Type ID to extend
-   */
-  NtType id;
-
-  /**
-   * Offset to the location of the instance info
-   */
-  size_t offset;
-} NtTypeExtensionInfo;
-
-/**
- * NtTypeClassInfo:
- *
- * Describes how a class must be defined
- */
-typedef struct _NtTypeClassInfo {
-  /**
-   * Name of the class which must be PascalCase
-   */
-  const char* name;
-
-  /**
-   * Size of the allocated class
-   */
-  size_t size;
-} NtTypeClassInfo;
+struct _NtTypeInstance;
 
 /**
  * NtTypeInfo:
@@ -80,9 +55,24 @@ typedef struct _NtTypeInfo {
   NtTypeFlags flags;
 
   /**
-   * Class registration info
+   * An array which ends with "NT_TYPE_NONE" to determine all parent types
    */
-  NtTypeClassInfo class_info;
+  NtType* extends;
+
+  /**
+   * Size of the allocated data
+   */
+  size_t size;
+
+  /**
+   * Method to run when this type is allocated by nt_type_instance_new
+   */
+  void (*construct)(struct _NtTypeInstance* instance, void* data);
+
+  /**
+   * Method to run when this type is deallocated by nt_type_instance_destroy
+   */
+  void (*destroy)(struct _NtTypeInstance* instance, void* data);
 } NtTypeInfo;
 
 /**
@@ -95,6 +85,22 @@ typedef struct _NtTypeInstance {
    * Type information
    */
   const NtTypeInfo* info;
+
+  /**
+   * Pointer to the start of the instance data
+   */
+  void* data;
+
+  /**
+   * The size of the data which does not include
+   * the size of NtTypeInstance
+   */
+  size_t data_size;
+
+  /**
+   * Number of references this instance has
+   */
+  size_t ref_count;
 } NtTypeInstance;
 
 /**
@@ -117,3 +123,35 @@ NT_EXPORT void nt_type_unregister(NtTypeInfo* info);
  * Get type information from a type ID
  */
 NT_EXPORT const NtTypeInfo* nt_type_info_from_type(NtType type);
+
+/**
+ * nt_type_info_get_total_size:
+ *
+ * Returns the total size of all elements except the size of NtTypeInstance
+ */
+NT_EXPORT const size_t nt_type_info_get_total_size(NtTypeInfo* info);
+
+/**
+ * nt_type_instance_new:
+ *
+ * Constructs a new type instance.
+ *
+ * The resulting pointer will be (sizeof (NtTypeInstance) + total size)
+ * where total size is determined by all parent NtTypeInfo size elements.
+ */
+NT_EXPORT NtTypeInstance* nt_type_instance_new(NtType type);
+
+/**
+ * nt_type_instance_ref:
+ *
+ * Increases the ref_count of the type instance
+ */
+NT_EXPORT NtTypeInstance* nt_type_instance_ref(NtTypeInstance* instance);
+
+/**
+ * nt_type_instance_destroy:
+ *
+ * Destroys a type instance if ref_count is 0. If ref_count is
+ * greater than 0, then it is deincremented.
+ */
+NT_EXPORT void nt_type_instance_destroy(NtTypeInstance* instance);

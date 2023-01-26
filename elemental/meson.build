@@ -28,3 +28,5 @@ pkg.generate(libelemental,
   description: 'A minimal resource usage type system for C',
   url: 'https://github.com/ExpidusOS/neutron',
   version: longver)
+
+subdir('tests', if_found: [check])

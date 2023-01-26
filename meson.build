@@ -55,4 +55,6 @@ conf_data.set('VERSION_SHORT', shortver)
 cc = meson.get_compiler('c')
 pthread = cc.find_library('pthread')
 
+check = dependency('check', required: get_option('tests'), native: true)
+
 subdir('elemental')

@@ -5,7 +5,7 @@ with pkgs; mkShell rec {
   version = self.shortRev or "dirty";
   name = "${pname}-${version}";
 
-  packages = [ meson ninja clang pkg-config ];
+  packages = [ gdb meson ninja clang pkg-config check ];
 
   shellHook = ''
     export CC="${clang}/bin/clang"
