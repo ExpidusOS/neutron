@@ -10,6 +10,6 @@
       nixpkgs = expidus-sdk;
       name = "expidus";
       overlay = import ./overlay.nix { inherit self; };
-      shell = ./shell.nix;
+      shell = import ./shell.nix { inherit self; };
     };
 }

@@ -1,5 +1,10 @@
+{ self }:
 { pkgs ? import <nixpkgs> }:
-with pkgs; mkShell {
+with pkgs; mkShell rec {
+  pname = "neutron";
+  version = self.shortRev or "dirty";
+  name = "${pname}-${version}";
+
   packages = [ meson ninja clang pkg-config ];
 
   shellHook = ''
