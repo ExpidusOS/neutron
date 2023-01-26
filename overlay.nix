@@ -4,7 +4,7 @@ with final;
 with lib;
 let
   mkPackage = mesonBuildType: clang14Stdenv.mkDerivation {
-    pname = "neutron${if mesonBuildType == "release" then "" else "-${mesonBuildType}"}";
+    pname = "neutron${if mesonBuildType == "release" then "" else if mesonBuildType == "debugoptimized" then "-debug" else "-${mesonBuildType}"}";
     version = self.shortRev or "dirty";
 
     src = cleanSource self;

@@ -1,0 +1,6 @@
+builds:
+  exclude: []
+  include:
+    - 'defaultPackage.x86_64-linux'
+    - 'devShell.x86_64-linux'
+    - 'legacyPackages.x86_64-linux.*'
