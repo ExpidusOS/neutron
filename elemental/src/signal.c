@@ -24,6 +24,12 @@ static void nt_signal_destroy(NtTypeInstance* instance) {
   NtSignal* self = NT_SIGNAL(instance);
   assert(self != NULL);
 
+  for (NtSignalEntry* entry = self->priv->entries; entry != NULL;) {
+    NtSignalEntry* next = entry->next;
+    free(entry);
+    entry = next;
+  }
+
   pthread_mutex_destroy(&self->priv->mutex);
   free(self->priv);
 }
@@ -80,8 +86,12 @@ void nt_signal_detach(NtSignal* self, NtSignalHandler handler) {
 void nt_signal_emit(NtSignal* self, NtTypeArgument* arguments) {
   assert(NT_IS_SIGNAL(self));
 
+  if (self->priv->is_locking) pthread_mutex_lock(&self->priv->mutex);
+
   for (NtSignalEntry* entry = self->priv->entries; entry != NULL; entry = entry->next) {
     assert(entry->handler != NULL);
     entry->handler(self, arguments, entry->user_data);
   }
+
+  if (self->priv->is_locking) pthread_mutex_unlock(&self->priv->mutex);
 }
