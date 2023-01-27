@@ -23,6 +23,7 @@ int main(void) {
   suite_add_tcase(s, c_reg);
 
   SRunner* sr = srunner_create(s);
+  srunner_set_tap(sr, "-");
   srunner_run_all(sr, CK_VERBOSE);
   int n_failed = srunner_ntests_failed(sr);
   srunner_free(sr);

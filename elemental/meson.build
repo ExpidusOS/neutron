@@ -23,6 +23,19 @@ elemental = declare_dependency(link_with: libelemental,
   include_directories: elemental_inc,
   dependencies: elemental_deps)
 
+if meson.can_run_host_binaries() and check.found()
+  libelemental_native = both_libraries('neutron-elemental-host', elemental_sources,
+    include_directories: elemental_inc,
+    dependencies: elemental_deps,
+    version: version,
+    gnu_symbol_visibility: 'hidden',
+    install: false,
+    native: true)
+  elemental_native = declare_dependency(link_with: libelemental_native,
+    include_directories: elemental_inc,
+    dependencies: elemental_deps)
+endif
+
 pkg.generate(libelemental,
   name: 'neutron-elemental',
   description: 'A minimal resource usage type system for C',
