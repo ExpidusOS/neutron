@@ -76,6 +76,7 @@ void nt_type_unregister(NtTypeInfo* info) {
 
       if (item->prev != NULL) item->prev->next = item->next;
       if (item->next != NULL) item->next->prev = item->prev;
+      free(item->info.extends);
       free(item);
 
       pthread_mutex_unlock(&nt_type_mutex);
