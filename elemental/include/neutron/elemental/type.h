@@ -146,8 +146,8 @@ typedef struct _NtTypeInstance {
   }
 
 #define NT_DEFINE_TYPE(ns, name, struct_name, func_name, flags) \
-  static void func_name ## _construct(NtTypeInstance* instance, void* data); \
-  static void func_name ## _destroy(NtTypeInstance* instance, void* data); \
+  static void func_name ## _construct(NtTypeInstance* instance); \
+  static void func_name ## _destroy(NtTypeInstance* instance); \
   NT_DEFINE_TYPE_WITH_CODE(ns, name, struct_name, func_name, flags, \
     NT_TYPEDEF_CONSTRUCT(func_name) \
     NT_TYPEDEF_DESTROY(func_name))

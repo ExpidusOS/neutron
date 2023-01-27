@@ -4,10 +4,10 @@
 
 NT_DEFINE_TYPE(NT, PLATFORM, NtPlatform, nt_platform, NT_TYPE_FLAG_STATIC);
 
-static void nt_platform_construct(NtTypeInstance* inst, void* data) {
+static void nt_platform_construct(NtTypeInstance* inst) {
 }
 
-static void nt_platform_destroy(NtTypeInstance* inst, void* data) {
+static void nt_platform_destroy(NtTypeInstance* inst) {
 }
 
 NtPlatform* nt_platform_get_global() {
