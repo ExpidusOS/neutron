@@ -7,6 +7,9 @@ NT_BEGIN_DECLS
 typedef struct _NtDeviceEnum {
   NtTypeInstance instance;
 
+  NtSignal* added;
+  NtSignal* removed;
+
   size_t (*get_device_count)(struct _NtDeviceEnum* self);
 } NtDeviceEnum;
 
