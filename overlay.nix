@@ -12,7 +12,7 @@ rec {
       buildType = "release";
     }).overrideAttrs (s: {
       nativeBuildInputs = with buildPackages; [ meson ninja pkg-config ];
-      buildInputs = (s.buildInputs or []) ++ [ check ];
+      buildInputs = (s.buildInputs or []) ++ [ check flutter-engine ];
       doCheck = true;
     });
   });

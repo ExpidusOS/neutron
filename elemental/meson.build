@@ -24,16 +24,17 @@ elemental = declare_dependency(link_with: libelemental,
   dependencies: elemental_deps)
 
 if check.found()
-  libelemental_native = both_libraries('neutron-elemental-host', elemental_sources,
+  elemental_native_deps = [pthread_native]
+  libelemental_native = shared_library('neutron-elemental-native', elemental_sources,
     include_directories: elemental_inc,
-    dependencies: elemental_deps,
+    dependencies: elemental_native_deps,
     version: version,
     gnu_symbol_visibility: 'hidden',
     install: false,
     native: true)
   elemental_native = declare_dependency(link_with: libelemental_native,
     include_directories: elemental_inc,
-    dependencies: elemental_deps)
+    dependencies: elemental_native_deps)
 endif
 
 pkg.generate(libelemental,

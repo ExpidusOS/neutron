@@ -24,14 +24,16 @@ platform = declare_dependency(link_with: libplatform,
   dependencies: platform_deps)
 
 if check.found()
-  libplatform_native = both_libraries('neutron-platform-native', platform_sources,
+  platform_native_deps = [elemental_native]
+  libplatform_native = shared_library('neutron-platform-native', platform_sources,
     include_directories: platform_inc,
-    dependencies: platform_deps,
+    dependencies: platform_native_deps,
     version: version,
-    gnu_symbol_visibility: 'hidden')
+    gnu_symbol_visibility: 'hidden',
+    native: true)
   platform_native = declare_dependency(link_with: libplatform_native,
     include_directories: platform_inc,
-    dependencies: platform_deps)
+    dependencies: platform_native_deps)
 endif
 
 pkg.generate(libplatform,

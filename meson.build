@@ -53,7 +53,14 @@ conf_data.set('VERSION_LONG', longver)
 conf_data.set('VERSION_SHORT', shortver)
 
 cc = meson.get_compiler('c')
+cc_native = meson.get_compiler('c', native: true)
+
 pthread = cc.find_library('pthread')
+pthread_native = cc_native.find_library('pthread', required: get_option('tests'))
+
+add_global_arguments([
+  '-Werror=unused-variable'
+], language: 'c')
 
 check = dependency('check', required: get_option('tests'), native: true)
 
