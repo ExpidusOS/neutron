@@ -214,9 +214,9 @@ NtTypeInstance* nt_type_instance_new(NtType type);
 /**
  * nt_type_instance_get_data:
  *
- * Gets the data section of a specific type in the instance.
+ * Gets the instance of type inside of the parent instance
  */
-void* nt_type_instance_get_data(NtTypeInstance* instance, NtType type);
+NtTypeInstance* nt_type_instance_get_data(NtTypeInstance* instance, NtType type);
 
 /**
  * nt_type_instance_ref:

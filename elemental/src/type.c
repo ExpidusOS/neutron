@@ -115,7 +115,7 @@ const NtTypeInfo* nt_type_info_from_type(NtType type) {
 const size_t nt_type_info_get_total_size(NtTypeInfo* info) {
   assert(NT_TYPE_INFO_IS_VALID(info));
 
-  size_t size = info->size;
+  size_t size = sizeof (NtTypeInstance) + info->size;
 
   if (info->extends != NULL) {
     for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
@@ -127,16 +127,13 @@ const size_t nt_type_info_get_total_size(NtTypeInfo* info) {
   return size;
 }
 
-NtTypeInstance* nt_type_instance_new(NtType type) {
+static void nt_type_instance_flat_new(NtTypeInstance* instance, NtType type) {
   const NtTypeInfo* info = nt_type_info_from_type(type);
   assert(info != NULL);
 
   const size_t data_size = nt_type_info_get_total_size((NtTypeInfo*)info);
   const size_t size = sizeof (NtTypeInstance) + data_size;
   assert(size >= sizeof (NtTypeInstance));
-
-  NtTypeInstance* instance = malloc(size);
-  assert(instance != NULL);
 
   instance->type = type;
   instance->data = instance + sizeof (NtTypeInstance);
@@ -147,14 +144,10 @@ NtTypeInstance* nt_type_instance_new(NtType type) {
 
   if (info->extends != NULL) {
     for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
-      // TODO: recursively do this for all subinfo children extends
       const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
       assert(subinfo != NULL);
 
-      if (subinfo->construct != NULL) {
-        subinfo->construct(instance, instance->data + off);
-      }
-
+      nt_type_instance_flat_new((void*)(instance->data + off), subinfo->id);
       off += nt_type_info_get_total_size((NtTypeInfo*)subinfo);
     }
   }
@@ -162,10 +155,22 @@ NtTypeInstance* nt_type_instance_new(NtType type) {
   if (info->construct != NULL) {
     info->construct(instance, instance->data + off);
   }
+}
+
+NtTypeInstance* nt_type_instance_new(NtType type) {
+  const NtTypeInfo* info = nt_type_info_from_type(type);
+  assert(info != NULL);
+
+  const size_t size = nt_type_info_get_total_size((NtTypeInfo*)info);
+  assert(size >= sizeof (NtTypeInstance));
+
+  NtTypeInstance* instance = malloc(size);
+  assert(instance != NULL);
+  nt_type_instance_flat_new(instance, info->id);
   return instance;
 }
 
-void* nt_type_instance_get_data(NtTypeInstance* instance, NtType type) {
+NtTypeInstance* nt_type_instance_get_data(NtTypeInstance* instance, NtType type) {
   assert(instance != NULL);
 
   const NtTypeInfo* info = nt_type_info_from_type(instance->type);
@@ -174,18 +179,17 @@ void* nt_type_instance_get_data(NtTypeInstance* instance, NtType type) {
   size_t off = 0;
   if (info->extends != NULL) {
     for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
-      // TODO: recursively do this for all subinfo children extends
-      if (info->extends[i] != type) {
-        const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
-        assert(subinfo != NULL);
-        off += nt_type_info_get_total_size((NtTypeInfo*)subinfo);
-        continue;
-      }
-      return (void*)(instance->data + off);
+      const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
+      assert(subinfo != NULL);
+
+      NtTypeInstance* subinst = nt_type_instance_get_data((NtTypeInstance*)(instance->data + off), type);
+      if (subinst != NULL) return subinst;
+
+      off += nt_type_info_get_total_size((NtTypeInfo*)subinfo);
     }
   }
   
-  if (info->id == type) return (void*)(instance->data + off);
+  if (info->id == type) return instance;
   return NULL;
 }
 
