@@ -3,5 +3,5 @@
 #include <neutron/platform/platform.h>
 
 typedef struct _NtPlatformPrivate {
-  NtPlatformImplementation impl;
+  NtDeviceEnum* device_enum;
 } NtPlatformPrivate;

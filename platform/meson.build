@@ -5,7 +5,12 @@ build_conf_platform = configure_file(input: 'src/build.h', output: 'neutron-plat
   configuration: conf_data_platform)
 
 platform_sources = [
-  'src/platform.c'
+  'src/device/enum.c', 'src/platform.c'
+]
+
+platform_cflags = [
+  '-D@0@=1'.format(target_machine.system().to_upper()),
+  '-D@0@=1'.format(target_machine.cpu_family().to_upper())
 ]
 
 platform_inc = include_directories('include')
@@ -14,6 +19,7 @@ platform_deps = [elemental]
 install_subdir('include', strip_directory: true, install_dir: includedir)
 
 libplatform = both_libraries('neutron-platform', platform_sources,
+  c_args: platform_cflags,
   include_directories: platform_inc,
   dependencies: platform_deps,
   version: version,
@@ -26,6 +32,7 @@ platform = declare_dependency(link_with: libplatform,
 if check.found()
   platform_native_deps = [elemental_native]
   libplatform_native = shared_library('neutron-platform-native', platform_sources,
+    c_args: platform_cflags,
     include_directories: platform_inc,
     dependencies: platform_native_deps,
     version: version,

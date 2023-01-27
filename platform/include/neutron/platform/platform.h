@@ -1,6 +1,7 @@
 #pragma once
 
 #include <neutron/elemental.h>
+#include <neutron/platform/device/enum.h>
 
 struct _NtPlatform;
 
@@ -18,17 +19,27 @@ typedef enum _NtPlatformOS {
 } NtPlatformOS;
 
 /**
- * NtPlatformImplementation:
+ * NtPlatformArch:
  *
- * Platform specific method calls
+ * Enum of different CPU architectures
  */
-typedef struct _NtPlatformImplementation {
-  NtPlatformOS (*get_os)(struct _NtPlatform* platform);
-} NtPlatformImplementation;
+typedef enum _NtPlatformArch {
+  NT_PLATFORM_ARCH_UNKNOWN = 0,
+  NT_PLATFORM_ARCH_AARCH64,
+  NT_PLATFORM_ARCH_ARM,
+  NT_PLATFORM_ARCH_RISCV32,
+  NT_PLATFORM_ARCH_RISCV64,
+  NT_PLATFORM_ARCH_X86,
+  NT_PLATFORM_ARCH_X86_64
+} NtPlatformArch;
 
 typedef struct _NtPlatform {
   NtTypeInstance instance;
   struct _NtPlatformPrivate* priv;
+
+  NtPlatformOS (*get_os)(struct _NtPlatform* self);
+  NtPlatformArch (*get_arch)(struct _NtPlatform* self);
+  NtDeviceEnum* (*get_device_enum)(struct _NtPlatform* self);
 } NtPlatform;
 
 NT_BEGIN_DECLS
@@ -55,6 +66,20 @@ NtPlatform* nt_platform_get_global();
  * Get the operating system the platform is running on
  */
 NtPlatformOS nt_platform_get_os(NtPlatform* self);
+
+/**
+ * nt_platform_get_arch:
+ *
+ * Get the CPU architecture the platform is running on
+ */
+NtPlatformArch nt_platform_get_arch(NtPlatform* self);
+
+/**
+ * nt_platform_get_device_enum:
+ *
+ * Gets the device enumerator
+ */
+NtDeviceEnum* nt_platform_get_device_enum(NtPlatform* self);
 
 #if defined(__GNUC__)
 #pragma GCC visibility pop
