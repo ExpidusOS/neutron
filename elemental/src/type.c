@@ -74,14 +74,15 @@ void nt_type_unregister(NtTypeInfo* info) {
     if (item->info.id == info->id) {
       pthread_mutex_lock(&nt_type_mutex);
 
+      if (item == nt_type_registry) nt_type_registry = item->next;
       if (item->prev != NULL) item->prev->next = item->next;
       if (item->next != NULL) item->next->prev = item->prev;
+
       free(item->info.extends);
       free(item);
 
       pthread_mutex_unlock(&nt_type_mutex);
       info->id = 0;
-      break;
     }
   }
 }
@@ -208,13 +209,13 @@ NtTypeInstance* nt_type_instance_ref(NtTypeInstance* instance) {
 static void nt_type_instance_flat_destroy(NtTypeInstance* instance) {
   assert(instance != NULL);
 
-  const NtTypeInfo* info = nt_type_info_from_type(instance->type);
-  assert(info != NULL);
-
   if (instance->ref_count > 0) {
     instance->ref_count--;
     return;
   }
+
+  const NtTypeInfo* info = nt_type_info_from_type(instance->type);
+  assert(info != NULL);
 
   size_t off = 0;
 
@@ -235,5 +236,5 @@ static void nt_type_instance_flat_destroy(NtTypeInstance* instance) {
 
 void nt_type_instance_destroy(NtTypeInstance* instance) {
   nt_type_instance_flat_destroy(instance);
-  free(instance);
+  if (instance->ref_count == 0) free(instance);
 }

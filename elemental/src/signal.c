@@ -12,6 +12,7 @@ static void nt_signal_construct(NtTypeInstance* instance, NtTypeArgument* argume
   self->priv = malloc(sizeof (NtSignalPrivate));
   assert(self->priv != NULL);
   memset(self->priv, 0, sizeof (NtSignalPrivate));
+  self->priv->entries = NULL;
 
   NtValue locking = nt_type_argument_get(arguments, NT_TYPE_ARGUMENT_KEY(NtSignal, locking), NT_VALUE_BOOL(false));
   assert(locking.type == NT_VALUE_TYPE_BOOL);
@@ -59,6 +60,7 @@ void nt_signal_attach(NtSignal* self, NtSignalHandler handler, const void* data)
   entry->handler = handler;
   entry->user_data = data;
   entry->next = self->priv->entries;
+  entry->prev = NULL;
   if (self->priv->entries != NULL) self->priv->entries->prev = entry;
   self->priv->entries = entry;
 
@@ -73,12 +75,13 @@ void nt_signal_detach(NtSignal* self, NtSignalHandler handler) {
     if (entry->handler == handler) {
       pthread_mutex_lock(&self->priv->mutex);
 
+      if (entry == self->priv->entries) self->priv->entries = entry->next;
       if (entry->prev != NULL) entry->prev->next = entry->next;
       if (entry->next != NULL) entry->next->prev = entry->prev;
+
       free(entry);
 
       pthread_mutex_unlock(&self->priv->mutex);
-      break;
     }
   }
 }
