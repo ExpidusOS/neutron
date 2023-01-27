@@ -204,7 +204,7 @@ NtTypeInstance* nt_type_instance_ref(NtTypeInstance* instance) {
   return instance;
 }
 
-void nt_type_instance_destroy(NtTypeInstance* instance) {
+static void nt_type_instance_flat_destroy(NtTypeInstance* instance) {
   assert(instance != NULL);
 
   const NtTypeInfo* info = nt_type_info_from_type(instance->type);
@@ -222,7 +222,7 @@ void nt_type_instance_destroy(NtTypeInstance* instance) {
       const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
       assert(subinfo != NULL);
 
-      nt_type_instance_destroy((void*)(instance->data + off));
+      nt_type_instance_flat_destroy((void*)(instance->data + off));
       off += nt_type_info_get_total_size((NtTypeInfo*)subinfo);
     }
   }
@@ -230,6 +230,9 @@ void nt_type_instance_destroy(NtTypeInstance* instance) {
   if (info->destroy != NULL) {
     info->destroy(instance, instance->data + off);
   }
+}
 
+void nt_type_instance_destroy(NtTypeInstance* instance) {
+  nt_type_instance_flat_destroy(instance);
   free(instance);
 }
