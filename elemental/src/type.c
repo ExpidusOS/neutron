@@ -153,7 +153,7 @@ static void nt_type_instance_flat_new(NtTypeInstance* instance, NtType type) {
   }
 
   if (info->construct != NULL) {
-    info->construct(instance, instance->data + off);
+    info->construct(instance);
   }
 }
 
@@ -228,7 +228,7 @@ static void nt_type_instance_flat_destroy(NtTypeInstance* instance) {
   }
 
   if (info->destroy != NULL) {
-    info->destroy(instance, instance->data + off);
+    info->destroy(instance);
   }
 }
 

@@ -86,12 +86,12 @@ typedef struct _NtTypeInfo {
   /**
    * Method to run when this type is allocated by nt_type_instance_new
    */
-  void (*construct)(struct _NtTypeInstance* instance, void* data);
+  void (*construct)(struct _NtTypeInstance* instance);
 
   /**
    * Method to run when this type is deallocated by nt_type_instance_destroy
    */
-  void (*destroy)(struct _NtTypeInstance* instance, void* data);
+  void (*destroy)(struct _NtTypeInstance* instance);
 } NtTypeInfo;
 
 /**
