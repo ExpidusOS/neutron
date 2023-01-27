@@ -58,3 +58,4 @@ pthread = cc.find_library('pthread')
 check = dependency('check', required: get_option('tests'), native: true)
 
 subdir('elemental')
+subdir('platform')
