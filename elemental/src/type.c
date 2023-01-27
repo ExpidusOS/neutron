@@ -20,6 +20,14 @@ NT_EXPORT NtType nt_type_register(NtTypeInfo* info) {
   assert(info != NULL);
   assert(info->id == 0);
 
+  if (info->extends != NULL) {
+    for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
+      const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
+      assert(subinfo != NULL);
+      assert(subinfo->flags & NT_TYPE_FLAG_DYNAMIC);
+    }
+  }
+
   pthread_mutex_lock(&nt_type_mutex);
 
   // TODO: check if type is already registered in registry
@@ -60,6 +68,24 @@ NT_EXPORT void nt_type_unregister(NtTypeInfo* info) {
   }
 }
 
+NT_EXPORT bool nt_type_isof(NtType type, NtType base) {
+  assert(type != NT_TYPE_NONE);
+  assert(base != NT_TYPE_NONE);
+
+  const NtTypeInfo* info = nt_type_info_from_type(type);
+  assert(info != NULL);
+
+  if (info->extends != NULL) {
+    for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
+      if (info->extends[i] == base) return true;
+
+      bool r = nt_type_isof(info->extends[i], base);
+      if (r) return true;
+    }
+  }
+  return false;
+}
+
 NT_EXPORT const NtTypeInfo* nt_type_info_from_type(NtType type) {
   for (struct TypeEntry* item = nt_type_registry; item != NULL; item = item->next) {
     if (item->info->id == type) {
@@ -74,10 +100,12 @@ NT_EXPORT const size_t nt_type_info_get_total_size(NtTypeInfo* info) {
 
   size_t size = info->size;
 
-  for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
-    const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
-    assert(subinfo != NULL);
-    size += (size_t)nt_type_info_get_total_size((NtTypeInfo*)subinfo);
+  if (info->extends != NULL) {
+    for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
+      const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
+      assert(subinfo != NULL);
+      size += (size_t)nt_type_info_get_total_size((NtTypeInfo*)subinfo);
+    }
   }
   return size;
 }
@@ -100,21 +128,42 @@ NT_EXPORT NtTypeInstance* nt_type_instance_new(NtType type) {
 
   size_t off = 0;
 
-  for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
-    const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
-    assert(subinfo != NULL);
+  if (info->extends != NULL) {
+    for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
+      // TODO: recursively do this for all subinfo children extends
+      const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
+      assert(subinfo != NULL);
 
-    if (subinfo->construct != NULL) {
-      subinfo->construct(instance, instance->data + off);
+      if (subinfo->construct != NULL) {
+        subinfo->construct(instance, instance->data + off);
+      }
+
+      off += nt_type_info_get_total_size((NtTypeInfo*)subinfo);
     }
-
-    off += subinfo->size;
   }
 
   if (info->construct != NULL) {
     info->construct(instance, instance->data + off);
   }
   return instance;
+}
+
+NT_EXPORT void* nt_type_instance_get_data(NtTypeInstance* instance, NtType type) {
+  size_t off = 0;
+
+  if (instance->info->extends != NULL) {
+    for (size_t i = 0; instance->info->extends[i] != NT_TYPE_NONE; i++) {
+      // TODO: recursively do this for all subinfo children extends
+      if (instance->info->extends[i] != type) {
+        const NtTypeInfo* subinfo = nt_type_info_from_type(instance->info->extends[i]);
+        assert(subinfo != NULL);
+        off += nt_type_info_get_total_size((NtTypeInfo*)subinfo);
+        continue;
+      }
+      return (void*)(instance->data + off);
+    }
+  }
+  return NULL;
 }
 
 NT_EXPORT NtTypeInstance* nt_type_instance_ref(NtTypeInstance* instance) {
@@ -132,15 +181,18 @@ NT_EXPORT void nt_type_instance_destroy(NtTypeInstance* instance) {
 
   size_t off = 0;
 
-  for (size_t i = 0; instance->info->extends[i] != NT_TYPE_NONE; i++) {
-    const NtTypeInfo* subinfo = nt_type_info_from_type(instance->info->extends[i]);
-    assert(subinfo != NULL);
+  if (instance->info->extends != NULL) {
+    for (size_t i = 0; instance->info->extends[i] != NT_TYPE_NONE; i++) {
+      // TODO: recursively do this for all subinfo children extends
+      const NtTypeInfo* subinfo = nt_type_info_from_type(instance->info->extends[i]);
+      assert(subinfo != NULL);
 
-    if (subinfo->destroy != NULL) {
-      subinfo->destroy(instance, instance->data + off);
+      if (subinfo->destroy != NULL) {
+        subinfo->destroy(instance, instance->data + off);
+      }
+
+      off += nt_type_info_get_total_size((NtTypeInfo*)subinfo);
     }
-
-    off += subinfo->size;
   }
 
   if (instance->info->destroy != NULL) {

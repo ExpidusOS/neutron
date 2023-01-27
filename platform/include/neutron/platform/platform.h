@@ -31,11 +31,8 @@ typedef struct _NtPlatform {
   struct _NtPlatformPrivate* priv;
 } NtPlatform;
 
-#define NT_PLATFORM_SIZE (sizeof (NtPlatform) - sizeof (NtTypeInstance))
-#define NT_PLATFORM(inst) ((NtPlatform*)(inst))
 #define NT_TYPE_PLATFORM nt_platform_get_type()
-
-NT_EXPORT NtType nt_platform_get_type();
+NT_DECLARE_TYPE(NT, PLATFORM, NtPlatform, nt_platform);
 
 /**
  * nt_platform_get_global:

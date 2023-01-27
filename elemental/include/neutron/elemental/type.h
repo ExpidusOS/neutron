@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -103,6 +104,42 @@ typedef struct _NtTypeInstance {
   size_t ref_count;
 } NtTypeInstance;
 
+#define NT_TYPEDEF_CONSTRUCT(func_name) info.construct = func_name ## _construct;
+#define NT_TYPEDEF_DESTROY(func_name) info.destroy = func_name ## _destroy;
+
+#define NT_DEFINE_TYPE_WITH_CODE(ns, name, struct_name, func_name, flgs, code) \
+  NT_EXPORT const size_t ns ## _ ## name ## _SIZE = sizeof (struct_name) - sizeof (NtTypeInstance); \
+  NT_EXPORT struct_name * ns ## _ ## name(NtTypeInstance* instance) { \
+    return (struct_name *)nt_type_instance_get_data(instance, func_name ## _get_type()); \
+  } \
+  NT_EXPORT const bool ns ## _IS_ ## name(struct_name* self) { \
+    return nt_type_isof(func_name ## _get_type(), ((NtTypeInstance*)self)->info->id); \
+  } \
+  NT_EXPORT NtType func_name ## _get_type() { \
+    static NtType id = NT_TYPE_NONE; \
+    if (id == NT_TYPE_NONE) { \
+      static NtTypeInfo info = {}; \
+      info.flags = flgs; \
+      info.size = sizeof (struct_name) - sizeof (NtTypeInstance); \
+      code \
+      id = nt_type_register(&info); \
+    } \
+    return id; \
+  }
+
+#define NT_DEFINE_TYPE(ns, name, struct_name, func_name, flags) \
+  static void func_name ## _construct(NtTypeInstance* instance, void* data); \
+  static void func_name ## _destroy(NtTypeInstance* instance, void* data); \
+  NT_DEFINE_TYPE_WITH_CODE(ns, name, struct_name, func_name, flags, \
+    NT_TYPEDEF_CONSTRUCT(func_name) \
+    NT_TYPEDEF_DESTROY(func_name))
+
+#define NT_DECLARE_TYPE(ns, name, struct_name, func_name) \
+  NT_EXPORT extern const size_t ns ## _ ## name ## _SIZE; \
+  NT_EXPORT struct_name * ns ## _ ## name(NtTypeInstance* instance); \
+  NT_EXPORT const bool ns ## _IS_ ## name(struct_name* self); \
+  NT_EXPORT NtType func_name ## _get_type();
+
 /**
  * nt_type_register:
  *
@@ -116,6 +153,13 @@ NT_EXPORT NtType nt_type_register(NtTypeInfo* info);
  * Unregisters a type
  */
 NT_EXPORT void nt_type_unregister(NtTypeInfo* info);
+
+/**
+ * nt_type_isof:
+ *
+ * Returns a boolean of whether or not type extends "base"
+ */
+NT_EXPORT bool nt_type_isof(NtType type, NtType base);
 
 /**
  * nt_type_info_from_type:
@@ -140,6 +184,13 @@ NT_EXPORT const size_t nt_type_info_get_total_size(NtTypeInfo* info);
  * where total size is determined by all parent NtTypeInfo size elements.
  */
 NT_EXPORT NtTypeInstance* nt_type_instance_new(NtType type);
+
+/**
+ * nt_type_instance_get_data:
+ *
+ * Gets the data section of a specific type in the instance.
+ */
+NT_EXPORT void* nt_type_instance_get_data(NtTypeInstance* instance, NtType type);
 
 /**
  * nt_type_instance_ref:
