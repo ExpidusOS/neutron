@@ -1,28 +1,11 @@
 #pragma once
 
+#include <neutron/elemental/argument.h>
+#include <neutron/elemental/common.h>
+#include <neutron/elemental/value.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-
-#if defined(__GNUC__) || defined(__clang__)
-#define NT_PUBLIC __attribute__((visibility("default")))
-#define NT_PRIVATE __attribute__((visibility("default")))
-#elif defined(_WIN32) || defined(__CYGWIN__)
-#define NT_PUBLIC __declspec(dllimport)
-#define NT_PRIVATE
-#else
-#warn "Unsupport compiler"
-#define NT_PUBLIC
-#define NT_PRIVATE
-#endif
-
-#ifdef __cplusplus
-#define NT_BEGIN_DECLS extern "C" {
-#define NT_END_DECLS }
-#else
-#define NT_BEGIN_DECLS
-#define NT_END_DECLS
-#endif
 
 /**
  * NtType:
@@ -86,7 +69,7 @@ typedef struct _NtTypeInfo {
   /**
    * Method to run when this type is allocated by nt_type_instance_new
    */
-  void (*construct)(struct _NtTypeInstance* instance);
+  void (*construct)(struct _NtTypeInstance* instance, NtTypeArgument* arguments);
 
   /**
    * Method to run when this type is deallocated by nt_type_instance_destroy
@@ -146,7 +129,7 @@ typedef struct _NtTypeInstance {
   }
 
 #define NT_DEFINE_TYPE(ns, name, struct_name, func_name, flags) \
-  static void func_name ## _construct(NtTypeInstance* instance); \
+  static void func_name ## _construct(NtTypeInstance* instance, NtTypeArgument* arguments); \
   static void func_name ## _destroy(NtTypeInstance* instance); \
   NT_DEFINE_TYPE_WITH_CODE(ns, name, struct_name, func_name, flags, \
     NT_TYPEDEF_CONSTRUCT(func_name) \
@@ -209,7 +192,7 @@ const size_t nt_type_info_get_total_size(NtTypeInfo* info);
  * The resulting pointer will be (sizeof (NtTypeInstance) + total size)
  * where total size is determined by all parent NtTypeInfo size elements.
  */
-NtTypeInstance* nt_type_instance_new(NtType type);
+NtTypeInstance* nt_type_instance_new(NtType type, NtTypeArgument* arguments);
 
 /**
  * nt_type_instance_get_data:

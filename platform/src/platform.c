@@ -5,7 +5,7 @@
 
 NT_DEFINE_TYPE(NT, PLATFORM, NtPlatform, nt_platform, NT_TYPE_FLAG_STATIC);
 
-static void nt_platform_construct(NtTypeInstance* inst) {
+static void nt_platform_construct(NtTypeInstance* inst, NtTypeArgument* arguments) {
   NtPlatform* self = NT_PLATFORM(inst);
 
   self->priv = malloc(sizeof (NtPlatformPrivate));
@@ -16,7 +16,7 @@ static void nt_platform_destroy(NtTypeInstance* inst) {
   NtPlatform* self = NT_PLATFORM(inst);
 
   if (self->priv->device_enum != NULL) {
-    nt_type_instance_destroy(self->priv->device_enum);
+    nt_type_instance_destroy((NtTypeInstance*)self->priv->device_enum);
     self->priv->device_enum = NULL;
   }
 
@@ -27,7 +27,7 @@ static void nt_platform_destroy(NtTypeInstance* inst) {
 NtPlatform* nt_platform_get_global() {
   static NtPlatform* global;
   if (global == NULL) {
-    global = NT_PLATFORM(nt_type_instance_new(NT_TYPE_PLATFORM));
+    global = NT_PLATFORM(nt_type_instance_new(NT_TYPE_PLATFORM, NULL));
     assert(global != NULL);
   }
   return NT_PLATFORM(nt_type_instance_ref((NtTypeInstance*)global));
