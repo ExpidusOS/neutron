@@ -114,7 +114,9 @@ typedef struct _NtTypeInstance {
     return (struct_name *)nt_type_instance_get_data(instance, func_name ## _get_type()); \
   } \
   const bool ns ## _IS_ ## name(struct_name* self) { \
-    return nt_type_isof(func_name ## _get_type(), ((NtTypeInstance*)self)->type); \
+    NtType base = func_name ## _get_type(); \
+    NtType child = ((NtTypeInstance*)self)->type; \
+    return nt_type_isof(base, child) || base == child; \
   } \
   NtType func_name ## _get_type() { \
     static NtType id = NT_TYPE_NONE; \
