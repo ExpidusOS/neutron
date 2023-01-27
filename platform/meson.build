@@ -23,8 +23,21 @@ platform = declare_dependency(link_with: libplatform,
   include_directories: platform_inc,
   dependencies: platform_deps)
 
+if check.found()
+  libplatform_native = both_libraries('neutron-platform-native', platform_sources,
+    include_directories: platform_inc,
+    dependencies: platform_deps,
+    version: version,
+    gnu_symbol_visibility: 'hidden')
+  platform_native = declare_dependency(link_with: libplatform_native,
+    include_directories: platform_inc,
+    dependencies: platform_deps)
+endif
+
 pkg.generate(libplatform,
   name: 'neutron-platform',
   description: 'Platform specific API bindings',
   url: 'https://github.com/ExpidusOS/neutron',
   version: longver)
+
+subdir('tests', if_found: [check])

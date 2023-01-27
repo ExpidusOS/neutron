@@ -31,6 +31,14 @@ typedef struct _NtPlatform {
   struct _NtPlatformPrivate* priv;
 } NtPlatform;
 
+NT_BEGIN_DECLS
+
+#if defined(__GNUC__)
+#pragma GCC visibility push(default)
+#elif defined(__clang__)
+#pragma clang visibility push(default)
+#endif
+
 #define NT_TYPE_PLATFORM nt_platform_get_type()
 NT_DECLARE_TYPE(NT, PLATFORM, NtPlatform, nt_platform);
 
@@ -39,11 +47,19 @@ NT_DECLARE_TYPE(NT, PLATFORM, NtPlatform, nt_platform);
  *
  * Get the global platform instance
  */
-NT_EXPORT NtPlatform* nt_platform_get_global();
+NtPlatform* nt_platform_get_global();
 
 /**
  * nt_platform_get_os:
  *
  * Get the operating system the platform is running on
  */
-NT_EXPORT NtPlatformOS nt_platform_get_os(NtPlatform* self);
+NtPlatformOS nt_platform_get_os(NtPlatform* self);
+
+#if defined(__GNUC__)
+#pragma GCC visibility pop
+#elif defined(__clang__)
+#pragma clang visibility pop
+#endif
+
+NT_END_DECLS

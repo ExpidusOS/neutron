@@ -6,7 +6,7 @@
 
 struct TypeEntry {
   struct TypeEntry* prev;
-  const NtTypeInfo* info;
+  NtTypeInfo info;
   struct TypeEntry* next;
 };
 
@@ -16,15 +16,17 @@ static struct TypeEntry* nt_type_registry = NULL;
 
 #define NT_TYPE_INFO_IS_VALID(info) ((info) != NULL && (info)->id > 0)
 
-NT_EXPORT NtType nt_type_register(NtTypeInfo* info) {
+NtType nt_type_register(NtTypeInfo* info) {
   assert(info != NULL);
   assert(info->id == 0);
 
+  size_t n_extends = 1;
   if (info->extends != NULL) {
     for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
       const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
       assert(subinfo != NULL);
       assert(subinfo->flags & NT_TYPE_FLAG_DYNAMIC);
+      n_extends++;
     }
   }
 
@@ -37,8 +39,23 @@ NT_EXPORT NtType nt_type_register(NtTypeInfo* info) {
   struct TypeEntry* entry = malloc(sizeof (struct TypeEntry));
   assert(entry != NULL);
   memset(entry, 0, sizeof (struct TypeEntry));
-  entry->info = info;
   entry->next = nt_type_registry;
+
+  entry->info.id = info->id;
+  entry->info.flags = info->flags;
+  entry->info.construct = info->construct;
+  entry->info.destroy = info->destroy;
+  entry->info.size = info->size;
+
+  entry->info.extends = calloc(n_extends, sizeof (NtType));
+  assert(entry->info.extends != NULL);
+  if (info->extends != NULL) {
+    for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
+      entry->info.extends[i] = info->extends[i];
+    }
+  }
+
+  entry->info.extends[n_extends - 1] = NT_TYPE_NONE;
 
   if (nt_type_registry != NULL) {
     nt_type_registry->prev = entry;
@@ -50,11 +67,11 @@ NT_EXPORT NtType nt_type_register(NtTypeInfo* info) {
   return info->id;
 }
 
-NT_EXPORT void nt_type_unregister(NtTypeInfo* info) {
+void nt_type_unregister(NtTypeInfo* info) {
   assert(NT_TYPE_INFO_IS_VALID(info));
 
   for (struct TypeEntry* item = nt_type_registry; item != NULL; item = item->next) {
-    if (item->info->id == info->id) {
+    if (item->info.id == info->id) {
       pthread_mutex_lock(&nt_type_mutex);
 
       if (item->prev != NULL) item->prev->next = item->next;
@@ -68,7 +85,7 @@ NT_EXPORT void nt_type_unregister(NtTypeInfo* info) {
   }
 }
 
-NT_EXPORT bool nt_type_isof(NtType type, NtType base) {
+bool nt_type_isof(NtType type, NtType base) {
   assert(type != NT_TYPE_NONE);
   assert(base != NT_TYPE_NONE);
 
@@ -86,16 +103,16 @@ NT_EXPORT bool nt_type_isof(NtType type, NtType base) {
   return false;
 }
 
-NT_EXPORT const NtTypeInfo* nt_type_info_from_type(NtType type) {
+const NtTypeInfo* nt_type_info_from_type(NtType type) {
   for (struct TypeEntry* item = nt_type_registry; item != NULL; item = item->next) {
-    if (item->info->id == type) {
-      return item->info;
+    if (item->info.id == type) {
+      return &item->info;
     }
   }
   return NULL;
 }
 
-NT_EXPORT const size_t nt_type_info_get_total_size(NtTypeInfo* info) {
+const size_t nt_type_info_get_total_size(NtTypeInfo* info) {
   assert(NT_TYPE_INFO_IS_VALID(info));
 
   size_t size = info->size;
@@ -110,7 +127,7 @@ NT_EXPORT const size_t nt_type_info_get_total_size(NtTypeInfo* info) {
   return size;
 }
 
-NT_EXPORT NtTypeInstance* nt_type_instance_new(NtType type) {
+NtTypeInstance* nt_type_instance_new(NtType type) {
   const NtTypeInfo* info = nt_type_info_from_type(type);
   assert(info != NULL);
 
@@ -120,11 +137,11 @@ NT_EXPORT NtTypeInstance* nt_type_instance_new(NtType type) {
 
   NtTypeInstance* instance = malloc(size);
   assert(instance != NULL);
-  memset(instance, 0, size);
 
-  instance->info = info;
+  instance->type = type;
   instance->data = instance + sizeof (NtTypeInstance);
   instance->data_size = data_size;
+  instance->ref_count = 0;
 
   size_t off = 0;
 
@@ -148,14 +165,18 @@ NT_EXPORT NtTypeInstance* nt_type_instance_new(NtType type) {
   return instance;
 }
 
-NT_EXPORT void* nt_type_instance_get_data(NtTypeInstance* instance, NtType type) {
-  size_t off = 0;
+void* nt_type_instance_get_data(NtTypeInstance* instance, NtType type) {
+  assert(instance != NULL);
 
-  if (instance->info->extends != NULL) {
-    for (size_t i = 0; instance->info->extends[i] != NT_TYPE_NONE; i++) {
+  const NtTypeInfo* info = nt_type_info_from_type(instance->type);
+  assert(info != NULL);
+
+  size_t off = 0;
+  if (info->extends != NULL) {
+    for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
       // TODO: recursively do this for all subinfo children extends
-      if (instance->info->extends[i] != type) {
-        const NtTypeInfo* subinfo = nt_type_info_from_type(instance->info->extends[i]);
+      if (info->extends[i] != type) {
+        const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
         assert(subinfo != NULL);
         off += nt_type_info_get_total_size((NtTypeInfo*)subinfo);
         continue;
@@ -163,17 +184,28 @@ NT_EXPORT void* nt_type_instance_get_data(NtTypeInstance* instance, NtType type)
       return (void*)(instance->data + off);
     }
   }
+  
+  if (info->id == type) return (void*)(instance->data + off);
   return NULL;
 }
 
-NT_EXPORT NtTypeInstance* nt_type_instance_ref(NtTypeInstance* instance) {
-  if (instance->info->flags & NT_TYPE_FLAG_NOREF) return instance;
+NtTypeInstance* nt_type_instance_ref(NtTypeInstance* instance) {
+  assert(instance != NULL);
+
+  const NtTypeInfo* info = nt_type_info_from_type(instance->type);
+  assert(info != NULL);
+  if (info->flags & NT_TYPE_FLAG_NOREF) return instance;
 
   instance->ref_count++;
   return instance;
 }
 
-NT_EXPORT void nt_type_instance_destroy(NtTypeInstance* instance) {
+void nt_type_instance_destroy(NtTypeInstance* instance) {
+  assert(instance != NULL);
+
+  const NtTypeInfo* info = nt_type_info_from_type(instance->type);
+  assert(info != NULL);
+
   if (instance->ref_count > 0) {
     instance->ref_count--;
     return;
@@ -181,10 +213,10 @@ NT_EXPORT void nt_type_instance_destroy(NtTypeInstance* instance) {
 
   size_t off = 0;
 
-  if (instance->info->extends != NULL) {
-    for (size_t i = 0; instance->info->extends[i] != NT_TYPE_NONE; i++) {
+  if (info->extends != NULL) {
+    for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
       // TODO: recursively do this for all subinfo children extends
-      const NtTypeInfo* subinfo = nt_type_info_from_type(instance->info->extends[i]);
+      const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
       assert(subinfo != NULL);
 
       if (subinfo->destroy != NULL) {
@@ -195,8 +227,8 @@ NT_EXPORT void nt_type_instance_destroy(NtTypeInstance* instance) {
     }
   }
 
-  if (instance->info->destroy != NULL) {
-    instance->info->destroy(instance, instance->data + off);
+  if (info->destroy != NULL) {
+    info->destroy(instance, instance->data + off);
   }
 
   free(instance);

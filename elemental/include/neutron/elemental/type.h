@@ -4,7 +4,25 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define NT_EXPORT __attribute__ ((visibility("default")))
+#if defined(__GNUC__) || defined(__clang__)
+#define NT_PUBLIC __attribute__((visibility("default")))
+#define NT_PRIVATE __attribute__((visibility("default")))
+#elif defined(_WIN32) || defined(__CYGWIN__)
+#define NT_PUBLIC __declspec(dllimport)
+#define NT_PRIVATE
+#else
+#warn "Unsupport compiler"
+#define NT_PUBLIC
+#define NT_PRIVATE
+#endif
+
+#ifdef __cplusplus
+#define NT_BEGIN_DECLS extern "C" {
+#define NT_END_DECLS }
+#else
+#define NT_BEGIN_DECLS
+#define NT_END_DECLS
+#endif
 
 /**
  * NtType:
@@ -85,7 +103,7 @@ typedef struct _NtTypeInstance {
   /**
    * Type information
    */
-  const NtTypeInfo* info;
+  NtType type;
 
   /**
    * Pointer to the start of the instance data
@@ -108,14 +126,14 @@ typedef struct _NtTypeInstance {
 #define NT_TYPEDEF_DESTROY(func_name) info.destroy = func_name ## _destroy;
 
 #define NT_DEFINE_TYPE_WITH_CODE(ns, name, struct_name, func_name, flgs, code) \
-  NT_EXPORT const size_t ns ## _ ## name ## _SIZE = sizeof (struct_name) - sizeof (NtTypeInstance); \
-  NT_EXPORT struct_name * ns ## _ ## name(NtTypeInstance* instance) { \
+  const size_t ns ## _ ## name ## _SIZE = sizeof (struct_name) - sizeof (NtTypeInstance); \
+  struct_name * ns ## _ ## name(NtTypeInstance* instance) { \
     return (struct_name *)nt_type_instance_get_data(instance, func_name ## _get_type()); \
   } \
-  NT_EXPORT const bool ns ## _IS_ ## name(struct_name* self) { \
-    return nt_type_isof(func_name ## _get_type(), ((NtTypeInstance*)self)->info->id); \
+  const bool ns ## _IS_ ## name(struct_name* self) { \
+    return nt_type_isof(func_name ## _get_type(), ((NtTypeInstance*)self)->type); \
   } \
-  NT_EXPORT NtType func_name ## _get_type() { \
+  NtType func_name ## _get_type() { \
     static NtType id = NT_TYPE_NONE; \
     if (id == NT_TYPE_NONE) { \
       static NtTypeInfo info = {}; \
@@ -135,45 +153,53 @@ typedef struct _NtTypeInstance {
     NT_TYPEDEF_DESTROY(func_name))
 
 #define NT_DECLARE_TYPE(ns, name, struct_name, func_name) \
-  NT_EXPORT extern const size_t ns ## _ ## name ## _SIZE; \
-  NT_EXPORT struct_name * ns ## _ ## name(NtTypeInstance* instance); \
-  NT_EXPORT const bool ns ## _IS_ ## name(struct_name* self); \
-  NT_EXPORT NtType func_name ## _get_type();
+  extern const size_t ns ## _ ## name ## _SIZE; \
+  struct_name * ns ## _ ## name(NtTypeInstance* instance); \
+  const bool ns ## _IS_ ## name(struct_name* self); \
+  NtType func_name ## _get_type();
+
+NT_BEGIN_DECLS
+
+#if defined(__GNUC__)
+#pragma GCC visibility push(default)
+#elif defined(__clang__)
+#pragma clang visibility push(default)
+#endif
 
 /**
  * nt_type_register:
  *
  * Register a new type
  */
-NT_EXPORT NtType nt_type_register(NtTypeInfo* info);
+NtType nt_type_register(NtTypeInfo* info);
 
 /**
  * nt_type_register:
  *
  * Unregisters a type
  */
-NT_EXPORT void nt_type_unregister(NtTypeInfo* info);
+void nt_type_unregister(NtTypeInfo* info);
 
 /**
  * nt_type_isof:
  *
  * Returns a boolean of whether or not type extends "base"
  */
-NT_EXPORT bool nt_type_isof(NtType type, NtType base);
+bool nt_type_isof(NtType type, NtType base);
 
 /**
  * nt_type_info_from_type:
  *
  * Get type information from a type ID
  */
-NT_EXPORT const NtTypeInfo* nt_type_info_from_type(NtType type);
+const NtTypeInfo* nt_type_info_from_type(NtType type);
 
 /**
  * nt_type_info_get_total_size:
  *
  * Returns the total size of all elements except the size of NtTypeInstance
  */
-NT_EXPORT const size_t nt_type_info_get_total_size(NtTypeInfo* info);
+const size_t nt_type_info_get_total_size(NtTypeInfo* info);
 
 /**
  * nt_type_instance_new:
@@ -183,21 +209,21 @@ NT_EXPORT const size_t nt_type_info_get_total_size(NtTypeInfo* info);
  * The resulting pointer will be (sizeof (NtTypeInstance) + total size)
  * where total size is determined by all parent NtTypeInfo size elements.
  */
-NT_EXPORT NtTypeInstance* nt_type_instance_new(NtType type);
+NtTypeInstance* nt_type_instance_new(NtType type);
 
 /**
  * nt_type_instance_get_data:
  *
  * Gets the data section of a specific type in the instance.
  */
-NT_EXPORT void* nt_type_instance_get_data(NtTypeInstance* instance, NtType type);
+void* nt_type_instance_get_data(NtTypeInstance* instance, NtType type);
 
 /**
  * nt_type_instance_ref:
  *
  * Increases the ref_count of the type instance
  */
-NT_EXPORT NtTypeInstance* nt_type_instance_ref(NtTypeInstance* instance);
+NtTypeInstance* nt_type_instance_ref(NtTypeInstance* instance);
 
 /**
  * nt_type_instance_destroy:
@@ -205,4 +231,12 @@ NT_EXPORT NtTypeInstance* nt_type_instance_ref(NtTypeInstance* instance);
  * Destroys a type instance if ref_count is 0. If ref_count is
  * greater than 0, then it is deincremented.
  */
-NT_EXPORT void nt_type_instance_destroy(NtTypeInstance* instance);
+void nt_type_instance_destroy(NtTypeInstance* instance);
+
+#if defined(__GNUC__)
+#pragma GCC visibility pop
+#elif defined(__clang__)
+#pragma clang visibility pop
+#endif
+
+NT_END_DECLS

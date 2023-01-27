@@ -23,7 +23,7 @@ elemental = declare_dependency(link_with: libelemental,
   include_directories: elemental_inc,
   dependencies: elemental_deps)
 
-if meson.can_run_host_binaries() and check.found()
+if check.found()
   libelemental_native = both_libraries('neutron-elemental-host', elemental_sources,
     include_directories: elemental_inc,
     dependencies: elemental_deps,
