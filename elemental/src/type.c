@@ -219,14 +219,10 @@ void nt_type_instance_destroy(NtTypeInstance* instance) {
 
   if (info->extends != NULL) {
     for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
-      // TODO: recursively do this for all subinfo children extends
       const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
       assert(subinfo != NULL);
 
-      if (subinfo->destroy != NULL) {
-        subinfo->destroy(instance, instance->data + off);
-      }
-
+      nt_type_instance_destroy((void*)(instance->data + off));
       off += nt_type_info_get_total_size((NtTypeInfo*)subinfo);
     }
   }
