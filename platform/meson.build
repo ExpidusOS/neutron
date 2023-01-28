@@ -47,6 +47,6 @@ pkg.generate(libplatform,
   name: 'neutron-platform',
   description: 'Platform specific API bindings',
   url: 'https://github.com/ExpidusOS/neutron',
-  version: longver)
+  version: shortver)
 
 subdir('tests', if_found: [check])

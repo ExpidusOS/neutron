@@ -45,6 +45,10 @@ shortver = '@0@-@1@'.format(meson.project_version(), git_commit)
 longver = '@0@ (branch \'@1@\')'.format(shortver, git_branch)
 version = shortver.split('-')[0]
 
+if get_option('buildtype') == 'release'
+  shortver = meson.project_version()
+endif
+
 conf_data.set('GIT_COMMIT', git_commit)
 conf_data.set('GIT_BRANCH', git_branch)
 
@@ -52,17 +56,36 @@ conf_data.set('VERSION', version)
 conf_data.set('VERSION_LONG', longver)
 conf_data.set('VERSION_SHORT', shortver)
 
+tests = get_option('tests').disable_auto_if(not dependency('check', native: true, required: false).found())
+docs = get_option('docs').disable_auto_if(not find_program('hotdoc', native: true, required: false).found())
+
 cc = meson.get_compiler('c')
 cc_native = meson.get_compiler('c', native: true)
 
 pthread = cc.find_library('pthread')
-pthread_native = cc_native.find_library('pthread', required: get_option('tests'))
+pthread_native = cc_native.find_library('pthread', required: tests)
+check = dependency('check', required: get_option('tests'), native: true)
+
+if docs.enabled() or docs.auto()
+  hotdoc = import('hotdoc')
+else
+  hotdoc = disabler()
+endif
 
 add_global_arguments([
   '-Werror=unused-variable'
 ], language: 'c')
 
-check = dependency('check', required: get_option('tests'), native: true)
-
 subdir('elemental')
 subdir('platform')
+
+if hotdoc.found()
+  hotdoc.generate_doc('neutron',
+    project_version: shortver,
+    sitemap: 'docs/sitemap.txt',
+    index: 'docs/index.md',
+    c_sources: [elemental_sources, platform_sources],
+    c_smart_index: true,
+    languages: ['c'],
+    install: true)
+endif

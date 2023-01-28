@@ -11,8 +11,8 @@ rec {
       src = cleanSource self;
       buildType = "release";
     }).overrideAttrs (s: {
-      nativeBuildInputs = with buildPackages; [ meson ninja pkg-config ];
-      buildInputs = (s.buildInputs or []) ++ [ check flutter-engine ];
+      nativeBuildInputs = (s.nativeBuildInputs or []) ++ (with buildPackages; [ hotdoc llvmPackages_14.libclang ]);
+      buildInputs = (s.buildInputs or []) ++ [ flutter-engine ];
       doCheck = true;
     });
   });
