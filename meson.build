@@ -13,12 +13,13 @@ longver = '@0@'.format(meson.project_version())
 shortver = longver
 git = find_program('git', native: true, required: false)
 conf_data = configuration_data()
-conf_data.set('BUILD_USER', get_option('build-user'))
+build_user = get_option('build-user')
 
 if git.found()
   git_commit = run_command(git, 'rev-parse', '--short', 'HEAD', check: true)
   git_branch = run_command(git, 'rev-parse', '--abbrev-ref', 'HEAD', check: true)
   git_config_username = run_command(git, 'config', '--get', 'user.name', check: true)
+  git_config_email = run_command(git, 'config', '--get', 'user.email', check: true)
 
   if git_commit.returncode() == 0
     git_commit = git_commit.stdout().strip()
@@ -32,9 +33,10 @@ if git.found()
     git_branch = get_option('git-branch')
   endif
 
-  if git_config_username.returncode() == 0
-    git_username = git_config_username.stdout().strip()
-    conf_data.set('BUILD_USER', git_username)
+  if git_config_username.returncode() == 0 and git_config_email.returncode() == 0
+    git_config_username = git_config_username.stdout().strip()
+    git_config_email = git_config_email.stdout().strip()
+    build_user = '@0@ (@1@)'.format(git_config_username, git_config_email)
   endif
 else
   git_commit = get_option('git-commit')
@@ -48,6 +50,8 @@ version = shortver.split('-')[0]
 if get_option('buildtype') == 'release'
   shortver = meson.project_version()
 endif
+
+conf_data.set('BUILD_USER', build_user)
 
 conf_data.set('GIT_COMMIT', git_commit)
 conf_data.set('GIT_BRANCH', git_branch)
@@ -70,21 +74,28 @@ gnome = import('gnome')
 gtkdoc = dependency('gtk-doc', native: true, required: docs)
 
 flutter_engine = dependency('flutter-engine-@0@'.format(get_option('flutter-runtime-mode')), required: true)
+pixman = dependency('pixman-1', native: false, required: false)
 
 add_global_arguments([
   '-Werror=unused-variable'
 ], language: 'c')
 
+libs = []
+
 subdir('elemental')
 subdir('platform')
 subdir('graphics')
 
+lib_names = []
+static_libs = []
+
+foreach lib : libs
+  lib_names += [lib.name()]
+  static_libs += [lib.get_static_lib()]
+endforeach
+
 libneutron = both_libraries('neutron',
-  link_whole: [
-    libelemental.get_static_lib(),
-    libplatform.get_static_lib(),
-    libgraphics.get_static_lib()
-  ],
+  link_whole: static_libs,
   version: version,
   gnu_symbol_visibility: 'hidden',
   install: true)
@@ -98,3 +109,12 @@ pkg.generate(libneutron,
   version: shortver)
 
 subdir('docs', if_found: [gtkdoc])
+
+summary({
+    'Built Libraries': lib_names,
+    'Built by': build_user,
+    'Version': version,
+    'Version (long)': longver,
+    'Version (short)': shortver,
+    'Flutter Engine Runtime Mode': get_option('flutter-runtime-mode')
+  }, section: 'Neutron')

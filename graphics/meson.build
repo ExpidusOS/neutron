@@ -12,7 +12,9 @@ graphics_cflags = []
 
 graphics_inc = include_directories('include')
 graphics_deps = [elemental, flutter_engine]
+graphics_renderers = []
 
+subdir('renderers')
 install_subdir('include', strip_directory: true, install_dir: includedir)
 
 libgraphics = both_libraries('neutron-graphics', graphics_sources,
@@ -25,6 +27,7 @@ libgraphics = both_libraries('neutron-graphics', graphics_sources,
 graphics = declare_dependency(link_with: libgraphics,
   include_directories: graphics_inc,
   dependencies: graphics_deps)
+libs += [libgraphics]
 
 pkg.generate(libgraphics,
   name: 'neutron-graphics',
@@ -33,3 +36,7 @@ pkg.generate(libgraphics,
   version: shortver)
 
 subdir('docs', if_found: [gtkdoc])
+
+summary({
+    'Renderers': graphics_renderers
+  }, section: 'Graphics')
