@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "platform-priv.h"
 
-NT_DEFINE_TYPE(NT, PLATFORM, NtPlatform, nt_platform, NT_TYPE_FLAG_STATIC);
+NT_DEFINE_TYPE(NT, PLATFORM, NtPlatform, nt_platform, NT_TYPE_FLAG_STATIC, NT_TYPE_NONE);
 
 static void nt_platform_construct(NtTypeInstance* inst, NtTypeArgument* arguments) {
   NtPlatform* self = NT_PLATFORM(inst);
