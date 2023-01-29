@@ -18,22 +18,16 @@ struct Context {
 };
 
 #if defined(AARCH64)
-#define CPU_STACK REG_SP
 #define CPU_ENTRY REG_X0
 #elif defined(ARM)
-#define CPU_STACK REG_SP
 #define CPU_ENTRY REG_R0
 #elif defined(RISCV32)
-#define CPU_STACK REG_SP
 #define CPU_ENTRY REG_A0
 #elif defined(RISCV64)
-#define CPU_STACK REG_SP
 #define CPU_ENTRY REG_A0
 #elif defined(X86_64)
-#define CPU_STACK REG_RSP
 #define CPU_ENTRY REG_RAX
 #elif defined(X86)
-#define CPU_STACK REG_ESP
 #define CPU_ENTRY REG_EAX
 #else
 #error "CPU not supported"
