@@ -1,6 +1,7 @@
 option('git-commit', type: 'string', value: '', description: 'Git commit hash of the source code')
 option('git-branch', type: 'string', value: 'master', description: 'Git branch for the source code')
 option('build-user', type: 'string', value: 'nobody', description: 'User who build the package')
+option('flutter-runtime-mode', type: 'string', value: 'release', description: 'The runtime mode of the Flutter API to utilize')
 
 option('tests', type: 'feature', value: 'auto', description: 'Build and enable testing')
 option('docs', type: 'feature', value: 'auto', description: 'Build and install the documentation')

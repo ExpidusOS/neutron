@@ -69,18 +69,25 @@ check = dependency('check', required: get_option('tests'), native: true)
 gnome = import('gnome')
 gtkdoc = dependency('gtk-doc', native: true, required: docs)
 
+flutter_engine = dependency('flutter-engine-@0@'.format(get_option('flutter-runtime-mode')), required: true)
+
 add_global_arguments([
   '-Werror=unused-variable'
 ], language: 'c')
 
 subdir('elemental')
 subdir('platform')
+subdir('graphics')
 
 libneutron = both_libraries('neutron',
-  link_whole: [libelemental.get_static_lib(), libplatform.get_static_lib()],
+  link_whole: [
+    libelemental.get_static_lib(),
+    libplatform.get_static_lib(),
+    libgraphics.get_static_lib()
+  ],
   install: true)
 neutron = declare_dependency(link_with: libneutron,
-  dependencies: [elemental_deps, platform_deps])
+  dependencies: [elemental_deps, platform_deps, graphics_deps])
 
 pkg.generate(libneutron,
   name: 'neutron',

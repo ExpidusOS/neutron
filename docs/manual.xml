@@ -31,6 +31,10 @@
       <xi:include href="../platform/docs/xml/device-enum.xml" />
       <xi:include href="../platform/docs/xml/platform.xml" />
     </chapter>
+    <chapter id="graphics">
+      <title>Graphics</title>
+      <xi:include href="../graphics/docs/xml/renderer.xml" />
+    </chapter>
   </part>
 
   <part id="api-index-full">
@@ -42,6 +46,10 @@
     <chapter id="platform">
       <title>Platform</title>
       <xi:include href="../platform/docs/xml/api-index-full.xml" />
+    </chapter>
+    <chapter id="graphics">
+      <title>Graphics</title>
+      <xi:include href="../graphics/docs/xml/api-index-full.xml" />
     </chapter>
   </part>
 </book>
