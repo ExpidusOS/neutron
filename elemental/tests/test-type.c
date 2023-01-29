@@ -8,7 +8,7 @@ typedef struct _NtTestObject {
 } NtTestObject;
 
 NT_DECLARE_TYPE(NT, TEST_OBJECT, NtTestObject, nt_test_object);
-NT_DEFINE_TYPE(NT, TEST_OBJECT, NtTestObject, nt_test_object, NT_TYPE_FLAG_STATIC);
+NT_DEFINE_TYPE(NT, TEST_OBJECT, NtTestObject, nt_test_object, NT_TYPE_FLAG_STATIC, NT_TYPE_NONE);
 
 static void nt_test_object_construct(NtTypeInstance* instance, NtTypeArgument* arguments) {
   NtTestObject* self = NT_TEST_OBJECT(instance);

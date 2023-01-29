@@ -96,6 +96,12 @@ typedef struct _NtTypeInstance {
 #define NT_TYPEDEF_DESTROY(func_name) info.destroy = func_name ## _destroy;
 
 /**
+ * NT_TYPEDEF_EXTENDS:
+ * @...: The type ID's to extend off of, must end in %NT_TYPE_NONE
+ */
+#define NT_TYPEDEF_EXTENDS(...) info.extends = (NtType[]){ __VA_ARGS__ };
+
+/**
  * NT_DEFINE_TYPE_WITH_CODE:
  * @ns: All-caps name of the namespace this type is associated with
  * @name: All-caps name of the type in the namespace
@@ -136,16 +142,18 @@ typedef struct _NtTypeInstance {
  * @struct_name: PascalCase name of the type
  * @func_name: The snake_case of the method name prefix for the type
  * @flgs: The %NtTypeFlags to set
+ * @...: The type ID's to extend off of, must end in %NT_TYPE_NONE
  *
  * Use %NT_DEFINE_TYPE_WITH_CODE and set the construct and destroy methods for it.
  * This is typically the recommended way for making types.
  */
-#define NT_DEFINE_TYPE(ns, name, struct_name, func_name, flags) \
+#define NT_DEFINE_TYPE(ns, name, struct_name, func_name, flags, ...) \
   static void func_name ## _construct(NtTypeInstance* instance, NtTypeArgument* arguments); \
   static void func_name ## _destroy(NtTypeInstance* instance); \
   NT_DEFINE_TYPE_WITH_CODE(ns, name, struct_name, func_name, flags, \
     NT_TYPEDEF_CONSTRUCT(func_name) \
-    NT_TYPEDEF_DESTROY(func_name))
+    NT_TYPEDEF_DESTROY(func_name) \
+    NT_TYPEDEF_EXTENDS(__VA_ARGS__))
 
 /**
  * NT_DECLARE_TYPE:

@@ -23,8 +23,11 @@ NtType nt_type_register(NtTypeInfo* info) {
   size_t n_extends = 1;
   if (info->extends != NULL) {
     for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
+      if (info->extends[i] == NT_TYPE_NONE) break;
+
       const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
-      assert(subinfo != NULL);
+      if (subinfo == NULL) break;
+
       assert(subinfo->flags & NT_TYPE_FLAG_DYNAMIC);
       n_extends++;
     }
