@@ -85,6 +85,8 @@ libneutron = both_libraries('neutron',
     libplatform.get_static_lib(),
     libgraphics.get_static_lib()
   ],
+  version: version,
+  gnu_symbol_visibility: 'hidden',
   install: true)
 neutron = declare_dependency(link_with: libneutron,
   dependencies: [elemental_deps, platform_deps, graphics_deps])
