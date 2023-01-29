@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "renderer-priv.h"
 
-NT_DEFINE_TYPE(NT, RENDERER, NtRenderer, nt_renderer, NT_TYPE_FLAG_DYNAMIC);
+NT_DEFINE_TYPE(NT, RENDERER, NtRenderer, nt_renderer, NT_TYPE_FLAG_DYNAMIC, NT_TYPE_NONE);
 
 static void nt_renderer_construct(NtTypeInstance* inst, NtTypeArgument* arguments) {
   NtRenderer* self = NT_RENDERER(inst);
