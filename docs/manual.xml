@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+  "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
+<!ENTITY version SYSTEM "version.xml">
+]>
+<book id="index" xmlns:xi="http://www.w3.org/2003/XInclude">
+  <bookinfo>
+    <title>Neutron Reference Manual</title>
+    <releaseinfo>
+      for ExpidusOS's Neutron Runtime and API v&version;
+    </releaseinfo>
+
+    <copyright>
+      <year>2023</year>
+      <holder>Midstall Software &amp; The ExpidusOS Team</holder>
+    </copyright>
+  </bookinfo>
+
+  <part id="api-reference">
+    <title>API Reference</title>
+    <chapter id="elemental">
+      <title>Elemental</title>
+      <xi:include href="../elemental/docs/xml/argument.xml" />
+      <xi:include href="../elemental/docs/xml/common.xml" />
+      <xi:include href="../elemental/docs/xml/signal.xml" />
+      <xi:include href="../elemental/docs/xml/type.xml" />
+      <xi:include href="../elemental/docs/xml/value.xml" />
+    </chapter>
+    <chapter id="platform">
+      <title>Platform</title>
+      <xi:include href="../platform/docs/xml/device-enum.xml" />
+      <xi:include href="../platform/docs/xml/platform.xml" />
+    </chapter>
+  </part>
+
+  <part id="api-index-full">
+    <title>API Index</title>
+    <chapter id="elemental">
+      <title>Elemental</title>
+      <xi:include href="../elemental/docs/xml/api-index-full.xml" />
+    </chapter>
+    <chapter id="platform">
+      <title>Platform</title>
+      <xi:include href="../platform/docs/xml/api-index-full.xml" />
+    </chapter>
+  </part>
+</book>

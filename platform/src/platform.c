@@ -16,7 +16,7 @@ static void nt_platform_destroy(NtTypeInstance* inst) {
   NtPlatform* self = NT_PLATFORM(inst);
 
   if (self->priv->device_enum != NULL) {
-    nt_type_instance_destroy((NtTypeInstance*)self->priv->device_enum);
+    nt_type_instance_unref((NtTypeInstance*)self->priv->device_enum);
     self->priv->device_enum = NULL;
   }
 

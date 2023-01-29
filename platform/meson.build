@@ -5,7 +5,7 @@ build_conf_platform = configure_file(input: 'src/build.h', output: 'neutron-plat
   configuration: conf_data_platform)
 
 platform_sources = [
-  'src/device/enum.c', 'src/platform.c'
+  'src/device-enum.c', 'src/platform.c'
 ]
 
 platform_cflags = [
@@ -50,3 +50,4 @@ pkg.generate(libplatform,
   version: shortver)
 
 subdir('tests', if_found: [check])
+subdir('docs', if_found: [gtkdoc])

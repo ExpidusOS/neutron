@@ -50,12 +50,12 @@ START_TEST(test_instance) {
   ck_assert_ptr_nonnull(obj2);
   ck_assert_uint_eq(obj2->instance.ref_count, 1);
 
-  nt_type_instance_destroy((NtTypeInstance*)obj2);
+  nt_type_instance_unref((NtTypeInstance*)obj2);
   ck_assert_uint_eq(obj2->instance.ref_count, 0);
   ck_assert_ptr_eq(obj2, obj);
 
   // FIXME: why is this not calling "nt_test_object_destroy"?
-  nt_type_instance_destroy((NtTypeInstance*)obj);
+  nt_type_instance_unref((NtTypeInstance*)obj);
 }
 END_TEST
 

@@ -17,7 +17,7 @@ START_TEST(test_basic) {
   nt_signal_emit(signal, NULL);
   ck_assert_int_eq(result, true);
 
-  nt_type_instance_destroy((NtTypeInstance*)signal);
+  nt_type_instance_unref((NtTypeInstance*)signal);
 }
 END_TEST
 
@@ -30,7 +30,7 @@ START_TEST(test_basic_locking) {
   nt_signal_emit(signal, NULL);
   ck_assert_int_eq(result, true);
 
-  nt_type_instance_destroy((NtTypeInstance*)signal);
+  nt_type_instance_unref((NtTypeInstance*)signal);
 }
 END_TEST
 
@@ -48,7 +48,7 @@ START_TEST(test_multiple) {
   ck_assert_int_eq(result2, true);
 
   nt_signal_detach(signal, test_signal_handler);
-  nt_type_instance_destroy((NtTypeInstance*)signal);
+  nt_type_instance_unref((NtTypeInstance*)signal);
 }
 END_TEST
 

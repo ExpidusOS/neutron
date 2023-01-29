@@ -7,8 +7,8 @@ with pkgs; mkShell rec {
 
   packages = [
     gdb valgrind lcov llvmPackages_14.llvm
-    llvmPackages_14.libclang
-    meson ninja clang pkg-config hotdoc
+    meson ninja clang pkg-config
+    gtk-doc libxslt docbook_xsl docbook_xml_dtd_412 docbook_xml_dtd_42 docbook_xml_dtd_43
     check flutter-engine
   ];
 

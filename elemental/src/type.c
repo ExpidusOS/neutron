@@ -234,7 +234,7 @@ static void nt_type_instance_flat_destroy(NtTypeInstance* instance) {
   }
 }
 
-void nt_type_instance_destroy(NtTypeInstance* instance) {
+void nt_type_instance_unref(NtTypeInstance* instance) {
   nt_type_instance_flat_destroy(instance);
   if (instance->ref_count == 0) free(instance);
 }

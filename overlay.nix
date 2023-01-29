@@ -11,7 +11,10 @@ rec {
       src = cleanSource self;
       buildType = "release";
     }).overrideAttrs (s: {
-      nativeBuildInputs = (s.nativeBuildInputs or []) ++ (with buildPackages; [ hotdoc llvmPackages_14.libclang ]);
+      nativeBuildInputs = (s.nativeBuildInputs or []) ++ (with buildPackages; [
+        gtk-doc libxslt docbook_xsl docbook_xml_dtd_412
+        docbook_xml_dtd_42 docbook_xml_dtd_43
+      ]);
       buildInputs = (s.buildInputs or []) ++ [ flutter-engine ];
       doCheck = true;
     });

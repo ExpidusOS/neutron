@@ -57,7 +57,7 @@ conf_data.set('VERSION_LONG', longver)
 conf_data.set('VERSION_SHORT', shortver)
 
 tests = get_option('tests').disable_auto_if(not dependency('check', native: true, required: false).found())
-docs = get_option('docs').disable_auto_if(not find_program('hotdoc', native: true, required: false).found())
+docs = get_option('docs').disable_auto_if(not dependency('gtk-doc', native: true, required: false).found())
 
 cc = meson.get_compiler('c')
 cc_native = meson.get_compiler('c', native: true)
@@ -66,11 +66,8 @@ pthread = cc.find_library('pthread')
 pthread_native = cc_native.find_library('pthread', required: tests)
 check = dependency('check', required: get_option('tests'), native: true)
 
-if docs.enabled() or docs.auto()
-  hotdoc = import('hotdoc')
-else
-  hotdoc = disabler()
-endif
+gnome = import('gnome')
+gtkdoc = dependency('gtk-doc', native: true, required: docs)
 
 add_global_arguments([
   '-Werror=unused-variable'
@@ -78,14 +75,7 @@ add_global_arguments([
 
 subdir('elemental')
 subdir('platform')
+subdir('docs', if_found: [gtkdoc])
 
-if hotdoc.found()
-  hotdoc.generate_doc('neutron',
-    project_version: shortver,
-    sitemap: 'docs/sitemap.txt',
-    index: 'docs/index.md',
-    c_sources: [elemental_sources, platform_sources],
-    c_smart_index: true,
-    languages: ['c'],
-    install: true)
+if gtkdoc.found()
 endif

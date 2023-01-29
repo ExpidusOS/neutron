@@ -44,3 +44,4 @@ pkg.generate(libelemental,
   version: shortver)
 
 subdir('tests', if_found: [check])
+subdir('docs', if_found: [gtkdoc])
