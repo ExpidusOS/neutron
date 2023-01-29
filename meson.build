@@ -74,7 +74,8 @@ gnome = import('gnome')
 gtkdoc = dependency('gtk-doc', native: true, required: docs)
 
 flutter_engine = dependency('flutter-engine-@0@'.format(get_option('flutter-runtime-mode')), required: true)
-pixman = dependency('pixman-1', native: false, required: false)
+pixman = dependency('pixman-1', native: false,
+  required: get_option('graphics-renderer-pixman').disable_auto_if(not dependency('pixman-1', native: false, required: false).found()))
 
 add_global_arguments([
   '-Werror=unused-variable'

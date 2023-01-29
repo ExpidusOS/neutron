@@ -11,7 +11,7 @@ rec {
       src = cleanSource self;
       buildType = "release";
     }).overrideAttrs (s: {
-      buildInputs = s.buildInputs ++ [ flutter-engine ];
+      buildInputs = s.buildInputs ++ [ flutter-engine pixman ];
     });
   });
 }

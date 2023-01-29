@@ -5,3 +5,5 @@ option('flutter-runtime-mode', type: 'string', value: 'release', description: 'T
 
 option('tests', type: 'feature', value: 'auto', description: 'Build and enable testing')
 option('docs', type: 'feature', value: 'auto', description: 'Build and install the documentation')
+
+option('graphics-renderer-pixman', type: 'feature', value: 'auto', description: 'Build the Pixman renderer for the graphics API')

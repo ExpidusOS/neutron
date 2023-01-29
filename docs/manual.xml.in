@@ -33,7 +33,9 @@
     </chapter>
     <chapter id="graphics">
       <title>Graphics</title>
+      <xi:include href="../graphics/docs/xml/build.xml" />
       <xi:include href="../graphics/docs/xml/renderer.xml" />
+      @GRAPHICS_RENDERERS_XML@
     </chapter>
   </part>
 

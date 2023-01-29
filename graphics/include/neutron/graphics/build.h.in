@@ -1,0 +1,9 @@
+#pragma once
+
+/**
+ * SECTION: build
+ * @title: Build Configuration
+ * @short_description: Macros describing how this was configured
+ */
+
+#mesondefine NT_GRAPHICS_HAS_PIXMAN

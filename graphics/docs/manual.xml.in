@@ -18,7 +18,9 @@
 
   <part>
     <title>API Reference</title>
+    <xi:include href="xml/build.xml" />
     <xi:include href="xml/renderer.xml" />
+    @GRAPHICS_RENDERERS_XML@
   </part>
 
   <index id="api-index-full">
