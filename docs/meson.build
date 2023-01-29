@@ -14,7 +14,9 @@ gnome.gtkdoc('neutron',
     join_paths(meson.project_source_root(), 'platform', 'include'),
     join_paths(meson.project_source_root(), 'graphics', 'include'),
     join_paths(meson.project_build_root(), 'graphics', 'include'),
-    graphics_docs_inc_paths
+    graphics_docs_inc_paths,
+    join_paths(meson.project_source_root(), 'runtime', 'include'),
+    join_paths(meson.project_source_root(), 'shimmy', 'include')
   ],
   scan_args: ['--rebuild-sections'],
   install: true)
