@@ -55,13 +55,6 @@ typedef struct _NtShimBinding {
 } NtShimBinding;
 
 /**
- * nt_shimmy_init:
- *
- * Initialize shimmy and bind the signal handler
- */
-void nt_shimmy_init();
-
-/**
  * nt_shimmy_bind:
  * @lib: Library name
  * @method: Method name
