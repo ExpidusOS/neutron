@@ -46,6 +46,17 @@ START_TEST(test_instance) {
   NtTestObject* obj = NT_TEST_OBJECT(nt_type_instance_new(id, NULL));
   ck_assert_ptr_nonnull(obj);
 
+  nt_type_instance_unref((NtTypeInstance*)obj);
+}
+END_TEST
+
+START_TEST(test_ref) {
+  NtType id = nt_test_object_get_type();
+  ck_assert_uint_gt(id, 0);
+
+  NtTestObject* obj = NT_TEST_OBJECT(nt_type_instance_new(id, NULL));
+  ck_assert_ptr_nonnull(obj);
+
   NtTestObject* obj2 = NT_TEST_OBJECT(nt_type_instance_ref((NtTypeInstance*)obj));
   ck_assert_ptr_nonnull(obj2);
   ck_assert_uint_eq(obj2->instance.ref_count, 1);
@@ -69,6 +80,10 @@ int main(void) {
   TCase* c_instance = tcase_create("instance");
   tcase_add_test(c_instance, test_instance);
   suite_add_tcase(s, c_instance);
+
+  TCase* c_ref = tcase_create("ref");
+  tcase_add_test(c_ref, test_ref);
+  suite_add_tcase(s, c_ref);
 
   SRunner* sr = srunner_create(s);
   srunner_set_tap(sr, "-");
