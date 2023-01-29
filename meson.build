@@ -75,7 +75,17 @@ add_global_arguments([
 
 subdir('elemental')
 subdir('platform')
-subdir('docs', if_found: [gtkdoc])
 
-if gtkdoc.found()
-endif
+libneutron = both_libraries('neutron',
+  link_whole: [libelemental.get_static_lib(), libplatform.get_static_lib()],
+  install: true)
+neutron = declare_dependency(link_with: libneutron,
+  dependencies: [elemental_deps, platform_deps])
+
+pkg.generate(libneutron,
+  name: 'neutron',
+  description: 'Core API for ExpidusOS',
+  url: 'https://github.com/ExpidusOS/neutron',
+  version: shortver)
+
+subdir('docs', if_found: [gtkdoc])
