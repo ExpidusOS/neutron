@@ -5,6 +5,13 @@
 
 NT_DEFINE_TYPE(NT, RENDERER, NtRenderer, nt_renderer, NT_TYPE_FLAG_DYNAMIC, NT_TYPE_NONE);
 
+static FlutterCompositor* nt_renderer_impl_get_compositor(NtRenderer* self) {
+  return NULL;
+}
+
+static void nt_renderer_impl_wait_sync(NtRenderer* self) {}
+static void nt_renderer_impl_render(NtRenderer* self) {}
+
 static void nt_renderer_construct(NtTypeInstance* inst, NtTypeArgument* arguments) {
   NtRenderer* self = NT_RENDERER(inst);
   assert(self != NULL);
@@ -15,6 +22,10 @@ static void nt_renderer_construct(NtTypeInstance* inst, NtTypeArgument* argument
 
   self->pre_render = nt_signal_new_locking();
   self->post_render = nt_signal_new_locking();
+
+  self->get_compositor = nt_renderer_impl_get_compositor;
+  self->wait_sync = nt_renderer_impl_wait_sync;
+  self->render = nt_renderer_impl_render;
 }
 
 static void nt_renderer_destroy(NtTypeInstance* inst) {

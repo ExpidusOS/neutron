@@ -6,4 +6,9 @@
  * @short_description: Macros describing how this was configured
  */
 
+/**
+ * NT_GRAPHICS_HAS_PIXMAN:
+ *
+ * If defined then Neutron's Graphics API has the Pixman renderer enabled.
+ */
 #mesondefine NT_GRAPHICS_HAS_PIXMAN
