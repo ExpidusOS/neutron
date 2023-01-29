@@ -7,6 +7,13 @@
  */
 
 /**
+ * NT_GRAPHICS_HAS_EGL:
+ *
+ * If defined then Neutron's Graphics API has the EGL renderer enabled.
+ */
+#mesondefine NT_GRAPHICS_HAS_EGL
+
+/**
  * NT_GRAPHICS_HAS_PIXMAN:
  *
  * If defined then Neutron's Graphics API has the Pixman renderer enabled.

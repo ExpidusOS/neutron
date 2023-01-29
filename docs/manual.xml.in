@@ -26,16 +26,24 @@
       <xi:include href="../elemental/docs/xml/type.xml" />
       <xi:include href="../elemental/docs/xml/value.xml" />
     </chapter>
-    <chapter id="platform">
-      <title>Platform</title>
-      <xi:include href="../platform/docs/xml/device-enum.xml" />
-      <xi:include href="../platform/docs/xml/platform.xml" />
-    </chapter>
     <chapter id="graphics">
       <title>Graphics</title>
       <xi:include href="../graphics/docs/xml/build.xml" />
       <xi:include href="../graphics/docs/xml/renderer.xml" />
       @GRAPHICS_RENDERERS_XML@
+    </chapter>
+    <chapter id="platform">
+      <title>Platform</title>
+      <xi:include href="../platform/docs/xml/device-enum.xml" />
+      <xi:include href="../platform/docs/xml/platform.xml" />
+    </chapter>
+    <chapter id="runtime">
+      <title>Runtime</title>
+      <xi:include href="../runtime/docs/xml/context.xml" />
+    </chapter>
+    <chapter id="shimmy">
+      <title>Shimmy</title>
+      <xi:include href="../shimmy/docs/xml/shimmy.xml" />
     </chapter>
   </part>
 
@@ -49,13 +57,21 @@
       <title>Elemental</title>
       <xi:include href="../elemental/docs/xml/api-index-full.xml" />
     </chapter>
+    <chapter id="graphics">
+      <title>Graphics</title>
+      <xi:include href="../graphics/docs/xml/api-index-full.xml" />
+    </chapter>
     <chapter id="platform">
       <title>Platform</title>
       <xi:include href="../platform/docs/xml/api-index-full.xml" />
     </chapter>
-    <chapter id="graphics">
-      <title>Graphics</title>
-      <xi:include href="../graphics/docs/xml/api-index-full.xml" />
+    <chapter id="runtime">
+      <title>Runtime</title>
+      <xi:include href="../runtime/docs/xml/api-index-full.xml" />
+    </chapter>
+    <chapter id="shimmy">
+      <title>Shimmy</title>
+      <xi:include href="../shimmy/docs/xml/api-index-full.xml" />
     </chapter>
   </part>
 </book>

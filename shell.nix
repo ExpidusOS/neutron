@@ -9,7 +9,7 @@ with pkgs; mkShell rec {
     gdb valgrind lcov llvmPackages_14.llvm
     meson ninja clang pkg-config
     gtk-doc libxslt docbook_xsl docbook_xml_dtd_412 docbook_xml_dtd_42 docbook_xml_dtd_43
-    check flutter-engine pixman
+    check flutter-engine pixman libglvnd
   ];
 
   shellHook = ''

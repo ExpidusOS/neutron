@@ -3,6 +3,11 @@ conf_data_graphics.merge_from(conf_data)
 
 graphics_renderers_xml = ''
 
+if egl.found()
+  graphics_renderers_xml += '<xi:include href="xml/egl.xml" />'
+  conf_data_graphics.set('NT_GRAPHICS_HAS_EGL', true)
+endif
+
 if pixman.found()
   graphics_renderers_xml += '<xi:include href="xml/pixman.xml" />'
   conf_data_graphics.set('NT_GRAPHICS_HAS_PIXMAN', true)
