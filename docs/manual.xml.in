@@ -41,6 +41,10 @@
 
   <part id="api-index-full">
     <title>API Index</title>
+    <section>
+      <title>Full API</title>
+      <xi:include href="xml/api-index-full.xml" />
+    </section>
     <chapter id="elemental">
       <title>Elemental</title>
       <xi:include href="../elemental/docs/xml/api-index-full.xml" />
