@@ -69,6 +69,7 @@ typedef struct _NtTypeInfo {
  * @data: Pointer to the start of the instance data
  * @data_size: The total size of %NtTypeInstance
  * @ref_count: Number of references this instance has
+ * @prev: The previous level instance this is tied to
  *
  * Instance of a type
  */
@@ -77,6 +78,7 @@ typedef struct _NtTypeInstance {
   void* data;
   size_t data_size;
   size_t ref_count;
+  struct _NtTypeInstance* prev;
 } NtTypeInstance;
 
 /**

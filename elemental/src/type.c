@@ -132,7 +132,7 @@ const size_t nt_type_info_get_total_size(NtTypeInfo* info) {
   return size;
 }
 
-static void nt_type_instance_flat_new(NtTypeInstance* instance, NtType type, NtTypeArgument* arguments) {
+static void nt_type_instance_flat_new(NtTypeInstance* instance, NtTypeInstance* prev, NtType type, NtTypeArgument* arguments) {
   const NtTypeInfo* info = nt_type_info_from_type(type);
   assert(info != NULL);
 
@@ -144,6 +144,7 @@ static void nt_type_instance_flat_new(NtTypeInstance* instance, NtType type, NtT
   instance->data = instance + sizeof (NtTypeInstance);
   instance->data_size = data_size;
   instance->ref_count = 0;
+  instance->prev = prev;
 
   size_t off = 0;
 
@@ -152,7 +153,7 @@ static void nt_type_instance_flat_new(NtTypeInstance* instance, NtType type, NtT
       const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
       assert(subinfo != NULL);
 
-      nt_type_instance_flat_new((void*)(instance->data + off), subinfo->id, arguments);
+      nt_type_instance_flat_new((void*)(instance->data + off), instance, subinfo->id, arguments);
       off += nt_type_info_get_total_size((NtTypeInfo*)subinfo);
     }
   }
@@ -171,12 +172,13 @@ NtTypeInstance* nt_type_instance_new(NtType type, NtTypeArgument* arguments) {
 
   NtTypeInstance* instance = malloc(size);
   assert(instance != NULL);
-  nt_type_instance_flat_new(instance, info->id, arguments);
+  nt_type_instance_flat_new(instance, NULL, info->id, arguments);
   return instance;
 }
 
 NtTypeInstance* nt_type_instance_get_data(NtTypeInstance* instance, NtType type) {
   assert(instance != NULL);
+  while (instance->prev != NULL) instance = instance->prev;
 
   const NtTypeInfo* info = nt_type_info_from_type(instance->type);
   assert(info != NULL);
