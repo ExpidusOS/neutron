@@ -4,5 +4,6 @@ gnome.gtkdoc('neutron-elemental',
   src_dir: [
     join_paths(meson.project_source_root(), 'elemental', 'include'),
   ],
+  scan_args: ['--rebuild-sections'],
   dependencies: [elemental],
   install: true)

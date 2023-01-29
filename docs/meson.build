@@ -10,4 +10,5 @@ gnome.gtkdoc('neutron',
     configure_file(input: 'version.xml.in', output: 'version.xml', configuration: conf_data_docs)
   ],
   src_dir: [],
+  scan_args: ['--rebuild-sections'],
   install: true)

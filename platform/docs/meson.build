@@ -4,5 +4,6 @@ gnome.gtkdoc('neutron-platform',
   src_dir: [
     join_paths(meson.project_source_root(), 'platform', 'include'),
   ],
+  scan_args: ['--rebuild-sections'],
   dependencies: [platform],
   install: true)
