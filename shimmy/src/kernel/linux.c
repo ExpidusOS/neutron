@@ -20,6 +20,7 @@ static void nt_shimmy_linux_handler(int sig, siginfo_t* info, void* uctx_ptr) {
 void nt_shimmy_init() {
   struct sigaction act = {};
   act.sa_sigaction = nt_shimmy_linux_handler;
+  act.sa_flags = SA_SIGINFO;
   assert(sigaction(SIGSEGV, &act, NULL) == 0);
 }
 
