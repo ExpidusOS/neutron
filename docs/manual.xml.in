@@ -31,6 +31,8 @@
       <xi:include href="../graphics/docs/xml/build.xml" />
       <xi:include href="../graphics/docs/xml/renderer.xml" />
       @GRAPHICS_RENDERERS_XML@
+      <xi:include href="../graphics/docs/xml/scene.xml" />
+      <xi:include href="../graphics/docs/xml/scene-layer.xml" />
     </chapter>
     <chapter id="platform">
       <title>Platform</title>

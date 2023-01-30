@@ -21,6 +21,8 @@
     <xi:include href="xml/build.xml" />
     <xi:include href="xml/renderer.xml" />
     @GRAPHICS_RENDERERS_XML@
+    <xi:include href="xml/scene.xml" />
+    <xi:include href="xml/scene-layer.xml" />
   </part>
 
   <index id="api-index-full">

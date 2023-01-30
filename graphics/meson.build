@@ -19,14 +19,14 @@ build_conf_graphics = configure_file(input: 'src/build.h', output: 'neutron-grap
   configuration: conf_data_graphics)
 
 graphics_sources = [
-  'src/renderer.c'
+  'src/renderer.c', 'src/scene-layer.c', 'src/scene.c'
 ]
 
 graphics_cflags = []
 
 graphics_inc = [include_directories('include')]
 graphics_docs_inc_paths = []
-graphics_deps = [elemental, flutter_engine]
+graphics_deps = [elemental, flutter_engine, pthread]
 graphics_renderers = []
 
 subdir('renderers')

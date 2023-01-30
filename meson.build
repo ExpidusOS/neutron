@@ -64,10 +64,8 @@ tests = get_option('tests').disable_auto_if(not dependency('check', native: true
 docs = get_option('docs').disable_auto_if(not dependency('gtk-doc', native: true, required: false).found())
 
 cc = meson.get_compiler('c')
-cc_native = meson.get_compiler('c', native: true)
 
 pthread = cc.find_library('pthread')
-pthread_native = cc_native.find_library('pthread', required: tests)
 check = dependency('check', required: get_option('tests'), native: true)
 
 gnome = import('gnome')
