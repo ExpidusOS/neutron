@@ -28,6 +28,7 @@ libshimmy = both_libraries('neutron-shimmy', shimmy_sources,
   c_args: shimmy_cflags,
   include_directories: shimmy_inc,
   dependencies: shimmy_deps,
+  version: version,
   gnu_symbol_visibility: 'hidden',
   install: true)
 shimmy = declare_dependency(link_with: libshimmy,
@@ -41,4 +42,5 @@ pkg.generate(libshimmy,
   url: 'https://github.com/ExpidusOS/neutron',
   version: shortver)
 
+subdir('tests', if_found: [check])
 subdir('docs', if_found: [gtkdoc])

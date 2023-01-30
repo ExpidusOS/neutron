@@ -2,6 +2,7 @@
 #define __USE_GNU
 #include <sys/ucontext.h>
 #include <assert.h>
+#include <stdio.h>
 #include <signal.h>
 #include <setjmp.h>
 #include <string.h>
@@ -36,7 +37,7 @@ struct Context {
 static void nt_shimmy_linux_handler(int sig, siginfo_t* info, void* uctx_ptr) {
   if (sig != SIGSEGV) return;
 
-  struct Context* ctx = sigsetjmp(info->si_value.sival_ptr, 1);
+  struct Context* ctx = info->si_value.sival_ptr;
   if (ctx == NULL) return;
 
   NtShimBinding* binding = nt_shimmy_get_shim(ctx->id);
@@ -51,10 +52,7 @@ static void nt_shimmy_linux_handler(int sig, siginfo_t* info, void* uctx_ptr) {
 
 void* nt_shimmy_exec(const char* lib, const char* method, void* data, size_t data_size) {
   NtShim id = nt_shimmy_find(lib, method);
-  if (id == NT_SHIM_NONE) {
-    raise(SIGILL);
-    return NULL;
-  }
+  assert(id != NT_SHIM_NONE);
 
   struct Context* ctx = alloca(sizeof (struct Context) + data_size);
   ctx->id = id;

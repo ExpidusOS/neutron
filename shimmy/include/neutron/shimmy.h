@@ -54,6 +54,12 @@ typedef struct _NtShimBinding {
   NtShim id;
 } NtShimBinding;
 
+#if defined(__GNUC__)
+#pragma GCC visibility push(default)
+#elif defined(__clang__)
+#pragma clang visibility push(default)
+#endif
+
 /**
  * nt_shimmy_bind:
  * @lib: Library name
@@ -113,5 +119,11 @@ void* nt_shimmy_get_reg();
  * Returns: Data returned from execution.
  */
 void* nt_shimmy_exec(const char* lib, const char* method, void* data, size_t data_size);
+
+#if defined(__GNUC__)
+#pragma GCC visibility pop
+#elif defined(__clang__)
+#pragma clang visibility pop
+#endif
 
 NT_END_DECLS
