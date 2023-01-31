@@ -16,6 +16,14 @@ START_TEST(test_exec) {
   const char* ret = (const char*)nt_shimmy_exec("test", "test", &stack, sizeof (stack));
   ck_assert_ptr_nonnull(ret);
   ck_assert_str_eq(ret, "Hello, world");
+
+  nt_shimmy_unbind(id);
+
+  NtShimBinding* binding = nt_shimmy_get_shim(id);
+  ck_assert_ptr_null(binding);
+
+  id = nt_shimmy_find("test", "test");
+  ck_assert_int_eq(id, NT_SHIM_NONE);
 }
 END_TEST
 
