@@ -8,7 +8,7 @@ runtime_sources = []
 
 runtime_cflags = []
 runtime_inc = include_directories('include')
-runtime_deps = [elemental]
+runtime_deps = [elemental, graphics]
 
 install_subdir('include', strip_directory: true, install_dir: includedir)
 

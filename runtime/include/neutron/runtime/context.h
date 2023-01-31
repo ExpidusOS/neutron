@@ -1,6 +1,7 @@
 #pragma once
 
 #include <neutron/elemental.h>
+#include <neutron/graphics.h>
 
 NT_BEGIN_DECLS
 
@@ -39,6 +40,16 @@ NT_BEGIN_DECLS
  */
 #define NT_TYPE_RUNTIME_CONTEXT nt_runtime_context_get_type()
 NT_DECLARE_TYPE(NT, RUNTIME_CONTEXT, NtRuntimeContext, nt_runtime_context);
+
+/**
+ * nt_runtime_context_get_renderer:
+ * @self: The context instance
+ *
+ * Gets the renderer being used for the runtime
+ *
+ * Returns: A renderer instance
+ */
+NtRenderer* nt_runtime_context_get_renderer(NtRuntimeContext* self);
 
 #if defined(__GNUC__)
 #pragma GCC visibility pop
