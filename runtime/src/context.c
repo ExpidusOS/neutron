@@ -1,7 +1,7 @@
 #include <neutron/runtime/context.h>
 #include "context-priv.h"
 
-NT_DEFINE_TYPE(NT, RUNTIME_CONTEXT, NtRuntimeContext, nt_runtime_context, NT_TYPE_FLAG_DYNAMIC);
+NT_DEFINE_TYPE(NT, RUNTIME_CONTEXT, NtRuntimeContext, nt_runtime_context, NT_TYPE_FLAG_DYNAMIC, NT_TYPE_NONE);
 
 static void nt_runtime_context_construct(NtTypeInstance* instance, NtTypeArgument* arguments) {
   NtRuntimeContext* self = NT_RUNTIME_CONTEXT(instance);

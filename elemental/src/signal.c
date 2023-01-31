@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <string.h>
 
-NT_DEFINE_TYPE(NT, SIGNAL, NtSignal, nt_signal, NT_TYPE_FLAG_STATIC);
+NT_DEFINE_TYPE(NT, SIGNAL, NtSignal, nt_signal, NT_TYPE_FLAG_STATIC, NT_TYPE_NONE);
 
 static void nt_signal_construct(NtTypeInstance* instance, NtTypeArgument* arguments) {
   NtSignal* self = NT_SIGNAL(instance);

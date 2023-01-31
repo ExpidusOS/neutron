@@ -1,7 +1,7 @@
 #include <neutron/platform/device-enum.h>
 #include <assert.h>
 
-NT_DEFINE_TYPE(NT, DEVICE_ENUM, NtDeviceEnum, nt_device_enum, NT_TYPE_FLAG_STATIC);
+NT_DEFINE_TYPE(NT, DEVICE_ENUM, NtDeviceEnum, nt_device_enum, NT_TYPE_FLAG_STATIC, NT_TYPE_NONE);
 
 static void nt_device_enum_construct(NtTypeInstance* instance, NtTypeArgument* arguments) {
   NtDeviceEnum* self = NT_DEVICE_ENUM(instance);
