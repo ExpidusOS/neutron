@@ -12,6 +12,7 @@ rec {
       buildType = "release";
     }).overrideAttrs (s: {
       buildInputs = s.buildInputs ++ [ flutter-engine pixman libglvnd ];
+      mesonFlags = (s.mesonFlags or []) ++ [ "-Dbootstrap=false" ];
     });
   });
 }

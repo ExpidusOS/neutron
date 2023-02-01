@@ -60,6 +60,8 @@ conf_data.set('VERSION', version)
 conf_data.set('VERSION_LONG', longver)
 conf_data.set('VERSION_SHORT', shortver)
 
+is_bootstrap = get_option('bootstrap')
+
 tests = get_option('tests').disable_auto_if(not dependency('check', native: true, required: false).found())
 docs = get_option('docs').disable_auto_if(not dependency('gtk-doc', native: true, required: false).found())
 
@@ -71,11 +73,13 @@ check = dependency('check', required: get_option('tests'), native: true)
 gnome = import('gnome')
 gtkdoc = dependency('gtk-doc', native: true, required: docs)
 
-flutter_engine = dependency('flutter-engine-@0@'.format(get_option('flutter-runtime-mode')), required: true)
-egl = dependency('egl', native: false,
-  required: get_option('graphics-renderer-egl').disable_auto_if(not dependency('egl', native: false, required: false).found()))
-pixman = dependency('pixman-1', native: false,
-  required: get_option('graphics-renderer-pixman').disable_auto_if(not dependency('pixman-1', native: false, required: false).found()))
+if not is_bootstrap
+  flutter_engine = dependency('flutter-engine-@0@'.format(get_option('flutter-runtime-mode')), required: true)
+  egl = dependency('egl', native: false,
+    required: get_option('graphics-renderer-egl').disable_auto_if(not dependency('egl', native: false, required: false).found()))
+  pixman = dependency('pixman-1', native: false,
+    required: get_option('graphics-renderer-pixman').disable_auto_if(not dependency('pixman-1', native: false, required: false).found()))
+endif
 
 add_global_arguments([
   '-Werror=unused-variable'
@@ -84,40 +88,50 @@ add_global_arguments([
 libs = []
 
 subdir('elemental')
-subdir('shimmy')
-subdir('platform')
-subdir('graphics')
-subdir('runtime')
 
-lib_names = []
+if not is_bootstrap
+  subdir('shimmy')
+  subdir('platform')
+  subdir('graphics')
+  subdir('runtime')
+endif
+
 static_libs = []
+lib_names = []
 
 foreach lib : libs
   lib_names += [lib.name()]
   static_libs += [lib.get_static_lib()]
 endforeach
 
-libneutron = both_libraries('neutron',
-  link_whole: static_libs,
-  version: version,
-  gnu_symbol_visibility: 'hidden',
-  install: true)
-neutron = declare_dependency(link_with: libneutron,
-  dependencies: [elemental_deps, platform_deps, graphics_deps])
+sum_args = {
+  'Built Libraries': lib_names,
+  'Built by': build_user,
+  'Version': version,
+  'Version (long)': longver,
+  'Version (short)': shortver
+}
 
-pkg.generate(libneutron,
-  name: 'neutron',
-  description: 'Core API for ExpidusOS',
-  url: 'https://github.com/ExpidusOS/neutron',
-  version: shortver)
-
-subdir('docs', if_found: [gtkdoc])
-
-summary({
-    'Built Libraries': lib_names,
-    'Built by': build_user,
-    'Version': version,
-    'Version (long)': longver,
-    'Version (short)': shortver,
+if not is_bootstrap
+  sum_args += {
     'Flutter Engine Runtime Mode': get_option('flutter-runtime-mode')
-  }, section: 'Neutron')
+  }
+
+  libneutron = both_libraries('neutron',
+    link_whole: static_libs,
+    version: version,
+    gnu_symbol_visibility: 'hidden',
+    install: true)
+  neutron = declare_dependency(link_with: libneutron,
+    dependencies: [elemental_deps, platform_deps, graphics_deps])
+
+  pkg.generate(libneutron,
+    name: 'neutron',
+    description: 'Core API for ExpidusOS',
+    url: 'https://github.com/ExpidusOS/neutron',
+    version: shortver)
+
+  subdir('docs', if_found: [gtkdoc])
+endif
+
+summary(sum_args, section: 'Neutron')
