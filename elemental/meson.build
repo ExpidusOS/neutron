@@ -5,7 +5,8 @@ build_conf_elemental = configure_file(input: 'src/build.h', output: 'neutron-ele
   configuration: conf_data_elemental)
 
 elemental_sources = [
-  'src/argument.c', 'src/signal.c', 'src/type.c'
+  'src/argument.c', 'src/backtrace.c',
+  'src/error.c', 'src/signal.c', 'src/type.c'
 ]
 
 elemental_inc = include_directories('include')

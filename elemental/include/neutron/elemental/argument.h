@@ -7,7 +7,7 @@ NT_BEGIN_DECLS
 
 /**
  * SECTION: argument
- * @title: Type Argument
+ * @title: Argument
  * @short_description: Handling of arguments for types and signals
  */
 
