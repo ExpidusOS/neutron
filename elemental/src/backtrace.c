@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define N_FRAMES 100
+
 NT_DEFINE_TYPE(NT, BACKTRACE, NtBacktrace, nt_backtrace, NT_TYPE_FLAG_STATIC, NT_TYPE_NONE);
 
 static void nt_backtrace_construct(NtTypeInstance* instance, NtTypeArgument* arguments) {
@@ -19,8 +21,8 @@ static void nt_backtrace_destroy(NtTypeInstance* instance) {
   for (NtBacktraceEntry* entry = self->entries; entry != NULL;) {
     NtBacktraceEntry* next = entry->prev;
 
-    if (entry->file != NULL) free(entry->file);
-    if (entry->method != NULL) free(entry->method);
+    if (entry->file != NULL) free((char*)entry->file);
+    if (entry->method != NULL) free((char*)entry->method);
     free(entry);
 
     entry = next;
@@ -34,8 +36,8 @@ NtBacktrace* nt_backtrace_new() {
 NtBacktrace* nt_backtrace_new_auto() {
   NtBacktrace* self = nt_backtrace_new();
 
-  void* temp_frames[1];
-  int n_frames = backtrace(temp_frames, 1);
+  void* temp_frames[N_FRAMES];
+  int n_frames = backtrace(temp_frames, N_FRAMES);
 
   void** frames = malloc(sizeof (void*) * n_frames);
   assert(frames != NULL);
