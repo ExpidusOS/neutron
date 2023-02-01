@@ -55,6 +55,10 @@
       <title>Full API</title>
       <xi:include href="xml/api-index-full.xml" />
     </section>
+    <chapter id="displaykit">
+      <title>DisplayKit</title>
+      <xi:include href="../displaykit/docs/xml/api-index-full.xml" />
+    </chapter>
     <chapter id="elemental">
       <title>Elemental</title>
       <xi:include href="../elemental/docs/xml/api-index-full.xml" />

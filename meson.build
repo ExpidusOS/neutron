@@ -93,6 +93,7 @@ if not is_bootstrap
   subdir('shimmy')
   subdir('platform')
   subdir('graphics')
+  subdir('displaykit')
   subdir('runtime')
 endif
 
