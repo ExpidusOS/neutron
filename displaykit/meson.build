@@ -4,14 +4,18 @@ conf_data_displaykit.merge_from(conf_data)
 build_confi_displaykit = configure_file(input: 'src/build.h', output: 'neutron-displaykit-build.h',
   configuration: conf_data_graphics)
 
-displaykit_sources = []
+displaykit_sources = [
+  'src/client.c', 'src/compositor.c', 'src/context.c',
+  'src/input.c', 'src/output.c', 'src/view.c',
+  'src/input/keyboard.c', 'src/input/mouse.c'
+]
 displaykit_cflags = []
 
 displaykit_inc = [include_directories('include')]
 displaykit_docs_inc_paths = []
 displaykit_deps = [elemental]
 
-displaykit_servers = []
+displaykit_compositors = []
 displaykit_clients = []
 
 subdir('include/neutron/displaykit')
@@ -36,7 +40,7 @@ libs += [libdisplaykit]
 
 pkg.generate(libdisplaykit,
   name: 'neutron-displaykit',
-  description: 'Display server and client API for ExpidusOS\'s Neutron',
+  description: 'Display server API for compositors and clients for ExpidusOS\'s Neutron',
   url: 'https://github.com/ExpidusOS/neutron',
   version: shortver)
 
@@ -44,5 +48,5 @@ subdir('docs', if_found: [gtkdoc])
 
 summary({
     'Clients': displaykit_clients,
-    'Servers': displaykit_servers
+    'Compositors': displaykit_compositors
   }, section: 'DisplayKit')

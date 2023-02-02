@@ -18,6 +18,17 @@
 
   <part id="api-reference">
     <title>API Reference</title>
+    <chapter id="displaykit">
+      <title>DisplayKit</title>
+      <xi:include href="../displaykit/docs/xml/client.xml" />
+      <xi:include href="../displaykit/docs/xml/compositor.xml" />
+      <xi:include href="../displaykit/docs/xml/context.xml" />
+      <xi:include href="../displaykit/docs/xml/input.xml" />
+      <xi:include href="../displaykit/docs/xml/keyboard.xml" />
+      <xi:include href="../displaykit/docs/xml/mouse.xml" />
+      <xi:include href="../displaykit/docs/xml/output.xml" />
+      <xi:include href="../displaykit/docs/xml/view.xml" />
+    </chapter>
     <chapter id="elemental">
       <title>Elemental</title>
       <xi:include href="../elemental/docs/xml/argument.xml" />
