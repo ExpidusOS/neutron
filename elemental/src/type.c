@@ -222,8 +222,11 @@ static void nt_type_instance_flat_destroy(NtTypeInstance* instance) {
   size_t off = 0;
 
   if (info->extends != NULL) {
-    for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
-      const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
+    size_t count = 0;
+    for (; info->extends[count] != NT_TYPE_NONE; count++);
+
+    while ((count--) > 0) {
+      const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[count]);
       assert(subinfo != NULL);
 
       nt_type_instance_flat_destroy((void*)(instance->data + off));
