@@ -115,19 +115,10 @@ neutron_deps = []
 subdir('elemental')
 
 if not is_bootstrap
-  subdir('shimmy')
-  subdir('platform')
-  subdir('graphics')
-  subdir('displaykit')
-  subdir('runtime')
-
-  neutron_inc += [
-    include_directories('shimmy'),
-    include_directories('platform'),
-    include_directories('graphics'),
-    include_directories('displaykit'),
-    include_directories('runtime')
-  ]
+  foreach name : [ 'shimmy', 'platform', 'graphics', 'inputcore', 'displaykit', 'runtime' ]
+    subdir(name)
+    neutron_inc += [include_directories(name)]
+  endforeach
 endif
 
 lib_names = []

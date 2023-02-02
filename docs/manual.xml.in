@@ -48,6 +48,9 @@
       <xi:include href="../graphics/docs/xml/scene.xml" />
       <xi:include href="../graphics/docs/xml/scene-layer.xml" />
     </chapter>
+    <chapter id="inputcore">
+      <title>InputCore</title>
+    </chapter>
     <chapter id="platform">
       <title>Platform</title>
       <xi:include href="../platform/docs/xml/device-enum.xml" />
@@ -80,6 +83,10 @@
     <chapter id="graphics">
       <title>Graphics</title>
       <xi:include href="../graphics/docs/xml/api-index-full.xml" />
+    </chapter>
+    <chapter id="inputcore">
+      <title>InputCore</title>
+      <xi:include href="../inputcore/docs/xml/api-index-full.xml" />
     </chapter>
     <chapter id="platform">
       <title>Platform</title>

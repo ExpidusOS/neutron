@@ -12,6 +12,7 @@ gnome.gtkdoc('neutron',
   src_dir: [
     join_paths(meson.project_source_root(), 'elemental', 'include'),
     join_paths(meson.project_source_root(), 'platform', 'include'),
+    join_paths(meson.project_source_root(), 'inputcore', 'include'),
     join_paths(meson.project_source_root(), 'graphics', 'include'),
     join_paths(meson.project_build_root(), 'graphics', 'include'),
     graphics_docs_inc_paths,
