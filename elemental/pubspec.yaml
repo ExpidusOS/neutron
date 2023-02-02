@@ -8,9 +8,18 @@ environment:
   flutter: ">=2.5.0"
 
 dependencies:
-  plugin_platform_interface: ^2.0.2
   ffi: ^2.0.1
 
 dev_dependencies:
   ffi: ^2.0.1
   ffigen: ^6.0.1
+
+flutter:
+  plugins:
+    platforms:
+      android:
+        ffiPlugin: true
+      linux:
+        ffiPlugin: true
+      windows:
+        ffiPlugin: true

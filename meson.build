@@ -52,6 +52,13 @@ if get_option('buildtype') == 'release'
   shortver = meson.project_version()
 endif
 
+flutter_os = target_machine.system()
+if target_machine.system() == 'darwin'
+  flutter_os = 'macos'
+elif target_machine.system() == 'cygwin'
+  flutter_os = 'windows'
+endif
+
 dartdir = libdir / 'neutron' / version / 'dart'
 
 conf_data.set('BUILD_USER', build_user)

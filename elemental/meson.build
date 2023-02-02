@@ -41,6 +41,15 @@ pkg.generate(libelemental,
   version: shortver)
 
 if flutter.found()
+  configure_file(input: 'CMakeLists.txt.in', output: 'CMakeLists.txt',
+    configuration: conf_data_elemental,
+    install: true,
+    install_dir: dartdir / 'elemental')
+  configure_file(input: 'CMakeLists.txt.in', output: 'CMakeLists.txt',
+    configuration: conf_data_elemental,
+    install: true,
+    install_dir: dartdir / 'elemental' / flutter_os)
+
   elemental_pub = run_command([flutter, 'pub', 'get', meson.current_source_dir()], check: false)
 
   if elemental_pub.returncode() != 0

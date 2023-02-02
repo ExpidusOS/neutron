@@ -1,7 +1,7 @@
 name: NeutronElemental
 description: |
   Bindings for Neutron's Elemental
-output: lib/platforms/native/bindings-gen.dart
+output: lib/platforms/native/bindings.dart
 headers:
   entry-points:
     - 'include/neutron/elemental.h'
