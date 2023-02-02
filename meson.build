@@ -1,4 +1,6 @@
-project('neutron', 'c', license: 'GPL-3.0-only', version: '0.1.0-prealpha')
+project('neutron', 'c', license: 'GPL-3.0-only', version: '0.1.0-prealpha', default_options: [
+  'default_library=both'
+])
 
 pkg = import('pkgconfig')
 fs = import('fs')
@@ -77,6 +79,7 @@ tests = get_option('tests').disable_auto_if(not dependency('check', native: true
 docs = get_option('docs').disable_auto_if(not dependency('gtk-doc', native: true, required: false).found())
 
 cc = meson.get_compiler('c')
+has_execinfo_h = cc.check_header('execinfo.h', required: false)
 
 pthread = dependency('threads', required: true)
 check = dependency('check', required: get_option('tests'), native: true)
@@ -86,6 +89,7 @@ gtkdoc = dependency('gtk-doc', native: true, required: docs)
 
 if not is_bootstrap
   ffigen = find_program('ffigen', native: true, required: false)
+  dart = find_program('dart', native: true, required: true)
   flutter = find_program('flutter', native: true, required: true)
 
   flutter_engine = dependency('flutter-engine-@0@'.format(get_option('flutter-runtime-mode')), required: true)
@@ -103,6 +107,10 @@ add_global_arguments([
 ], language: 'c')
 
 libs = []
+neutron_sources = []
+neutron_cflags = []
+neutron_inc = [include_directories('elemental')]
+neutron_deps = []
 
 subdir('elemental')
 
@@ -112,14 +120,20 @@ if not is_bootstrap
   subdir('graphics')
   subdir('displaykit')
   subdir('runtime')
+
+  neutron_inc += [
+    include_directories('shimmy'),
+    include_directories('platform'),
+    include_directories('graphics'),
+    include_directories('displaykit'),
+    include_directories('runtime')
+  ]
 endif
 
-static_libs = []
 lib_names = []
 
 foreach lib : libs
   lib_names += [lib.name()]
-  static_libs += [lib.get_static_lib()]
 endforeach
 
 sum_args = {
@@ -135,19 +149,16 @@ if not is_bootstrap
     'Flutter Engine Runtime Mode': get_option('flutter-runtime-mode')
   }
 
-  libneutron = both_libraries('neutron',
-    link_whole: static_libs,
+  libneutron = library('neutron', neutron_sources,
+    c_args: neutron_cflags,
+    include_directories: neutron_inc,
+    dependencies: neutron_deps,
     version: version,
     gnu_symbol_visibility: 'hidden',
     install: true)
   neutron = declare_dependency(link_with: libneutron,
-    dependencies: [elemental_deps, platform_deps, graphics_deps])
-
-  pkg.generate(libneutron,
-    name: 'neutron',
-    description: 'Core API for ExpidusOS',
-    url: 'https://github.com/ExpidusOS/neutron',
-    version: shortver)
+    dependencies: neutron_deps,
+    include_directories: neutron_inc)
 
   subdir('docs', if_found: [gtkdoc])
 endif

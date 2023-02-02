@@ -26,7 +26,7 @@ install_subdir('include', strip_directory: true,
     'neutron/displaykit/meson.build'
   ])
 
-libdisplaykit = both_libraries('neutron-displaykit', displaykit_sources,
+libdisplaykit = library('neutron-displaykit', displaykit_sources,
   c_args: displaykit_cflags,
   include_directories: displaykit_inc,
   dependencies: displaykit_deps,
@@ -37,6 +37,12 @@ displaykit = declare_dependency(link_with: libdisplaykit,
   include_directories: displaykit_inc,
   dependencies: displaykit_deps)
 libs += [libdisplaykit]
+neutron_inc += displaykit_inc
+neutron_deps += displaykit_deps
+
+foreach src : displaykit_sources
+  neutron_sources += ['displaykit' / src]
+endforeach
 
 pkg.generate(libdisplaykit,
   name: 'neutron-displaykit',

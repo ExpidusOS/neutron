@@ -18,7 +18,7 @@ platform_deps = [elemental]
 
 install_subdir('include', strip_directory: true, install_dir: includedir)
 
-libplatform = both_libraries('neutron-platform', platform_sources,
+libplatform = library('neutron-platform', platform_sources,
   c_args: platform_cflags,
   include_directories: platform_inc,
   dependencies: platform_deps,
@@ -28,6 +28,14 @@ libplatform = both_libraries('neutron-platform', platform_sources,
 platform = declare_dependency(link_with: libplatform,
   include_directories: platform_inc,
   dependencies: platform_deps)
+libs += [libplatform]
+neutron_inc += platform_inc
+neutron_deps += platform_deps
+neutron_cflags += platform_cflags
+
+foreach src : platform_sources
+  neutron_sources += ['platform' / src]
+endforeach
 
 pkg.generate(libplatform,
   name: 'neutron-platform',

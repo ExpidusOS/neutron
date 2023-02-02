@@ -1,7 +1,7 @@
 name: NeutronElemental
 description: |
   Bindings for Neutron's Elemental
-output: lib/platforms/native/bindings.dart
+output: lib/bindings.dart
 headers:
   entry-points:
     - 'include/neutron/elemental.h'
@@ -24,3 +24,5 @@ comments:
   length: full
 compiler-opts:
   - '-I include'
+library-imports:
+  _ffi: 'proxy_ffi.dart'

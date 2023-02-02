@@ -1,20 +1,22 @@
-if fs.exists(meson.project_source_root() / 'pubspec.lock')
+if fs.exists(meson.project_source_root() / 'elemental' / 'pubspec.lock')
   if ffigen.found()
     elemental_ffi = custom_target('elemental-ffigen',
       command: [
-        ffigen, '--flutter',
+        ffigen,
         '--directory=@0@'.format(meson.project_source_root() / 'elemental'),
         '--file=@0@'.format(meson.project_source_root() / 'elemental' / 'ffigen.yaml')
       ],
       output: 'bindings.dart',
-      input: '../../../ffigen.yaml')
-  elif flutter.found()
+      input: '../ffigen.yaml',
+      build_by_default: true)
+  elif dart.found()
     elemental_ffi = custom_target('elemental-ffigen',
       command: [
-        flutter, 'pub', 'run', '-C', meson.project_source_root() / 'elemental', 'ffigen'
+        'dart', 'pub', 'run', '-C', meson.project_source_root() / 'elemental', 'ffigen'
       ],
       output: 'bindings.dart',
-      input: '../../../ffigen.yaml')
+      input: '../ffigen.yaml',
+      build_by_default: true)
   endif
 endif
 
@@ -25,4 +27,4 @@ conf_data_elemental_ffi.set('LIBNAME', libelemental_name)
 configure_file(input: 'path.dart.in', output: 'path.dart',
   configuration: conf_data_elemental_ffi,
   install: true,
-  install_dir: dartdir / 'elemental' / 'lib' / 'platforms' / 'native')
+  install_dir: dartdir / 'elemental' / 'lib')

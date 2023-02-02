@@ -6,3 +6,5 @@
 #define VERSION "@VERSION@"
 #define VERSION_LONG "@VERSION_LONG@"
 #define VERSION_SHORT "@VERSION_SHORT@"
+
+#mesondefine HAS_EXECINFO_H

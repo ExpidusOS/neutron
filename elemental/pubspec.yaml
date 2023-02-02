@@ -4,22 +4,12 @@ version: 0.1.0
 homepage: https://github.com/ExpidusOS/neutron
 
 environment:
-  sdk: '>=2.18.4 <3.0.0'
-  flutter: ">=2.5.0"
+  sdk: '>=2.18.0 <3.0.0'
 
 dependencies:
   ffi: ^2.0.1
+  web_ffi: ^0.7.2
 
 dev_dependencies:
   ffi: ^2.0.1
   ffigen: ^6.0.1
-
-flutter:
-  plugins:
-    platforms:
-      android:
-        ffiPlugin: true
-      linux:
-        ffiPlugin: true
-      windows:
-        ffiPlugin: true

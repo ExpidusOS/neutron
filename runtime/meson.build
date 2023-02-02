@@ -12,7 +12,7 @@ runtime_deps = [elemental, graphics]
 
 install_subdir('include', strip_directory: true, install_dir: includedir)
 
-libruntime = both_libraries('neutron-runtime', runtime_sources,
+libruntime = library('neutron-runtime', runtime_sources,
   c_args: runtime_cflags,
   include_directories: runtime_inc,
   dependencies: runtime_deps,
@@ -23,6 +23,12 @@ runtime = declare_dependency(link_with: libruntime,
   include_directories: runtime_inc,
   dependencies: runtime_deps)
 libs += [libruntime]
+neutron_inc += runtime_inc
+neutron_deps += runtime_deps
+
+foreach src : runtime_sources
+  neutron_sources += ['runtime' / src]
+endforeach
 
 pkg.generate(libruntime,
   name: 'neutron-runtime',

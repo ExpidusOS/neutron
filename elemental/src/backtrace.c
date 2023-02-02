@@ -1,8 +1,12 @@
 #include <neutron/elemental/backtrace.h>
+#include "neutron-elemental-build.h"
 #include <assert.h>
-#include <execinfo.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef HAS_EXECINFO_H
+#include <execinfo.h>
+#endif
 
 #define N_FRAMES 100
 
@@ -36,6 +40,7 @@ NtBacktrace* nt_backtrace_new() {
 NtBacktrace* nt_backtrace_new_auto() {
   NtBacktrace* self = nt_backtrace_new();
 
+#ifdef HAS_EXECINFO_H
   void* temp_frames[N_FRAMES];
   int n_frames = backtrace(temp_frames, N_FRAMES);
 
@@ -49,6 +54,10 @@ NtBacktrace* nt_backtrace_new_auto() {
   for (int i = 0; i < n_frames; i++) {
     nt_backtrace_push_full(self, NULL, symbols[i], 0, frames[i]);
   }
+
+  free(frames);
+  free(symbols);
+#endif
   return self;
 }
 

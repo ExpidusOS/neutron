@@ -39,7 +39,7 @@ install_subdir('include', strip_directory: true,
     'neutron/graphics/meson.build'
   ])
 
-libgraphics = both_libraries('neutron-graphics', graphics_sources,
+libgraphics = library('neutron-graphics', graphics_sources,
   c_args: graphics_cflags,
   include_directories: graphics_inc,
   dependencies: graphics_deps,
@@ -50,6 +50,12 @@ graphics = declare_dependency(link_with: libgraphics,
   include_directories: graphics_inc,
   dependencies: graphics_deps)
 libs += [libgraphics]
+neutron_inc += graphics_inc
+neutron_deps += graphics_deps
+
+foreach src : graphics_sources
+  neutron_sources += ['graphics' / src]
+endforeach
 
 pkg.generate(libgraphics,
   name: 'neutron-graphics',

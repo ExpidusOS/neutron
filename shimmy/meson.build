@@ -24,7 +24,7 @@ shimmy_deps = [elemental]
 
 install_subdir('include', strip_directory: true, install_dir: includedir)
 
-libshimmy = both_libraries('neutron-shimmy', shimmy_sources,
+libshimmy = library('neutron-shimmy', shimmy_sources,
   c_args: shimmy_cflags,
   include_directories: shimmy_inc,
   dependencies: shimmy_deps,
@@ -35,6 +35,13 @@ shimmy = declare_dependency(link_with: libshimmy,
   include_directories: shimmy_inc,
   dependencies: shimmy_deps)
 libs += [libshimmy]
+neutron_inc += shimmy_inc
+neutron_deps += shimmy_deps
+neutron_cflags += shimmy_cflags
+
+foreach src : shimmy_sources
+  neutron_sources += ['shimmy' / src]
+endforeach
 
 pkg.generate(libshimmy,
   name: 'neutron-shimmy',
