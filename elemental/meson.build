@@ -15,27 +15,10 @@ elemental_extras = []
 
 install_subdir('include', strip_directory: true, install_dir: includedir)
 
-if flutter.found()
-  elemental_pub = run_command([flutter, 'pub', 'get', meson.current_source_dir()], check: false)
-
-  if elemental_pub.returncode() == 0
-    subdir('lib/platforms/native')
-  else
-    warning('Elemental ffi generation is disabled due to: @0@'.format(elemental_pub.stderr()))
-  endif
-
-  install_data('pubspec.yaml', install_dir: dartdir / 'elemental')
-  install_data('README.md', install_dir: dartdir / 'elemental')
-
-  if fs.exists(meson.current_source_dir() / 'pubspec.lock')
-    install_data('.dart_tool/package_config.json', install_dir: dartdir / 'elemental' / '.dart_tool')
-    install_data('pubspec.lock', install_dir: dartdir / 'elemental')
-  endif
-endif
-
 install_subdir('lib', strip_directory: true,
   install_dir: dartdir / 'elemental' / 'lib',
   exclude_files: [
+    'platforms/native/path.dart.in',
     'platforms/native/meson.build'
   ])
 
@@ -49,12 +32,31 @@ elemental = declare_dependency(link_with: libelemental,
   include_directories: elemental_inc,
   dependencies: elemental_deps)
 libs += [libelemental]
+libelemental_name = fs.name(libelemental.get_shared_lib().full_path())
 
 pkg.generate(libelemental,
   name: 'neutron-elemental',
   description: 'A minimal resource usage type system for C',
   url: 'https://github.com/ExpidusOS/neutron',
   version: shortver)
+
+if flutter.found()
+  elemental_pub = run_command([flutter, 'pub', 'get', meson.current_source_dir()], check: false)
+
+  if elemental_pub.returncode() != 0
+    warning('Elemental ffi generation is disabled due to: @0@'.format(elemental_pub.stderr()))
+  endif
+
+  install_data('pubspec.yaml', install_dir: dartdir / 'elemental')
+  install_data('README.md', install_dir: dartdir / 'elemental')
+
+  if fs.exists(meson.current_source_dir() / 'pubspec.lock')
+    install_data('.dart_tool/package_config.json', install_dir: dartdir / 'elemental' / '.dart_tool')
+    install_data('pubspec.lock', install_dir: dartdir / 'elemental')
+  endif
+endif
+
+subdir('lib/platforms/native')
 
 subdir('tests', if_found: [check])
 subdir('docs', if_found: [gtkdoc])

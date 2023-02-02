@@ -55,6 +55,7 @@ endif
 dartdir = libdir / 'neutron' / version / 'dart'
 
 conf_data.set('BUILD_USER', build_user)
+conf_data.set('LIBDIR', libdir)
 
 conf_data.set('GIT_COMMIT', git_commit)
 conf_data.set('GIT_BRANCH', git_branch)
