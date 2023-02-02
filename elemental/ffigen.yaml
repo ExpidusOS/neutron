@@ -1,0 +1,26 @@
+name: NeutronElemental
+description: |
+  Bindings for Neutron's Elemental
+output: lib/platforms/native/bindings-gen.dart
+headers:
+  entry-points:
+    - 'include/neutron/elemental.h'
+  include-directives:
+    - 'include/neutron/elemental/argument.h'
+    - 'include/neutron/elemental/backtrace.h'
+    - 'include/neutron/elemental/common.h'
+    - 'include/neutron/elemental/error.h'
+    - 'include/neutron/elemental/list.h'
+    - 'include/neutron/elemental/signal.h'
+    - 'include/neutron/elemental/type.h'
+    - 'include/neutron/elemental/value.h'
+    - 'include/neutron/elemental.h'
+preamble: |
+  // ingore_for_file: always_specify_types
+  // ignore_for_file: camel_case_types
+  // ignore_for_file: non_constant_identifier_name
+comments:
+  style: any
+  length: full
+compiler-opts:
+  - '-I include'

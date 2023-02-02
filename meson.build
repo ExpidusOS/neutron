@@ -1,6 +1,7 @@
 project('neutron', 'c', license: 'GPL-3.0-only', version: '0.1.0-prealpha')
 
 pkg = import('pkgconfig')
+fs = import('fs')
 
 prefix = get_option('prefix')
 bindir = prefix / get_option('bindir')
@@ -16,10 +17,10 @@ conf_data = configuration_data()
 build_user = get_option('build-user')
 
 if git.found()
-  git_commit = run_command(git, 'rev-parse', '--short', 'HEAD', check: true)
-  git_branch = run_command(git, 'rev-parse', '--abbrev-ref', 'HEAD', check: true)
-  git_config_username = run_command(git, 'config', '--get', 'user.name', check: true)
-  git_config_email = run_command(git, 'config', '--get', 'user.email', check: true)
+  git_commit = run_command(git, 'rev-parse', '--short', 'HEAD', check: false)
+  git_branch = run_command(git, 'rev-parse', '--abbrev-ref', 'HEAD', check: false)
+  git_config_username = run_command(git, 'config', '--get', 'user.name', check: false)
+  git_config_email = run_command(git, 'config', '--get', 'user.email', check: false)
 
   if git_commit.returncode() == 0
     git_commit = git_commit.stdout().strip()
@@ -51,6 +52,8 @@ if get_option('buildtype') == 'release'
   shortver = meson.project_version()
 endif
 
+dartdir = libdir / 'neutron' / version / 'dart'
+
 conf_data.set('BUILD_USER', build_user)
 
 conf_data.set('GIT_COMMIT', git_commit)
@@ -67,18 +70,24 @@ docs = get_option('docs').disable_auto_if(not dependency('gtk-doc', native: true
 
 cc = meson.get_compiler('c')
 
-pthread = cc.find_library('pthread')
+pthread = dependency('threads', required: true)
 check = dependency('check', required: get_option('tests'), native: true)
 
 gnome = import('gnome')
 gtkdoc = dependency('gtk-doc', native: true, required: docs)
 
 if not is_bootstrap
+  ffigen = find_program('ffigen', native: true, required: false)
+  flutter = find_program('flutter', native: true, required: true)
+
   flutter_engine = dependency('flutter-engine-@0@'.format(get_option('flutter-runtime-mode')), required: true)
   egl = dependency('egl', native: false,
     required: get_option('graphics-renderer-egl').disable_auto_if(not dependency('egl', native: false, required: false).found()))
   pixman = dependency('pixman-1', native: false,
     required: get_option('graphics-renderer-pixman').disable_auto_if(not dependency('pixman-1', native: false, required: false).found()))
+else
+  ffigen = disabler()
+  flutter = disabler()
 endif
 
 add_global_arguments([

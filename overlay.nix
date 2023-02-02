@@ -11,6 +11,7 @@ rec {
       src = cleanSource self;
       buildType = "release";
     }).overrideAttrs (s: {
+      nativeBuildInputs = s.nativeBuildInputs ++ (with buildPackages; [ flutter ]);
       buildInputs = s.buildInputs ++ [ flutter-engine pixman libglvnd ];
       mesonFlags = (s.mesonFlags or []) ++ [ "-Dbootstrap=false" ];
     });

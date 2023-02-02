@@ -1,0 +1,16 @@
+name: neutron_elemental
+description: Elemental is a simple type system similar to GObject but aims to be more portable.
+version: 0.1.0
+homepage: https://github.com/ExpidusOS/neutron
+
+environment:
+  sdk: '>=2.18.4 <3.0.0'
+  flutter: ">=2.5.0"
+
+dependencies:
+  plugin_platform_interface: ^2.0.2
+  ffi: ^2.0.1
+
+dev_dependencies:
+  ffi: ^2.0.1
+  ffigen: ^6.0.1
