@@ -55,6 +55,7 @@
     <chapter id="platform">
       <title>Platform</title>
       <xi:include href="../platform/docs/xml/device-enum.xml" />
+      <xi:include href="../platform/docs/xml/device.xml" />
       <xi:include href="../platform/docs/xml/platform.xml" />
     </chapter>
     <chapter id="runtime">

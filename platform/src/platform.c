@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "platform-priv.h"
 
-NT_DEFINE_TYPE(NT, PLATFORM, NtPlatform, nt_platform, NT_TYPE_FLAG_STATIC, NT_TYPE_NONE);
+NT_DEFINE_TYPE(NT, PLATFORM, NtPlatform, nt_platform, NT_TYPE_FLAG_DYNAMIC, NT_TYPE_NONE);
 
 static void nt_platform_construct(NtTypeInstance* inst, NtTypeArgument* arguments) {
   NtPlatform* self = NT_PLATFORM(inst);
@@ -22,15 +22,6 @@ static void nt_platform_destroy(NtTypeInstance* inst) {
 
   free(self->priv);
   self->priv = NULL;
-}
-
-NtPlatform* nt_platform_get_global() {
-  static NtPlatform* global;
-  if (global == NULL) {
-    global = NT_PLATFORM(nt_type_instance_new(NT_TYPE_PLATFORM, NULL));
-    assert(global != NULL);
-  }
-  return NT_PLATFORM(nt_type_instance_ref((NtTypeInstance*)global));
 }
 
 NtPlatformOS nt_platform_get_os(NtPlatform* self) {

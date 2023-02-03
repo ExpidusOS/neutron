@@ -19,6 +19,7 @@
   <part>
     <title>API Reference</title>
     <xi:include href="xml/device-enum.xml" />
+    <xi:include href="xml/device.xml" />
     <xi:include href="xml/platform.xml" />
   </part>
 

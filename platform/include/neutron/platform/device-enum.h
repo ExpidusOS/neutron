@@ -2,8 +2,6 @@
 
 #include <neutron/elemental.h>
 
-NT_BEGIN_DECLS
-
 /**
  * SECTION: device-enum
  * @section_id: device-enum
@@ -29,6 +27,14 @@ typedef struct _NtDeviceEnum {
   size_t (*get_device_count)(struct _NtDeviceEnum* self);
 } NtDeviceEnum;
 
+NT_BEGIN_DECLS
+
+#if defined(__GNUC__)
+#pragma GCC visibility push(default)
+#elif defined(__clang__)
+#pragma clang visibility push(default)
+#endif
+
 /**
  * NT_TYPE_DEVICE_ENUM:
  *
@@ -36,12 +42,6 @@ typedef struct _NtDeviceEnum {
  */
 #define NT_TYPE_DEVICE_ENUM nt_device_enum_get_type()
 NT_DECLARE_TYPE(NT, DEVICE_ENUM, NtDeviceEnum, nt_device_enum);
-
-#if defined(__GNUC__)
-#pragma GCC visibility push(default)
-#elif defined(__clang__)
-#pragma clang visibility push(default)
-#endif
 
 /**
  * nt_device_enum_get_device_count:

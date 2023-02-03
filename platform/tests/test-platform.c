@@ -6,10 +6,6 @@
 START_TEST(test_platform_global) {
   NtType id = NT_TYPE_PLATFORM;
   ck_assert_uint_gt(id, 0);
-
-  NtPlatform* global = nt_platform_get_global();
-  ck_assert_ptr_nonnull(global);
-  ck_assert_uint_eq(global->instance.ref_count, 1);
 }
 END_TEST
 

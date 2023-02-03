@@ -89,14 +89,6 @@ NT_BEGIN_DECLS
 NT_DECLARE_TYPE(NT, PLATFORM, NtPlatform, nt_platform);
 
 /**
- * nt_platform_get_global:
- *
- * Get the global platform instance
- * Returns: An instance of %NtPlatform
- */
-NtPlatform* nt_platform_get_global();
-
-/**
  * nt_platform_get_os:
  * @self: The %NtPlatform instance to use
  *
