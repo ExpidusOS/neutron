@@ -1,7 +1,7 @@
 #pragma once
 
 #include <neutron/elemental.h>
-#include <neutron/displaykit/input.h>
+#include <neutron/inputcore/device.h>
 
 /**
  * SECTION: mouse
@@ -10,15 +10,15 @@
  */
 
 /**
- * NtDisplayMouseInput:
+ * NtMouseInput:
  * @instance: The %NtTypeInstance associated with this
- * @see_also: %NtDisplayInput
+ * @see_also: %NtInputDevice
  *
- * Mouse input on a display server
+ * A mouse input device
  */
-typedef struct _NtDisplayMouseInput {
+typedef struct _NtMouseInput {
   NtTypeInstance instance;
-} NtDisplayMouseInput;
+} NtMouseInput;
 
 NT_BEGIN_DECLS
 
@@ -29,12 +29,12 @@ NT_BEGIN_DECLS
 #endif
 
 /**
- * NT_TYPE_DISPLAY_MOUSE_INPUT:
+ * NT_TYPE_MOUSE_INPUT:
  *
- * The %NtType for %NtDisplayMouseInput
+ * The %NtType for %NtMouseInput
  */
-#define NT_TYPE_DISPLAY_MOUSE_INPUT nt_display_mouse_input_get_type()
-NT_DECLARE_TYPE(NT, DISPLAY_MOUSE_INPUT, NtDisplayMouseInput, nt_display_mouse_input);
+#define NT_TYPE_MOUSE_INPUT nt_mouse_input_get_type()
+NT_DECLARE_TYPE(NT, MOUSE_INPUT, NtMouseInput, nt_mouse_input);
 
 #if defined(__GNUC__)
 #pragma GCC visibility pop

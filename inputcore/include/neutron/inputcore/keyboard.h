@@ -1,7 +1,7 @@
 #pragma once
 
 #include <neutron/elemental.h>
-#include <neutron/displaykit/input.h>
+#include <neutron/inputcore/device.h>
 
 /**
  * SECTION: keyboard
@@ -10,15 +10,15 @@
  */
 
 /**
- * NtDisplayKeyboardInput:
+ * NtKeyboardInput:
  * @instance: The %NtTypeInstance associated with this
- * @see_also: %NtDisplayInput
+ * @see_also: %NtInputDevice
  *
- * Keyboard input on a display server
+ * A keyboard input device
  */
-typedef struct _NtDisplayKeyboardInput {
+typedef struct _NtKeyboardInput {
   NtTypeInstance instance;
-} NtDisplayKeyboardInput;
+} NtKeyboardInput;
 
 NT_BEGIN_DECLS
 
@@ -29,12 +29,12 @@ NT_BEGIN_DECLS
 #endif
 
 /**
- * NT_TYPE_DISPLAY_KEYBOARD_INPUT:
+ * NT_TYPE_KEYBOARD_INPUT:
  *
- * The %NtType for %NtDisplayKeyboardInput
+ * The %NtType for %NtKeyboardInput
  */
-#define NT_TYPE_DISPLAY_KEYBOARD_INPUT nt_display_keyboard_input_get_type()
-NT_DECLARE_TYPE(NT, DISPLAY_KEYBOARD_INPUT, NtDisplayKeyboardInput, nt_display_keyboard_input);
+#define NT_TYPE_KEYBOARD_INPUT nt_keyboard_input_get_type()
+NT_DECLARE_TYPE(NT, KEYBOARD_INPUT, NtKeyboardInput, nt_keyboard_input);
 
 #if defined(__GNUC__)
 #pragma GCC visibility pop

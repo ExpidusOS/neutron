@@ -1,22 +1,24 @@
 #pragma once
 
 #include <neutron/elemental.h>
+#include <neutron/inputcore/device.h>
 
 /**
- * SECTION: input
- * @title: Input
- * @short_description: An input device
+ * SECTION: touch
+ * @title: Touch Input
+ * @short_description: A touch input device
  */
 
 /**
- * NtDisplayInput:
+ * NtTouchInput:
  * @instance: The %NtTypeInstance associated with this
+ * @see_also: %NtInputDevice
  *
- * An input device on a display server
+ * A touch input device
  */
-typedef struct _NtDisplayInput {
+typedef struct _NtTouchInput {
   NtTypeInstance instance;
-} NtDisplayInput;
+} NtTouchInput;
 
 NT_BEGIN_DECLS
 
@@ -27,12 +29,12 @@ NT_BEGIN_DECLS
 #endif
 
 /**
- * NT_TYPE_DISPLAY_INPUT:
+ * NT_TYPE_TOUCH_INPUT:
  *
- * The %NtType for %NtDisplayInput
+ * The %NtType for %NtTouchInput
  */
-#define NT_TYPE_DISPLAY_INPUT nt_display_input_get_type()
-NT_DECLARE_TYPE(NT, DISPLAY_INPUT, NtDisplayInput, nt_display_input);
+#define NT_TYPE_TOUCH_INPUT nt_touch_input_get_type()
+NT_DECLARE_TYPE(NT, TOUCH_INPUT, NtTouchInput, nt_touch_input);
 
 #if defined(__GNUC__)
 #pragma GCC visibility pop

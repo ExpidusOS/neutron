@@ -21,9 +21,6 @@
     <xi:include href="xml/client.xml" />
     <xi:include href="xml/compositor.xml" />
     <xi:include href="xml/context.xml" />
-    <xi:include href="xml/input.xml" />
-    <xi:include href="xml/keyboard.xml" />
-    <xi:include href="xml/mouse.xml" />
     <xi:include href="xml/output.xml" />
     <xi:include href="xml/view.xml" />
   </part>

@@ -23,9 +23,6 @@
       <xi:include href="../displaykit/docs/xml/client.xml" />
       <xi:include href="../displaykit/docs/xml/compositor.xml" />
       <xi:include href="../displaykit/docs/xml/context.xml" />
-      <xi:include href="../displaykit/docs/xml/input.xml" />
-      <xi:include href="../displaykit/docs/xml/keyboard.xml" />
-      <xi:include href="../displaykit/docs/xml/mouse.xml" />
       <xi:include href="../displaykit/docs/xml/output.xml" />
       <xi:include href="../displaykit/docs/xml/view.xml" />
     </chapter>
@@ -50,6 +47,10 @@
     </chapter>
     <chapter id="inputcore">
       <title>InputCore</title>
+      <xi:include href="../inputcore/docs/xml/device.xml" />
+      <xi:include href="../inputcore/docs/xml/keyboard.xml" />
+      <xi:include href="../inputcore/docs/xml/mouse.xml" />
+      <xi:include href="../inputcore/docs/xml/touch.xml" />
     </chapter>
     <chapter id="platform">
       <title>Platform</title>

@@ -18,6 +18,10 @@
 
   <chapter>
     <title>API Reference</title>
+    <xi:include href="xml/device.xml" />
+    <xi:include href="xml/keyboard.xml" />
+    <xi:include href="xml/mouse.xml" />
+    <xi:include href="xml/touch.xml" />
   </chapter>
 
   <index id="api-index-full">

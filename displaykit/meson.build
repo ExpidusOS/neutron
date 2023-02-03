@@ -6,8 +6,7 @@ build_confi_displaykit = configure_file(input: 'src/build.h', output: 'neutron-d
 
 displaykit_sources = [
   'src/client.c', 'src/compositor.c', 'src/context.c',
-  'src/input.c', 'src/output.c', 'src/view.c',
-  'src/input/keyboard.c', 'src/input/mouse.c'
+  'src/output.c', 'src/view.c'
 ]
 displaykit_cflags = []
 

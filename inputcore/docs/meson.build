@@ -5,5 +5,5 @@ gnome.gtkdoc('neutron-inputcore',
     join_paths(meson.project_source_root(), 'inputcore', 'include'),
   ],
   scan_args: ['--rebuild-sections'],
-  dependencies: [elemental],
+  dependencies: [inputcore],
   install: true)

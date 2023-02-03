@@ -4,7 +4,10 @@ conf_data_inputcore.merge_from(conf_data)
 build_config_inputcore = configure_file(input: 'src/build.h', output: 'neutron-inputcore-build.h',
   configuration: conf_data_inputcore)
 
-inputcore_sources = []
+inputcore_sources = [
+  'src/device.c', 'src/keyboard.c', 'src/mouse.c', 'src/touch.c'
+]
+
 inputcore_cflags = []
 
 inputcore_inc = include_directories('include')
