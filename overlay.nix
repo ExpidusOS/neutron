@@ -11,7 +11,7 @@ rec {
         buildType = "release";
       }).overrideAttrs (s: {
         nativeBuildInputs = s.nativeBuildInputs ++ (with buildPackages; [ flutter dart ]);
-        mesonFlags = (s.mesonFlags or []) ++ [ "-Dbootstrap=false" ];
+        mesonFlags = (s.mesonFlags or []) ++ [ "-Dbootstrap=false" "-Dflutter-engine=${flutter-engine}/lib/flutter/out/release" ];
       });
     in {
       defaultPackage = f.neutron;

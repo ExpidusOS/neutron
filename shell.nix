@@ -20,6 +20,11 @@ mkShell rec {
     check pixman libglvnd
   ] ++ commonBuildInputs;
 
+  mesonFlags = [
+    "-Dbootstrap=false"
+    "-Dflutter-engine=${flutter-engine}/lib/flutter/out/release"
+  ];
+
   emscriptenCross = pkgs.writeText "emscripten.cross" ''
     [binaries]
     c = '${emscripten}/bin/emcc'

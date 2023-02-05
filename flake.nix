@@ -6,6 +6,7 @@
     substituters = [ "https://cache.nixos.org" "https://cache.garnix.io" ];
     trusted-substituters = substituters;
     fallback = true;
+    http2 = false;
   };
 
   inputs.expidus-sdk.url = github:ExpidusOS/sdk/refactor;

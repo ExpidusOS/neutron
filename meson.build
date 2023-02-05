@@ -92,11 +92,30 @@ if not is_bootstrap
   dart = find_program('dart', native: true, required: true)
   flutter = find_program('flutter', native: true, required: true)
 
-  flutter_engine = dependency('flutter-engine-@0@'.format(get_option('flutter-runtime-mode')), required: true)
+  if get_option('flutter-engine') == ''
+    error('Must set the flutter-engine option')
+  endif
+
+  flutter_engine = declare_dependency(dependencies: [
+    cc.find_library('flutter_engine',
+      dirs: get_option('flutter-engine'),
+      header_include_directories: include_directories(get_option('flutter-engine')),
+      has_headers: ['flutter_embedder.h'])
+  ],
+  include_directories: include_directories(get_option('flutter-engine')))
+
   egl = dependency('egl', native: false,
     required: get_option('graphics-renderer-egl').disable_auto_if(not dependency('egl', native: false, required: false).found()))
   pixman = dependency('pixman-1', native: false,
     required: get_option('graphics-renderer-pixman').disable_auto_if(not dependency('pixman-1', native: false, required: false).found()))
+
+  has_xcb = dependency('xcb', native: false, required: false).found()
+  xcb = dependency('xcb', native: false,
+    required: not get_option('displaykit-compositor-xcb').disable_auto_if(not has_xcb).disabled()
+      or not get_option('displaykit-client-xcb').disable_auto_if(not has_xcb).disabled())
+
+  wlroots = dependency('wlroots', native: false,
+    required: get_option('displaykit-compositor-wlroots').disable_auto_if(not dependency('wlroots', native: false, required: false).found()))
 else
   ffigen = disabler()
   flutter = disabler()
@@ -136,10 +155,6 @@ sum_args = {
 }
 
 if not is_bootstrap
-  sum_args += {
-    'Flutter Engine Runtime Mode': get_option('flutter-runtime-mode')
-  }
-
   libneutron = library('neutron', neutron_sources,
     c_args: neutron_cflags,
     include_directories: neutron_inc,
