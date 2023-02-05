@@ -166,6 +166,12 @@ if not is_bootstrap
     dependencies: neutron_deps,
     include_directories: neutron_inc)
 
+  pkg.generate(libneutron,
+    name: 'neutron',
+    description: 'API and runtime for ExpidusOS applications and compositors',
+    url: 'https://github.com/ExpidusOS/neutron',
+    version: shortver)
+
   subdir('docs', if_found: [gtkdoc])
 endif
 
