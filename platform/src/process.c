@@ -45,9 +45,30 @@ static void nt_process_destroy(NtTypeInstance* instance) {
   free(self->priv);
 }
 
+bool nt_process_is_current(NtProcess* self) {
+  assert(NT_IS_PROCESS(self));
+
+  if (self->priv->platform == NULL) return false;
+  return nt_platform_get_current_process(self->priv->platform) == self;
+}
+
+NtPlatform* nt_process_get_platform(NtProcess* self) {
+  assert(NT_IS_PROCESS(self));
+
+  if (self->priv->platform == NULL) return NULL;
+  return NT_PLATFORM(nt_type_instance_ref((NtTypeInstance*)self->priv->platform));
+}
+
+uint64_t nt_process_get_id(NtProcess* self) {
+  assert(NT_IS_PROCESS(self));
+  assert(self->get_id != NULL);
+  return self->get_id(self);
+}
+
 int nt_process_attach_signal(NtProcess* self, NtProcessSignalHandler handler, void* data) {
   assert(NT_IS_PROCESS(self));
   assert(handler != NULL);
+  assert(nt_process_is_current(self));
 
   NtProcessSignalEntry* sig = malloc(sizeof (NtProcessSignalEntry));
   assert(sig != NULL);
@@ -59,6 +80,7 @@ int nt_process_attach_signal(NtProcess* self, NtProcessSignalHandler handler, vo
 
 void* nt_process_detach_signal(NtProcess* self, int id) {
   assert(NT_IS_PROCESS(self));
+  assert(nt_process_is_current(self));
 
   NtProcessSignalEntry* sig = (NtProcessSignalEntry*)nt_signal_detach(self->priv->signal, id);
   if (sig == NULL) return NULL;

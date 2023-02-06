@@ -74,3 +74,9 @@ NtDeviceEnum* nt_platform_get_device_enum(NtPlatform* self) {
 
   return NT_DEVICE_ENUM(nt_type_instance_ref((NtTypeInstance*)self->priv->device_enum));
 }
+
+struct _NtProcess* nt_platform_get_current_process(NtPlatform* self) {
+  assert(NT_IS_PLATFORM(self));
+  assert(self->get_current_process != NULL);
+  return self->get_current_process(self);
+}

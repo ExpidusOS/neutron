@@ -1,6 +1,7 @@
 #pragma once
 
 #include <neutron/elemental.h>
+#include <neutron/platform/platform.h>
 #include <neutron/platform/signal.h>
 #include <stdint.h>
 
@@ -43,6 +44,26 @@ typedef struct _NtProcess {
 NT_DECLARE_TYPE(NT, PROCESS, NtProcess, nt_process);
 
 /**
+ * nt_process_is_current:
+ * @self: Instance of %NtProcess
+ *
+ * Returns whether or not the process is the currently running on the platform
+ * 
+ * Returns: %TRUE if @self is the current process, %FALSE if it is not the current process.
+ */
+bool nt_process_is_current(NtProcess* self);
+
+/**
+ * nt_process_get_platform:
+ * @self: Instance of %NtProcess
+ *
+ * Used for retrieving the platform the process is running on.
+ *
+ * Returns: The platform the process is a part of
+ */
+NtPlatform* nt_process_get_platform(NtProcess* self);
+
+/**
  * nt_process_get_id:
  * @self: Instance of %NtProcess
  *
@@ -59,6 +80,7 @@ uint64_t nt_process_get_id(NtProcess* self);
  * @data: Data to pass to the handler
  *
  * Attaches a signal handler with user data to the process.
+ * %nt_process_is_current must return %TRUE in order for signaling to work.
  *
  * Returns: The ID of the signal
  */
@@ -70,6 +92,7 @@ int nt_process_attach_signal(NtProcess* self, NtProcessSignalHandler handler, vo
  * @id: The ID of the signal
  *
  * Detaches a signal handler with user data to the process.
+ * %nt_process_is_current must return %TRUE in order for signaling to work.
  *
  * Returns: The data passed by %nt_process_attach_signal
  */

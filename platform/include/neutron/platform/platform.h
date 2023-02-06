@@ -4,6 +4,7 @@
 #include <neutron/platform/device-enum.h>
 
 struct _NtPlatform;
+struct _NtProcess;
 
 /**
  * SECTION: platform
@@ -57,6 +58,7 @@ typedef enum _NtPlatformArch {
  * @get_os: Method for retrieving the %NtPlatformOS
  * @get_arch: Method for retrieving the %NtPlatformArch
  * @get_device_enum: Method for retrieving the %NtDeviceEnum instance
+ * @get_current_process: Method for retrieving the current process
  * @priv: Private data
  *
  * An %NtTypeInstance used for platform specific API methods
@@ -67,6 +69,7 @@ typedef struct _NtPlatform {
   NtPlatformOS (*get_os)(struct _NtPlatform* self);
   NtPlatformArch (*get_arch)(struct _NtPlatform* self);
   NtDeviceEnum* (*get_device_enum)(struct _NtPlatform* self);
+  struct _NtProcess* (*get_current_process)(struct _NtPlatform* self);
 
   /*< private >*/
   struct _NtPlatformPrivate* priv;
@@ -114,6 +117,16 @@ NtPlatformArch nt_platform_get_arch(NtPlatform* self);
  * Returns: The device enumerator for the platform
  */
 NtDeviceEnum* nt_platform_get_device_enum(NtPlatform* self);
+
+/**
+ * nt_platform_get_current_process:
+ * @self: The %NtPlatform instance to use
+ *
+ * Gets the currently running process
+ *
+ * Returns: Instance of the currently running %NtProcess
+ */
+struct _NtProcess* nt_platform_get_current_process(NtPlatform* self);
 
 #if defined(__GNUC__)
 #pragma GCC visibility pop
