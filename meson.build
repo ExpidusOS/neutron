@@ -61,7 +61,9 @@ elif target_machine.system() == 'cygwin'
   flutter_os = 'windows'
 endif
 
-dartdir = libdir / 'neutron' / version / 'dart'
+libdir_neutron = libdir / 'neutron' / version
+dartdir = libdir_neutron / 'dart'
+shimdir = libdir_neutron / 'shims'
 
 conf_data.set('BUILD_USER', build_user)
 conf_data.set('LIBDIR', libdir)

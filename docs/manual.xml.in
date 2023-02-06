@@ -58,6 +58,8 @@
       <xi:include href="../platform/docs/xml/device-enum.xml" />
       <xi:include href="../platform/docs/xml/device.xml" />
       <xi:include href="../platform/docs/xml/platform.xml" />
+      <xi:include href="../platform/docs/xml/process.xml" />
+      <xi:include href="../platform/docs/xml/signal.xml" />
     </chapter>
     <chapter id="runtime">
       <title>Runtime</title>
