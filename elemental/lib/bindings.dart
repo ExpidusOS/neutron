@@ -706,7 +706,9 @@ class NeutronElemental {
   /// @data: The data to send to @handler
   ///
   /// Attaches a handler to the signal
-  void nt_signal_attach(
+  ///
+  /// Returns: The ID of the signal
+  int nt_signal_attach(
     ffi.Pointer<NtSignal> self,
     NtSignalHandler handler,
     ffi.Pointer<ffi.Void> data,
@@ -720,33 +722,35 @@ class NeutronElemental {
 
   late final _nt_signal_attachPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Void Function(ffi.Pointer<NtSignal>, NtSignalHandler,
+          ffi.Int Function(ffi.Pointer<NtSignal>, NtSignalHandler,
               ffi.Pointer<ffi.Void>)>>('nt_signal_attach');
   late final _nt_signal_attach = _nt_signal_attachPtr.asFunction<
-      void Function(
+      int Function(
           ffi.Pointer<NtSignal>, NtSignalHandler, ffi.Pointer<ffi.Void>)>();
 
   /// nt_signal_detach:
   /// @self: The %NtSignal
-  /// @handler: The handler to add
+  /// @id: The signal ID
   ///
   /// Detaches @handler from the signal
-  void nt_signal_detach(
+  ///
+  /// Returns: The data passed in %nt_signal_attach
+  ffi.Pointer<ffi.Void> nt_signal_detach(
     ffi.Pointer<NtSignal> self,
-    NtSignalHandler handler,
+    int id,
   ) {
     return _nt_signal_detach(
       self,
-      handler,
+      id,
     );
   }
 
   late final _nt_signal_detachPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Void Function(
-              ffi.Pointer<NtSignal>, NtSignalHandler)>>('nt_signal_detach');
+          ffi.Pointer<ffi.Void> Function(
+              ffi.Pointer<NtSignal>, ffi.Int)>>('nt_signal_detach');
   late final _nt_signal_detach = _nt_signal_detachPtr
-      .asFunction<void Function(ffi.Pointer<NtSignal>, NtSignalHandler)>();
+      .asFunction<ffi.Pointer<ffi.Void> Function(ffi.Pointer<NtSignal>, int)>();
 
   /// nt_signal_emit:
   /// @self: The %NtSignal
@@ -1060,9 +1064,11 @@ typedef NtSignal = _NtSignal;
 /// @data: User data
 ///
 /// Method type used for signal emittion.
+///
+/// Returns: %TRUE to continue, %FALSE to stop
 typedef NtSignalHandler = ffi.Pointer<
     ffi.NativeFunction<
-        ffi.Void Function(ffi.Pointer<NtSignal>, ffi.Pointer<NtTypeArgument>,
+        ffi.Bool Function(ffi.Pointer<NtSignal>, ffi.Pointer<NtTypeArgument>,
             ffi.Pointer<ffi.Void>)>>;
 
 const int NT_TYPE_NONE = 0;

@@ -39,8 +39,10 @@ NT_DECLARE_TYPE(NT, SIGNAL, NtSignal, nt_signal);
  * @data: User data
  *
  * Method type used for signal emittion.
+ *
+ * Returns: %TRUE to continue, %FALSE to stop
  */
-typedef void (*NtSignalHandler)(NtSignal* signal, NtTypeArgument* arguments, const void* data);
+typedef bool (*NtSignalHandler)(NtSignal* signal, NtTypeArgument* arguments, const void* data);
 
 #if defined(__GNUC__)
 #pragma GCC visibility push(default)
@@ -73,17 +75,21 @@ NtSignal* nt_signal_new_locking();
  * @data: The data to send to @handler
  *
  * Attaches a handler to the signal
+ *
+ * Returns: The ID of the signal
  */
-void nt_signal_attach(NtSignal* self, NtSignalHandler handler, const void* data);
+int nt_signal_attach(NtSignal* self, NtSignalHandler handler, const void* data);
 
 /**
  * nt_signal_detach:
  * @self: The %NtSignal
- * @handler: The handler to add
+ * @id: The signal ID
  *
  * Detaches @handler from the signal
+ *
+ * Returns: The data passed in %nt_signal_attach
  */
-void nt_signal_detach(NtSignal* self, NtSignalHandler handler);
+void* nt_signal_detach(NtSignal* self, int id);
 
 /**
  * nt_signal_emit:

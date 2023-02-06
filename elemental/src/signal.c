@@ -12,6 +12,7 @@ static void nt_signal_construct(NtTypeInstance* instance, NtTypeArgument* argume
   self->priv = malloc(sizeof (NtSignalPrivate));
   assert(self->priv != NULL);
   memset(self->priv, 0, sizeof (NtSignalPrivate));
+  self->priv->next_id = 1;
   self->priv->entries = NULL;
 
   NtValue locking = nt_type_argument_get(arguments, NT_TYPE_ARGUMENT_KEY(NtSignal, locking), NT_VALUE_BOOL(false));
@@ -49,7 +50,7 @@ NtSignal* nt_signal_new_locking() {
   }));
 }
 
-void nt_signal_attach(NtSignal* self, NtSignalHandler handler, const void* data) {
+int nt_signal_attach(NtSignal* self, NtSignalHandler handler, const void* data) {
   assert(NT_IS_SIGNAL(self));
   assert(handler != NULL);
 
@@ -61,20 +62,22 @@ void nt_signal_attach(NtSignal* self, NtSignalHandler handler, const void* data)
   entry->user_data = data;
   entry->next = self->priv->entries;
   entry->prev = NULL;
+  entry->id = self->priv->next_id++;
   if (self->priv->entries != NULL) self->priv->entries->prev = entry;
   self->priv->entries = entry;
 
   pthread_mutex_unlock(&self->priv->mutex);
+  return entry->id;
 }
 
-void nt_signal_detach(NtSignal* self, NtSignalHandler handler) {
+void* nt_signal_detach(NtSignal* self, int id) {
   assert(NT_IS_SIGNAL(self));
-  assert(handler != NULL);
 
   for (NtSignalEntry* entry = self->priv->entries; entry != NULL; entry = entry->next) {
-    if (entry->handler == handler) {
+    if (entry->id == id) {
       pthread_mutex_lock(&self->priv->mutex);
 
+      void* user_data = (void*)entry->user_data;
       if (entry == self->priv->entries) self->priv->entries = entry->next;
       if (entry->prev != NULL) entry->prev->next = entry->next;
       if (entry->next != NULL) entry->next->prev = entry->prev;
@@ -82,8 +85,11 @@ void nt_signal_detach(NtSignal* self, NtSignalHandler handler) {
       free(entry);
 
       pthread_mutex_unlock(&self->priv->mutex);
+      return user_data;
     }
   }
+
+  return NULL;
 }
 
 void nt_signal_emit(NtSignal* self, NtTypeArgument* arguments) {
@@ -93,7 +99,8 @@ void nt_signal_emit(NtSignal* self, NtTypeArgument* arguments) {
 
   for (NtSignalEntry* entry = self->priv->entries; entry != NULL; entry = entry->next) {
     assert(entry->handler != NULL);
-    entry->handler(self, arguments, entry->user_data);
+    bool result = entry->handler(self, arguments, entry->user_data);
+    if (!result) break;
   }
 
   if (self->priv->is_locking) pthread_mutex_unlock(&self->priv->mutex);
