@@ -39,7 +39,7 @@ START_TEST(test_multiple) {
   NtSignal* signal = nt_signal_new();
 
   bool result = false;
-  nt_signal_attach(signal, test_signal_handler, &result);
+  int id = nt_signal_attach(signal, test_signal_handler, &result);
   
   bool result2 = false;
   nt_signal_attach(signal, test_signal_handler, &result2);
@@ -48,7 +48,7 @@ START_TEST(test_multiple) {
   ck_assert_int_eq(result, true);
   ck_assert_int_eq(result2, true);
 
-  nt_signal_detach(signal, test_signal_handler);
+  nt_signal_detach(signal, id);
   nt_type_instance_unref((NtTypeInstance*)signal);
 }
 END_TEST

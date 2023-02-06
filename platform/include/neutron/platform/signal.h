@@ -77,7 +77,7 @@ struct _NtProcessSignal;
  *
  * Returns: A mask of different %NtSignalResult flags which controls how the process should exit
  */
-typedef NtProcessSignalResult (*NtProcessSignalHandler)(struct _NtProcess* proc, struct _NtProcessSignal* signal, void* data);
+typedef NtProcessSignalResult (*NtProcessSignalHandler)(struct _NtProcess* proc, struct _NtProcessSignal* signal, const void* data);
 
 /**
  * NtSignalException:
