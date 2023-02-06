@@ -74,3 +74,17 @@ void nt_backtrace_push_full(NtBacktrace* self, const char* file, const char* met
 
   self->entries = entry;
 }
+
+void nt_backtrace_pop(NtBacktrace* self) {
+  assert(NT_IS_BACKTRACE(self));
+
+  if (self->entries != NULL) {
+    if (self->entries->file != NULL) free((char*)self->entries->file);
+    if (self->entries->method != NULL) free((char*)self->entries->method);
+    free(self->entries);
+
+    self->entries = self->entries->prev;
+  } else {
+    self->entries = NULL;
+  }
+}

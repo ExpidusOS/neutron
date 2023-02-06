@@ -40,6 +40,12 @@ typedef struct _NtBacktrace {
   struct _NtBacktraceEntry* entries;
 } NtBacktrace;
 
+#if defined(__GNUC__)
+#pragma GCC visibility push(default)
+#elif defined(__clang__)
+#pragma clang visibility push(default)
+#endif
+
 /**
  * NT_TYPE_BACKTRACE:
  *
@@ -47,12 +53,6 @@ typedef struct _NtBacktrace {
  */
 #define NT_TYPE_BACKTRACE nt_backtrace_get_type()
 NT_DECLARE_TYPE(NT, BACKTRACE, NtBacktrace, nt_backtrace);
-
-#if defined(__GNUC__)
-#pragma GCC visibility push(default)
-#elif defined(__clang__)
-#pragma clang visibility push(default)
-#endif
 
 /**
  * nt_backtrace_new:
@@ -90,6 +90,14 @@ void nt_backtrace_push_full(NtBacktrace* self, const char* file, const char* met
  * Pushes a new method call onto the trace
  */
 #define nt_backtrace_push(self, address) nt_backtrace_push_full(self, __FILE__, __func__, __LINE__, address)
+
+/**
+ * nt_backtrace_pop:
+ * @self: An instance of a backtrace
+ *
+ * Pops the last backtrace entry off
+ */
+void nt_backtrace_pop(NtBacktrace* self);
 
 #if defined(__GNUC__)
 #pragma GCC visibility pop

@@ -348,6 +348,24 @@ class NeutronElemental {
       void Function(ffi.Pointer<NtBacktrace>, ffi.Pointer<ffi.Char>,
           ffi.Pointer<ffi.Char>, int, ffi.Pointer<ffi.Void>)>();
 
+  /// nt_backtrace_pop:
+  /// @self: An instance of a backtrace
+  ///
+  /// Pops the last backtrace entry off
+  void nt_backtrace_pop(
+    ffi.Pointer<NtBacktrace> self,
+  ) {
+    return _nt_backtrace_pop(
+      self,
+    );
+  }
+
+  late final _nt_backtrace_popPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<NtBacktrace>)>>(
+          'nt_backtrace_pop');
+  late final _nt_backtrace_pop = _nt_backtrace_popPtr
+      .asFunction<void Function(ffi.Pointer<NtBacktrace>)>();
+
   late final ffi.Pointer<ffi.Size> _NT_ERROR_SIZE =
       _lookup<ffi.Size>('NT_ERROR_SIZE');
 

@@ -60,7 +60,7 @@ NtError* nt_error_new_full(const char* file, const char* method, int line, const
  *
  * Returns: A new error
  */
-#define nt_error_new(message, backtrace) nt_error_new(__FILE__, __func__, __LINE__, message, backtrace)
+#define nt_error_new(message, backtrace) nt_error_new_full(__FILE__, __func__, __LINE__, message, backtrace)
 
 #if defined(__GNUC__)
 #pragma GCC visibility pop
