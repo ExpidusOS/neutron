@@ -3,9 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void test_signal_handler(NtSignal* signal, NtTypeArgument* arguments, const void* user_data) {
+static bool test_signal_handler(NtSignal* signal, NtTypeArgument* arguments, const void* user_data) {
   bool* resultptr = (bool*)user_data;
   *resultptr = true;
+  return true;
 }
 
 START_TEST(test_basic) {

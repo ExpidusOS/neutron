@@ -6,7 +6,7 @@
 NT_DEFINE_TYPE(NT, PROCESS, NtProcess, nt_process, NT_TYPE_FLAG_DYNAMIC, NT_TYPE_NONE);
 
 static bool nt_process_signal_handler(NtSignal* signal, NtTypeArgument* arguments, const void* data) {
-  NtProcessSignal* sig = (NtProcessSignal*)data;
+  NtProcessSignalEntry* sig = (NtProcessSignalEntry*)data;
 
   NtValue sigdata = nt_type_argument_get(arguments, NT_TYPE_ARGUMENT_KEY(NtProcessSignal, signal), NT_VALUE_POINTER(NULL));
   assert(sigdata.type == NT_VALUE_TYPE_POINTER);
@@ -16,9 +16,9 @@ static bool nt_process_signal_handler(NtSignal* signal, NtTypeArgument* argument
   assert(resultptr.type == NT_VALUE_TYPE_POINTER);
   assert(resultptr.data.pointer != NULL);
 
-  NtSignalResult* result = (NtSignalResult*)resultptr;
+  NtProcessSignalResult* result = (NtProcessSignalResult*)resultptr.data.pointer;
 
-  sig->result = sig->handler(sig->proc, sigdata.data.pointer, data);
+  sig->result = sig->handler(sig->proc, sigdata.data.pointer, sig->data);
 
   if (sig->result & NT_SIGNAL_RETURN) *result |= NT_SIGNAL_RETURN;
   else if (sig->result & NT_SIGNAL_QUIT) *result |= NT_SIGNAL_QUIT;
@@ -45,11 +45,11 @@ static void nt_process_destroy(NtTypeInstance* instance) {
   free(self->priv);
 }
 
-int nt_process_attach_signal(NtProcess* self, NtSignalHandler handler, void* data) {
+int nt_process_attach_signal(NtProcess* self, NtProcessSignalHandler handler, void* data) {
   assert(NT_IS_PROCESS(self));
   assert(handler != NULL);
 
-  NtProcessSignal* sig = malloc(sizeof (NtProcessSignal));
+  NtProcessSignalEntry* sig = malloc(sizeof (NtProcessSignalEntry));
   assert(sig != NULL);
   sig->proc = self;
   sig->handler = handler;
@@ -60,10 +60,10 @@ int nt_process_attach_signal(NtProcess* self, NtSignalHandler handler, void* dat
 void* nt_process_detach_signal(NtProcess* self, int id) {
   assert(NT_IS_PROCESS(self));
 
-  NtProcessSignal* sig = (NtProcessSignal*)nt_signal_detach(self->priv->signal, id);
+  NtProcessSignalEntry* sig = (NtProcessSignalEntry*)nt_signal_detach(self->priv->signal, id);
   if (sig == NULL) return NULL;
 
-  void* data = sig->data;
+  void* data = (void*)sig->data;
   free(sig);
   return data;
 }

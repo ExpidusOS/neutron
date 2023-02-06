@@ -57,15 +57,15 @@ typedef enum _NtInterrupt {
  *
  * Enums of different results %NtSignalHandler could return
  */
-typedef enum _NtSignalResult {
+typedef enum _NtProcessSignalResult {
   NT_SIGNAL_STOP = 0 << 0,
   NT_SIGNAL_CONTINUE = 1 << 0,
   NT_SIGNAL_RETURN = 0 << 1,
   NT_SIGNAL_QUIT = 1 << 1
-} NtSignalResult;
+} NtProcessSignalResult;
 
 struct _NtProcess;
-struct _NtSignal;
+struct _NtProcessSignal;
 
 /**
  * NtSignalHandler:
@@ -77,7 +77,7 @@ struct _NtSignal;
  *
  * Returns: A mask of different %NtSignalResult flags which controls how the process should exit
  */
-typedef NtSignalResult (*NtSignalHandler)(struct _NtProcess* proc, struct _NtSignal* signal, void* data);
+typedef NtProcessSignalResult (*NtProcessSignalHandler)(struct _NtProcess* proc, struct _NtProcessSignal* signal, void* data);
 
 /**
  * NtSignalException:
@@ -110,7 +110,7 @@ typedef struct _NtSignalInterrupt {
  *
  * Signaling data
  */
-typedef struct _NtSignal {
+typedef struct _NtProcessSignal {
   bool is_interrupt:1;
   bool is_exception:1;
 
@@ -121,6 +121,6 @@ typedef struct _NtSignal {
     NtSignalException exception;
     NtSignalInterrupt interrupt;
   };
-} NtSignal;
+} NtProcessSignal;
 
 NT_END_DECLS

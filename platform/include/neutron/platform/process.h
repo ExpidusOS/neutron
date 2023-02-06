@@ -62,7 +62,7 @@ uint64_t nt_process_get_id(NtProcess* self);
  *
  * Returns: The ID of the signal
  */
-int nt_process_attach_signal(NtProcess* self, NtSignalHandler handler, void* data);
+int nt_process_attach_signal(NtProcess* self, NtProcessSignalHandler handler, void* data);
 
 /**
  * nt_process_detach_signal:

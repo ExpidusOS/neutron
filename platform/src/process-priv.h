@@ -2,12 +2,12 @@
 
 #include <neutron/platform/process.h>
 
-typedef struct _NtProcessSignal {
+typedef struct _NtProcessSignalEntry {
   NtProcess* proc;
-  NtSignalHandler handler;
-  void* data;
-  NtSignalResult result;
-} NtProcessSignal;
+  NtProcessSignalHandler handler;
+  const void* data;
+  NtProcessSignalResult result;
+} NtProcessSignalEntry;
 
 typedef struct _NtProcessPrivate {
   NtSignal* signal;
