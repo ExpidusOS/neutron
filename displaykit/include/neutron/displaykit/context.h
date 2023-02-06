@@ -11,11 +11,15 @@
 /**
  * NtDisplayContext:
  * @instance: The %NtTypeInstance associated with this
+ * @view_new: Event emitted when a new view is created
+ * @output_new: Event emitted when a new output is created
  *
  * An abstract type for all clients and compositors 
  */
 typedef struct _NtDisplayContext {
   NtTypeInstance instance;
+  NtSignal* view_new;
+  NtSignal* output_new;
 } NtDisplayContext;
 
 NT_BEGIN_DECLS

@@ -23,6 +23,7 @@
     <xi:include href="xml/context.xml" />
     <xi:include href="xml/output.xml" />
     <xi:include href="xml/view.xml" />
+    @DISPLAYKIT_COMPOSITORS_XML@
   </part>
 
   <index id="api-index-full">

@@ -11,11 +11,13 @@
 /**
  * NtDisplayOutput:
  * @instance: The %NtTypeInstance associated with this
+ * @destroy: The event emitted when the output is destroyed
  *
  * A display output
  */
 typedef struct _NtDisplayOutput {
   NtTypeInstance instance;
+  NtSignal* destroy;
 } NtDisplayOutput;
 
 NT_BEGIN_DECLS

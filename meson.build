@@ -116,6 +116,9 @@ if not is_bootstrap
 
   wlroots = dependency('wlroots', native: false,
     required: get_option('displaykit-compositor-wlroots').disable_auto_if(not dependency('wlroots', native: false, required: false).found()))
+  wayland_server = dependency('wayland-server', native: false, required: wlroots.found())
+
+  xkbcommon = dependency('xkbcommon', native: false, required: xcb.found() or wlroots.found())
 else
   ffigen = disabler()
   flutter = disabler()

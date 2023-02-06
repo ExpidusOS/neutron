@@ -1,8 +1,17 @@
 conf_data_displaykit = configuration_data()
 conf_data_displaykit.merge_from(conf_data)
 
-build_confi_displaykit = configure_file(input: 'src/build.h', output: 'neutron-displaykit-build.h',
-  configuration: conf_data_graphics)
+displaykit_compositors_xml = ''
+
+if wlroots.found()
+  displaykit_compositors_xml += '<xi:include href="xml/wlroots-compositor.xml" />'
+  conf_data_displaykit.set('NT_DISPLAYKIT_HAS_WLROOTS', true)
+endif
+
+conf_data_displaykit.set('DISPLAYKIT_COMPOSITORS_XML', displaykit_compositors_xml)
+
+build_config_displaykit = configure_file(input: 'src/build.h', output: 'neutron-displaykit-build.h',
+  configuration: conf_data_displaykit)
 
 displaykit_sources = [
   'src/client.c', 'src/compositor.c', 'src/context.c',
@@ -16,6 +25,9 @@ displaykit_deps = [elemental]
 
 displaykit_compositors = []
 displaykit_clients = []
+
+subdir('compositors')
+subdir('clients')
 
 subdir('include/neutron/displaykit')
 install_subdir('include', strip_directory: true,
@@ -37,6 +49,7 @@ displaykit = declare_dependency(link_with: libdisplaykit,
   dependencies: displaykit_deps)
 libs += [libdisplaykit]
 neutron_inc += displaykit_inc
+neutron_cflags += displaykit_cflags
 neutron_deps += displaykit_deps
 
 foreach src : displaykit_sources

@@ -11,11 +11,13 @@
 /**
  * NtDisplayView:
  * @instance: The %NtTypeInstance associated with this
+ * @destroy: The event emitted when the view is destroyed
  *
  * A window
  */
 typedef struct _NtDisplayView {
   NtTypeInstance instance;
+  NtSignal* destroy;
 } NtDisplayView;
 
 NT_BEGIN_DECLS

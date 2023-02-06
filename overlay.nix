@@ -11,7 +11,7 @@ rec {
         buildType = "release";
       }).overrideAttrs (s: {
         nativeBuildInputs = s.nativeBuildInputs ++ (with buildPackages; [ flutter dart ]);
-        buildInputs = (s.buildInputs or []) ++ [ xorg.libxcb wlroots ];
+        buildInputs = (s.buildInputs or []) ++ [ xorg.libxcb wlroots wayland wayland-protocols udev libxkbcommon ];
         mesonFlags = (s.mesonFlags or []) ++ [ "-Dbootstrap=false" "-Dflutter-engine=${flutter-engine}/lib/flutter/out/release" ];
       });
     in {

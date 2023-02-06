@@ -2,6 +2,7 @@ conf_data_docs = configuration_data()
 conf_data_docs.merge_from(conf_data)
 
 conf_data_docs.set('GRAPHICS_RENDERERS_XML', graphics_renderers_xml)
+conf_data_docs.set('DISPLAYKIT_COMPOSITORS_XML', displaykit_compositors_xml)
 
 gnome.gtkdoc('neutron',
   main_xml: join_paths(meson.current_build_dir(), 'manual.xml'),
