@@ -100,9 +100,28 @@ typedef struct _NtSignalInterrupt {
 } NtSignalInterrupt;
 
 /**
+ * NtSignalReturn:
+ * @stack: Stack data
+ * @arg0: Data argument 0
+ * @arg1: Data argument 1
+ * @arg2: Data argument 2
+ * @arg3: Data argument 3
+ *
+ * Signaling data to return for when %NT_SIGNAL_RETURN is used
+ */
+typedef struct _NtSignalReturn {
+  void* stack;
+  void* arg0;
+  void* arg1;
+  void* arg2;
+  void* arg3;
+} NtSignalReturn;
+
+/**
  * NtSignal:
  * @is_interrupt: Bit value of if the signal was an interrupt
  * @is_exception: Bit value of if the signal was an exception
+ * @is_return: Bit value to enable data returning
  * @stack: Pointer to the stack
  * @address: Pointer to the address
  * @exception: Data for an exception
@@ -113,6 +132,7 @@ typedef struct _NtSignalInterrupt {
 typedef struct _NtProcessSignal {
   bool is_interrupt:1;
   bool is_exception:1;
+  bool is_return:1;
 
   void* stack;
   void* address;
@@ -120,6 +140,7 @@ typedef struct _NtProcessSignal {
   union {
     NtSignalException exception;
     NtSignalInterrupt interrupt;
+    NtSignalReturn return_data;
   };
 } NtProcessSignal;
 

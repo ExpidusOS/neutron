@@ -89,3 +89,9 @@ void* nt_process_detach_signal(NtProcess* self, int id) {
   free(sig);
   return data;
 }
+
+void* nt_process_send_signal(NtProcess* self, NtException exception, NtInterrupt interrupt) {
+  assert(NT_IS_PROCESS(self));
+  assert(self->send_signal != NULL);
+  return self->send_signal(self, exception, interrupt);
+}

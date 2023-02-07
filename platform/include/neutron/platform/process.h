@@ -16,6 +16,7 @@ NT_BEGIN_DECLS
  * NtProcess:
  * @instance: The %NtTypeInstance associated with this
  * @get_id: Retrieve the process ID of this instance of %NtProcess, returns 0 if none exists
+ * @send_signal: Method for triggering a signal
  * @priv: Private data
  *
  * A process or a thread
@@ -24,6 +25,7 @@ typedef struct _NtProcess {
   NtTypeInstance instance;
 
   uint64_t (*get_id)(struct _NtProcess* self);
+  void* (*send_signal)(struct _NtProcess* self, NtException exception, NtInterrupt interrupt);
   
   /*< private >*/
   struct _NtProcessPrivate* priv;
@@ -97,6 +99,20 @@ int nt_process_attach_signal(NtProcess* self, NtProcessSignalHandler handler, vo
  * Returns: The data passed by %nt_process_attach_signal
  */
 void* nt_process_detach_signal(NtProcess* self, int id);
+
+/**
+ * nt_process_send_signal:
+ * @self: Instance of %NtProcess
+ * @exception: Exception to send
+ * @interrupt: Interrupt to send
+ *
+ * Both @interrupt and @exception cannot be set beyond their none value at the same time.
+ * Both arguments must also not be none so only one can be none. This method triggers a signal
+ * on the target process.
+ *
+ * Returns: %NULL or the data returned.
+ */
+void* nt_process_send_signal(NtProcess* self, NtException exception, NtInterrupt interrupt);
 
 #if defined(__GNUC__)
 #pragma GCC visibility pop
