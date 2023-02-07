@@ -139,7 +139,7 @@ neutron_deps = []
 subdir('elemental')
 
 if not is_bootstrap
-  foreach name : [ 'shimmy', 'platform', 'graphics', 'inputcore', 'displaykit', 'runtime' ]
+  foreach name : [ 'platform', 'shimmy', 'graphics', 'inputcore', 'displaykit', 'runtime' ]
     subdir(name)
     neutron_inc += [include_directories(name)]
   endforeach
