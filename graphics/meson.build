@@ -49,6 +49,7 @@ libgraphics = library('neutron-graphics', graphics_sources,
 graphics = declare_dependency(link_with: libgraphics,
   include_directories: graphics_inc,
   dependencies: graphics_deps)
+libgraphics_name = fs.name(libgraphics.full_path())
 libs += [libgraphics]
 neutron_inc += graphics_inc
 neutron_deps += graphics_deps
@@ -62,6 +63,35 @@ pkg.generate(libgraphics,
   description: 'Graphical API for ExpidusOS\'s Neutron',
   url: 'https://github.com/ExpidusOS/neutron',
   version: shortver)
+
+if dart.found()
+  graphics_cmake = configure_file(input: 'CMakeLists.txt.in', output: 'CMakeLists.txt',
+    configuration: conf_data_graphics,
+    install: true,
+    install_dir: dartdir / 'graphics')
+  install_data(graphics_cmake, install_dir: dartdir / 'graphics' / flutter_os)
+
+  graphics_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir()], check: false)
+
+  if graphics_pub.returncode() != 0
+    warning('Graphics ffi generation is disabled due to: @0@'.format(graphics_pub.stderr()))
+  endif
+
+  install_data('pubspec.yaml', install_dir: dartdir / 'shimmy')
+
+  if fs.exists(meson.current_source_dir() / 'pubspec.lock')
+    install_data('.dart_tool/package_config.json', install_dir: dartdir / 'graphics' / '.dart_tool')
+    install_data('pubspec.lock', install_dir: dartdir / 'graphics')
+  endif
+endif
+
+subdir('lib')
+install_subdir('lib', strip_directory: true,
+  install_dir: dartdir / 'graphics' / 'lib',
+  exclude_files: [
+    'path.dart.in',
+    'meson.build'
+  ])
 
 subdir('docs', if_found: [gtkdoc])
 
