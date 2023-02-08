@@ -3,10 +3,11 @@ conf_data_platform.merge_from(conf_data)
 
 platform_xml = ''
 
-if target_machine.system() == 'linux' or target_machine.system() == 'android'
+if target_machine.system() == 'linux'
   platform_xml += '<xi:include href="xml/linux-platform.xml" />'
   platform_xml += '<xi:include href="xml/linux-process.xml" />'
-  platform_xml += '<xi:include href="xml/udev-device-enum.xml" />'
+  platform_xml += '<xi:include href="xml/systemd-device-enum.xml" />'
+  platform_xml += '<xi:include href="xml/systemd-device.xml" />'
 endif
 
 conf_data_platform.set('PLATFORM_XML', platform_xml)

@@ -122,7 +122,7 @@ if not is_bootstrap
 
   xkbcommon = dependency('xkbcommon', native: false, required: xcb.found() or wlroots.found())
 
-  libudev = dependency('libudev', native: false, required: target_machine.system() == 'linux')
+  libsystemd = dependency('libsystemd', native: false, required: target_machine.system() == 'linux')
 else
   ffigen = disabler()
   flutter = disabler()

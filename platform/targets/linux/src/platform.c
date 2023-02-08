@@ -1,6 +1,6 @@
 #include <neutron/platform/linux-platform.h>
 #include <neutron/platform/linux-process.h>
-#include <neutron/platform/udev-device-enum.h>
+#include <neutron/platform/systemd-device-enum.h>
 #include <assert.h>
 #include <unistd.h>
 
@@ -11,7 +11,7 @@ static NtProcess* nt_linux_platform_get_current_process(NtPlatform* platform) {
 }
 
 static NtDeviceEnum* nt_linux_platform_get_device_enum(NtPlatform* platform) {
-  return nt_udev_device_enum_new();
+  return nt_systemd_device_enum_new();
 }
 
 static void nt_linux_platform_construct(NtTypeInstance* instance, NtTypeArgument* arguments) {
