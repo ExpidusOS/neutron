@@ -86,6 +86,10 @@ has_execinfo_h = cc.check_header('execinfo.h', required: false)
 wants_posix = get_option('posix').disable_auto_if(not cc.check_header('unistd.h', required: false) and cc.has_header_symbol('unistd.h', '_POSIX_VERSION', required: false))
 is_posix = cc.check_header('unistd.h', required: wants_posix) and cc.has_header_symbol('unistd.h', '_POSIX_VERSION', required: wants_posix)
 
+if not is_posix and target_machine.system() != 'windows'
+  error('Windows is the only target system which does not require POSIX')
+endif
+
 thread = dependency('threads', required: true)
 check = dependency('check', required: get_option('tests'), native: true)
 
