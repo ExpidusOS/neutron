@@ -1,6 +1,7 @@
 #pragma once
 
 #include <neutron/elemental.h>
+#include <neutron/platform/device.h>
 
 /**
  * SECTION: device-enum
@@ -46,8 +47,9 @@ NT_DECLARE_TYPE(NT, DEVICE_ENUM, NtDeviceEnum, nt_device_enum);
 /**
  * nt_device_enum_get_device_count:
  * @self: The %NtDeviceEnum instance
+ * @kind: The kind of device to count
  *
- * Counts the number of devices which have been discovered.
+ * Counts the number of devices which have been discovered for @kind.
  * Returns: The number of devices
  */
 size_t nt_device_enum_get_device_count(NtDeviceEnum* self);

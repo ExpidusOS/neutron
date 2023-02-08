@@ -155,7 +155,7 @@ static void* nt_linux_process_send_signal(NtProcess* proc, NtException exception
 
   if (nt_process_is_current(proc)) {
     struct SignalContext* ctx = alloca(sizeof (struct SignalContext));
-    ctx->proc = NT_PROCESS(self);
+    ctx->proc = NT_PROCESS((NtTypeInstance*)self);
 
     struct sigaction act = {};
     act.sa_sigaction = nt_linux_process_signal_handler;
