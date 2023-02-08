@@ -1,4 +1,5 @@
 #include <neutron/platform/systemd-device-enum.h>
+#include <neutron/platform/systemd-device.h>
 #include <assert.h>
 #include <stdlib.h>
 #include "device-enum-priv.h"
@@ -25,6 +26,23 @@ static size_t nt_systemd_device_enum_count(NtDeviceEnum* device_enum, NtDeviceQu
   return i;
 }
 
+static NtList* nt_systemd_device_enum_query(NtDeviceEnum* device_enum, NtDeviceQuery query) {
+  NtSystemdDeviceEnum* self = NT_SYSTEMD_DEVICE_ENUM((NtTypeInstance*)device_enum);
+  assert(self != NULL);
+
+  sd_device_enumerator* e = create_enumerator(self, query);
+  
+  sd_device* dev = NULL;
+  NtList* list = NULL;
+
+  while ((dev = sd_device_enumerator_get_device_next(e)) != NULL) {
+    list = nt_list_append(list, NT_VALUE_POINTER(nt_systemd_device_new(dev)));
+  }
+
+  sd_device_enumerator_unref(e);
+  return list;
+}
+
 static void nt_systemd_device_enum_construct(NtTypeInstance* instance, NtTypeArgument* arguments) {
   NtDeviceEnum* device_enum = NT_DEVICE_ENUM(instance);
   assert(device_enum != NULL);
@@ -33,6 +51,7 @@ static void nt_systemd_device_enum_construct(NtTypeInstance* instance, NtTypeArg
   assert(self != NULL);
 
   device_enum->count = nt_systemd_device_enum_count;
+  device_enum->query = nt_systemd_device_enum_query;
 
   self->priv = malloc(sizeof (NtSystemdDeviceEnumPrivate));
   assert(self->priv != NULL);
