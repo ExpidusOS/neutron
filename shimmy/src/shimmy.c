@@ -108,12 +108,12 @@ void* nt_shimmy_exec(NtProcess* proc, const char* lib, const char* method, void*
   call->shim = shim;
   call->data = data;
 
-  pthread_mutex_lock(&mutex);
+  assert(pthread_mutex_lock(&mutex) == 0);
   int id = nt_process_attach_signal(proc, nt_shimmy_signal_handler, call);
 
   void* ret = nt_process_send_signal(proc, NT_PROCESS_EXCEPTION_SEG_VIO, NT_PROCESS_INTERRUPT_NONE);
 
   nt_process_detach_signal(proc, id);
-  pthread_mutex_unlock(&mutex);
+  assert(pthread_mutex_unlock(&mutex) == 0);
   return ret;
 }

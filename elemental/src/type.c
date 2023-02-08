@@ -36,7 +36,7 @@ NtType nt_type_register(NtTypeInfo* info) {
     assert(pthread_mutex_init(&nt_type_mutex, NULL) == 0);
   }
 
-  pthread_mutex_lock(&nt_type_mutex);
+  assert(pthread_mutex_lock(&nt_type_mutex) == 0);
 
   // TODO: check if type is already registered in registry
 
@@ -70,7 +70,7 @@ NtType nt_type_register(NtTypeInfo* info) {
 
   nt_type_registry = entry;
 
-  pthread_mutex_unlock(&nt_type_mutex);
+  assert(pthread_mutex_unlock(&nt_type_mutex) == 0);
   return info->id;
 }
 
@@ -79,7 +79,7 @@ void nt_type_unregister(NtTypeInfo* info) {
 
   for (struct TypeEntry* item = nt_type_registry; item != NULL; item = item->next) {
     if (item->info.id == info->id) {
-      pthread_mutex_lock(&nt_type_mutex);
+      assert(pthread_mutex_lock(&nt_type_mutex) == 0);
 
       if (item == nt_type_registry) nt_type_registry = item->next;
       if (item->prev != NULL) item->prev->next = item->next;
@@ -88,7 +88,7 @@ void nt_type_unregister(NtTypeInfo* info) {
       free(item->info.extends);
       free(item);
 
-      pthread_mutex_unlock(&nt_type_mutex);
+      assert(pthread_mutex_unlock(&nt_type_mutex) == 0);
       info->id = 0;
     }
   }

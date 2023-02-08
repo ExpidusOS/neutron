@@ -35,7 +35,7 @@ static void nt_renderer_destroy(NtTypeInstance* inst) {
   nt_type_instance_unref((NtTypeInstance*)self->pre_render);
   nt_type_instance_unref((NtTypeInstance*)self->post_render);
 
-  pthread_mutex_destroy(&self->priv->mutex);
+  assert(pthread_mutex_destroy(&self->priv->mutex) == 0);
   free(self->priv);
 }
 
@@ -67,7 +67,7 @@ void nt_renderer_render(NtRenderer* self) {
   assert(NT_IS_RENDERER(self));
   assert(self->render != NULL);
 
-  pthread_mutex_lock(&self->priv->mutex);
+  assert(pthread_mutex_lock(&self->priv->mutex) == 0);
 
   NtTypeArgument arguments[] = {
     { NT_TYPE_ARGUMENT_KEY(NtRenderer, instance), NT_VALUE_INSTANCE((NtTypeInstance*)self) },
@@ -78,5 +78,5 @@ void nt_renderer_render(NtRenderer* self) {
   self->render(self);
   nt_signal_emit(self->post_render, arguments);
 
-  pthread_mutex_unlock(&self->priv->mutex);
+  assert(pthread_mutex_unlock(&self->priv->mutex) == 0);
 }
