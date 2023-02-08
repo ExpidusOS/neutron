@@ -180,6 +180,8 @@ NtTypeInstance* nt_type_instance_get_data(NtTypeInstance* instance, NtType type)
 
   const NtTypeInfo* info = nt_type_info_from_type(instance->type);
   assert(info != NULL);
+  
+  if (info->id == type) return instance;
 
   size_t off = info->size + sizeof (NtTypeInstance);
   if (info->extends != NULL) {
@@ -189,14 +191,13 @@ NtTypeInstance* nt_type_instance_get_data(NtTypeInstance* instance, NtType type)
 
       if (subinfo->id == type) return (NtTypeInstance*)(instance + off);
 
+      // FIXME: a recursion issue was discovered here
       NtTypeInstance* subinst = nt_type_instance_get_data((NtTypeInstance*)(instance + off), type);
       if (subinst != NULL) return subinst;
 
       off += nt_type_info_get_total_size((NtTypeInfo*)subinfo);
     }
   }
-  
-  if (info->id == type) return instance;
   return NULL;
 }
 
