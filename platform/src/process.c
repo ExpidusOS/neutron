@@ -56,6 +56,10 @@ static void nt_process_destroy(NtTypeInstance* instance) {
 bool nt_process_is_current(NtProcess* self) {
   assert(NT_IS_PROCESS(self));
 
+  if (self->is_current != NULL) {
+    return self->is_current(self);
+  }
+
   if (self->priv->platform == NULL) return false;
   return nt_platform_get_current_process(self->priv->platform) == self;
 }

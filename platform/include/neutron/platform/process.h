@@ -15,6 +15,7 @@ NT_BEGIN_DECLS
 /**
  * NtProcess:
  * @instance: The %NtTypeInstance associated with this
+ * @is_current: Method for determining whether or not the process is the current one
  * @get_id: Retrieve the process ID of this instance of %NtProcess, returns 0 if none exists
  * @send_signal: Method for triggering a signal
  * @priv: Private data
@@ -24,6 +25,7 @@ NT_BEGIN_DECLS
 typedef struct _NtProcess {
   NtTypeInstance instance;
 
+  bool (*is_current)(struct _NtProcess* self);
   uint64_t (*get_id)(struct _NtProcess* self);
   void* (*send_signal)(struct _NtProcess* self, NtException exception, NtInterrupt interrupt);
   
