@@ -1,0 +1,35 @@
+#pragma once
+
+/**
+ * SECTION: build
+ * @title: Build Configuration
+ * @short_description: Macros describing how this was configured
+ */
+
+/**
+ * NT_HAS_POSIX:
+ *
+ * Neutron was compiled with POSIX support
+ */
+#mesondefine NT_HAS_POSIX
+
+/**
+ * NT_IS_LINUX:
+ *
+ * Neutron is compiled for Linux if this is defined
+ */
+#mesondefine NT_IS_LINUX
+
+/**
+ * NT_IS_WINDOWS:
+ *
+ * Neutron is compiled for Windows if this is defined
+ */
+#mesondefine NT_IS_WINDOWS
+
+/**
+ * NT_IS_CYGWIN:
+ *
+ * Neutron is compiled for Windows with Cygwin if this is defined
+ */
+#mesondefine NT_IS_CYGWIN

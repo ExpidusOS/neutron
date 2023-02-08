@@ -1,4 +1,5 @@
 #include <neutron/elemental/signal.h>
+#include <neutron/elemental/pthread.h>
 #include "signal-priv.h"
 #include <assert.h>
 #include <string.h>

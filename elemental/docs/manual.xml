@@ -20,9 +20,11 @@
     <title>API Reference</title>
     <xi:include href="xml/argument.xml" />
     <xi:include href="xml/backtrace.xml" />
+    <xi:include href="xml/build.xml" />
     <xi:include href="xml/common.xml" />
     <xi:include href="xml/error.xml" />
     <xi:include href="xml/list.xml" />
+    <xi:include href="xml/pthread.xml" />
     <xi:include href="xml/signal.xml" />
     <xi:include href="xml/type.xml" />
     <xi:include href="xml/value.xml" />

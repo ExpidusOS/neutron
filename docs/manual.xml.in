@@ -31,9 +31,11 @@
       <title>Elemental</title>
       <xi:include href="../elemental/docs/xml/argument.xml" />
       <xi:include href="../elemental/docs/xml/backtrace.xml" />
+      <xi:include href="../elemental/docs/xml/build.xml" />
       <xi:include href="../elemental/docs/xml/common.xml" />
       <xi:include href="../elemental/docs/xml/error.xml" />
       <xi:include href="../elemental/docs/xml/list.xml" />
+      <xi:include href="../elemental/docs/xml/pthread.xml" />
       <xi:include href="../elemental/docs/xml/signal.xml" />
       <xi:include href="../elemental/docs/xml/type.xml" />
       <xi:include href="../elemental/docs/xml/value.xml" />

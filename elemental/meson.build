@@ -1,11 +1,10 @@
 conf_data_elemental = configuration_data()
 conf_data_elemental.merge_from(conf_data)
 
-if has_execinfo_h
-  conf_data_elemental.set('HAS_EXECINFO_H', true)
-else
-  conf_data_elemental.set('HAS_EXECINFO_H', false)
-endif
+conf_data_elemental.set('HAS_EXECINFO_H', has_execinfo_h)
+conf_data_elemental.set('HAS_POSIX', is_posix)
+conf_data_elemental.set('NT_IS_@0@'.format(target_machine.system().to_upper()), true)
+conf_data_elemental.set('NT_HAS_POSIX', is_posix)
 
 build_conf_elemental = configure_file(input: 'src/build.h', output: 'neutron-elemental-build.h',
   configuration: conf_data_elemental)
@@ -15,12 +14,24 @@ elemental_sources = [
   'src/list.c', 'src/signal.c', 'src/type.c'
 ]
 
+elemental_cflags = [
+  '-D@0@=1'.format(target_machine.system().to_upper()),
+  '-D@0@=1'.format(target_machine.cpu_family().to_upper())
+]
+
 elemental_inc = include_directories('include')
 elemental_deps = [thread]
 
-install_subdir('include', strip_directory: true, install_dir: includedir)
+subdir('include/neutron/elemental')
+install_subdir('include', strip_directory: true,
+  install_dir: includedir,
+  exclude_files: [
+    'neutron/elemental/build.h.in',
+    'neutron/elemental/meson.build'
+  ])
 
 libelemental = library('neutron-elemental', elemental_sources,
+  c_args: elemental_cflags,
   include_directories: elemental_inc,
   dependencies: elemental_deps,
   version: version,
@@ -32,6 +43,7 @@ elemental = declare_dependency(link_with: libelemental,
 libelemental_name = fs.name(libelemental.full_path())
 
 libs += [libelemental]
+neutron_cflags += elemental_cflags
 neutron_inc += elemental_inc
 neutron_deps += elemental_deps
 

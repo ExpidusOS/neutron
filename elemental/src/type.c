@@ -1,6 +1,6 @@
 #include <neutron/elemental/type.h>
+#include <neutron/elemental/pthread.h>
 #include <assert.h>
-#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -30,6 +30,10 @@ NtType nt_type_register(NtTypeInfo* info) {
       // assert(subinfo->flags & NT_TYPE_FLAG_DYNAMIC);
       n_extends++;
     }
+  }
+
+  if (nt_type_registry == NULL) {
+    assert(pthread_mutex_init(&nt_type_mutex, NULL) == 0);
   }
 
   pthread_mutex_lock(&nt_type_mutex);

@@ -86,8 +86,20 @@ has_execinfo_h = cc.check_header('execinfo.h', required: false)
 wants_posix = get_option('posix').disable_auto_if(not cc.check_header('unistd.h', required: false) and cc.has_header_symbol('unistd.h', '_POSIX_VERSION', required: false))
 is_posix = cc.check_header('unistd.h', required: wants_posix) and cc.has_header_symbol('unistd.h', '_POSIX_VERSION', required: wants_posix)
 
-if not is_posix and target_machine.system() != 'windows'
+if not is_posix and (target_machine.system() != 'windows' or target_machine.system() == 'cygwin')
   error('Windows is the only target system which does not require POSIX')
+endif
+
+if target_machine.system() == 'windows' or target_machine.system() == 'cygwin'
+  code = '''
+  #include <windows.h>
+  #if !(WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP))
+  #error "Not building for UWP"
+  #endif'''
+
+  if cc.compiles(code, name: 'windows-uwp')
+    conf_data.set('IS_WINDOWS_UWP', true)
+  endif
 endif
 
 thread = dependency('threads', required: true)

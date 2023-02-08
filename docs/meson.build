@@ -12,10 +12,12 @@ gnome.gtkdoc('neutron',
     configure_file(input: 'version.xml.in', output: 'version.xml', configuration: conf_data_docs)
   ],
   src_dir: [
-    join_paths(meson.project_source_root(), 'elemental', 'include'),
     join_paths(meson.project_source_root(), 'inputcore', 'include'),
     join_paths(meson.project_source_root(), 'runtime', 'include'),
     join_paths(meson.project_source_root(), 'shimmy', 'include'),
+
+    join_paths(meson.project_source_root(), 'elemental', 'include'),
+    join_paths(meson.project_build_root(), 'elemental', 'include'),
 
     join_paths(meson.project_source_root(), 'platform', 'include'),
     platform_docs_inc_paths,

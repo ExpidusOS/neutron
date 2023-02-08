@@ -8,3 +8,4 @@
 #define VERSION_SHORT "@VERSION_SHORT@"
 
 #mesondefine HAS_EXECINFO_H
+#mesondefine HAS_POSIX

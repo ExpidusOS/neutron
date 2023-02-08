@@ -1,7 +1,7 @@
 #pragma once
 
+#include <neutron/elemental/pthread.h>
 #include <neutron/elemental/signal.h>
-#include <pthread.h>
 
 typedef struct _NtSignalEntry {
   struct _NtSignalEntry* prev;
