@@ -83,7 +83,10 @@ docs = get_option('docs').disable_auto_if(not dependency('gtk-doc', native: true
 cc = meson.get_compiler('c')
 has_execinfo_h = cc.check_header('execinfo.h', required: false)
 
-pthread = dependency('threads', required: true)
+wants_posix = get_option('posix').disable_auto_if(not cc.check_header('unistd.h', required: false) and cc.has_header_symbol('unistd.h', '_POSIX_VERSION', required: false))
+is_posix = cc.check_header('unistd.h', required: wants_posix) and cc.has_header_symbol('unistd.h', '_POSIX_VERSION', required: wants_posix)
+
+thread = dependency('threads', required: true)
 check = dependency('check', required: get_option('tests'), native: true)
 
 gnome = import('gnome')
@@ -158,7 +161,8 @@ sum_args = {
   'Built by': build_user,
   'Version': version,
   'Version (long)': longver,
-  'Version (short)': shortver
+  'Version (short)': shortver,
+  'POSIX': is_posix
 }
 
 if not is_bootstrap

@@ -14,7 +14,7 @@ shimmy_cflags = [
 ]
 
 shimmy_inc = include_directories('include')
-shimmy_deps = [elemental, platform, pthread]
+shimmy_deps = [elemental, platform, thread]
 
 install_subdir('include', strip_directory: true, install_dir: includedir)
 

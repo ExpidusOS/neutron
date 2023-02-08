@@ -16,7 +16,7 @@ elemental_sources = [
 ]
 
 elemental_inc = include_directories('include')
-elemental_deps = [pthread]
+elemental_deps = [thread]
 
 install_subdir('include', strip_directory: true, install_dir: includedir)
 

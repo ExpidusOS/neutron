@@ -3,6 +3,8 @@ option('git-branch', type: 'string', value: 'master', description: 'Git branch f
 option('build-user', type: 'string', value: 'nobody (nobody@localhost)', description: 'User who build the package')
 option('flutter-engine', type: 'string', value: '', description: 'The path to the built Flutter Engine')
 
+option('posix', type: 'feature', value: 'auto', description: 'Enables POSIX usage')
+
 option('tests', type: 'feature', value: 'auto', description: 'Build and enable testing')
 option('docs', type: 'feature', value: 'auto', description: 'Build and install the documentation')
 
