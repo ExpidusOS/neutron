@@ -1,7 +1,11 @@
 name: NeutronPlatform
 description: |
   Bindings for Neutron's Platform
-output: lib/bindings.dart
+output:
+  bindings: 'lib/bindings.dart'
+  symbol-file:
+    output: 'package:neutron_platform/bindings.yaml'
+    import-path: 'package:neutron_platform/bindings.dart'
 headers:
   entry-points:
     - 'include/neutron/platform.h'

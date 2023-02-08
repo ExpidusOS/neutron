@@ -28,6 +28,7 @@ libshimmy = library('neutron-shimmy', shimmy_sources,
 shimmy = declare_dependency(link_with: libshimmy,
   include_directories: shimmy_inc,
   dependencies: shimmy_deps)
+libshimmy_name = fs.name(libshimmy.full_path())
 libs += [libshimmy]
 neutron_inc += shimmy_inc
 neutron_deps += shimmy_deps
@@ -42,6 +43,35 @@ pkg.generate(libshimmy,
   description: 'Shims loader for Neutron',
   url: 'https://github.com/ExpidusOS/neutron',
   version: shortver)
+
+if dart.found()
+  shimmy_cmake = configure_file(input: 'CMakeLists.txt.in', output: 'CMakeLists.txt',
+    configuration: conf_data_shimmy,
+    install: true,
+    install_dir: dartdir / 'shimmy')
+  install_data(shimmy_cmake, install_dir: dartdir / 'shimmy' / flutter_os)
+
+  shimmy_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir()], check: false)
+
+  if shimmy_pub.returncode() != 0
+    warning('Shimmy ffi generation is disabled due to: @0@'.format(shimmy_pub.stderr()))
+  endif
+
+  install_data('pubspec.yaml', install_dir: dartdir / 'shimmy')
+
+  if fs.exists(meson.current_source_dir() / 'pubspec.lock')
+    install_data('.dart_tool/package_config.json', install_dir: dartdir / 'shimmy' / '.dart_tool')
+    install_data('pubspec.lock', install_dir: dartdir / 'shimmy')
+  endif
+endif
+
+subdir('lib')
+install_subdir('lib', strip_directory: true,
+  install_dir: dartdir / 'shimmy' / 'lib',
+  exclude_files: [
+    'path.dart.in',
+    'meson.build'
+  ])
 
 subdir('tests', if_found: [check])
 subdir('docs', if_found: [gtkdoc])

@@ -1,0 +1,2 @@
+final string SHARED_LIB_PATH = "@LIBDIR@/@LIBNAME@";
+final string SHARED_LIB_NAME = "@LIBNAME@";

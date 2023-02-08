@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.10)
+
+set(PROJECT_NAME "neutron_shimmy")
+project(${PROJECT_NAME} LANGUAGES CXX)
+
+find_library(neutron_shimmy neutron-shimmy PATHS @LIBDIR@)
