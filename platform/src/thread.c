@@ -55,8 +55,8 @@ void* nt_thread_exec(NtThread* self) {
     { NULL }
   });
 
-  if (self->priv->method == NULL) {
-    result = self->priv->method(self, self->priv->method_data);
+  if (self->priv->main.method == NULL) {
+    result = self->priv->main.method(self, self->priv->main.data);
   }
   return result;
 }
@@ -86,8 +86,8 @@ NtThreadClosure nt_thread_set_main(NtThread* self, NtThreadMethod method, const 
   assert(NT_IS_THREAD(self));
 
   NtThreadClosure old = {};
-  old.method = self->priv->closure.method;
-  old.data = self->priv->closure.data;
+  old.method = self->priv->main.method;
+  old.data = self->priv->main.data;
 
   self->priv->main.method = method;
   self->priv->main.data = data;
