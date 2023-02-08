@@ -77,7 +77,7 @@ if dart.found()
     warning('Graphics ffi generation is disabled due to: @0@'.format(graphics_pub.stderr()))
   endif
 
-  install_data('pubspec.yaml', install_dir: dartdir / 'shimmy')
+  install_data('pubspec.yaml', install_dir: dartdir / 'graphics')
 
   if fs.exists(meson.current_source_dir() / 'pubspec.lock')
     install_data('.dart_tool/package_config.json', install_dir: dartdir / 'graphics' / '.dart_tool')
