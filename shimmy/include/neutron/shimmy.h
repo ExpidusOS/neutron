@@ -1,6 +1,7 @@
 #pragma once
 
 #include <neutron/elemental.h>
+#include <neutron/platform.h>
 
 NT_BEGIN_DECLS
 
@@ -30,13 +31,12 @@ typedef uintptr_t NtShim;
  * NtShimBinding:
  * @binding: The binding which was executed
  * @data: The data to pass
- * @data_size: The size of the data
  *
  * Method binding handler for a shim
  *
  * Returns: The result of the binded method
  */
-typedef void* (*NtShimMethod)(struct _NtShimBinding* binding, void* data, size_t data_size);
+typedef void* (*NtShimMethod)(struct _NtShimBinding* binding, void* data);
 
 /**
  * NtShimBinding:
@@ -109,16 +109,16 @@ void* nt_shimmy_get_reg();
 
 /**
  * nt_shimmy_exec:
+ * @proc: The process to run a shim on
  * @lib: Library name
  * @method: Method name
  * @data: The data to pass
- * @data_size: The size of the data
  *
  * Executes a shim
  *
  * Returns: Data returned from execution.
  */
-void* nt_shimmy_exec(const char* lib, const char* method, void* data, size_t data_size);
+void* nt_shimmy_exec(NtProcess* proc, const char* lib, const char* method, void* data);
 
 #if defined(__GNUC__)
 #pragma GCC visibility pop

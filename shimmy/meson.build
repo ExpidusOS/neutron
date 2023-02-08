@@ -5,7 +5,7 @@ build_conf_shimmy = configure_file(input: 'src/build.h', output: 'neutron-shimmy
   configuration: conf_data_shimmy)
 
 shimmy_sources = [
-  'src/registry.c'
+  'src/shimmy.c'
 ]
 
 shimmy_cflags = [
@@ -13,14 +13,8 @@ shimmy_cflags = [
   '-D@0@=1'.format(target_machine.cpu_family().to_upper())
 ]
 
-if target_machine.system() == 'linux' or target_machine.system() == 'android'
-  shimmy_sources += ['src/kernel/linux.c']
-else
-  shimmy_sources += ['src/kernel/dummy.c']
-endif
-
 shimmy_inc = include_directories('include')
-shimmy_deps = [elemental]
+shimmy_deps = [elemental, platform, pthread]
 
 install_subdir('include', strip_directory: true, install_dir: includedir)
 

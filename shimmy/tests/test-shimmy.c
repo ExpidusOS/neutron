@@ -2,9 +2,10 @@
 #include <check.h>
 #include <setjmp.h>
 
-static void* test_handler(NtShimBinding* binding, void* stack, size_t size) {
+static void* test_handler(NtShimBinding* binding, void* stack) {
   int* data = (int*)stack;
   ck_assert_int_eq(*data, 42);
+  *data = 43;
   return "Hello, world";
 }
 
@@ -12,8 +13,15 @@ START_TEST(test_exec) {
   NtShim id = nt_shimmy_bind("test", "test", test_handler);
   ck_assert_int_gt(id, NT_SHIM_NONE);
 
+  NtPlatform* platform = nt_platform_get_global();
+  ck_assert_ptr_nonnull(platform);
+
+  NtProcess* proc = nt_platform_get_current_process(platform);
+  ck_assert_ptr_nonnull(proc);
+
   int stack = 42;
-  const char* ret = (const char*)nt_shimmy_exec("test", "test", &stack, sizeof (stack));
+  const char* ret = (const char*)nt_shimmy_exec(proc, "test", "test", &stack);
+  ck_assert_int_eq(stack, 43);
   ck_assert_ptr_nonnull(ret);
   ck_assert_str_eq(ret, "Hello, world");
 
