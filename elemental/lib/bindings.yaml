@@ -1,0 +1,6 @@
+format_version: 1.0.0
+files:
+  package:neutron_elemental/bindings.dart:
+    used-config:
+      ffi-native: false
+    symbols: {}

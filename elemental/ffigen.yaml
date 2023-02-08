@@ -1,19 +1,16 @@
 name: NeutronElemental
 description: |
   Bindings for Neutron's Elemental
-output: lib/bindings.dart
+output:
+  bindings: 'lib/bindings.dart'
+  symbol-file:
+    output: 'package:neutron_elemental/bindings.yaml'
+    import-path: 'package:neutron_elemental/bindings.dart'
 headers:
   entry-points:
     - 'include/neutron/elemental.h'
   include-directives:
-    - 'include/neutron/elemental/argument.h'
-    - 'include/neutron/elemental/backtrace.h'
-    - 'include/neutron/elemental/common.h'
-    - 'include/neutron/elemental/error.h'
-    - 'include/neutron/elemental/list.h'
-    - 'include/neutron/elemental/signal.h'
-    - 'include/neutron/elemental/type.h'
-    - 'include/neutron/elemental/value.h'
+    - 'include/neutron/elemental/**.h'
     - 'include/neutron/elemental.h'
 preamble: |
   // ingore_for_file: always_specify_types
@@ -24,5 +21,3 @@ comments:
   length: full
 compiler-opts:
   - '-I include'
-library-imports:
-  _ffi: 'proxy_ffi.dart'
