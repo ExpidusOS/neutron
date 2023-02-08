@@ -6,6 +6,7 @@ platform_xml = ''
 if target_machine.system() == 'linux' or target_machine.system() == 'android'
   platform_xml += '<xi:include href="xml/linux-platform.xml" />'
   platform_xml += '<xi:include href="xml/linux-process.xml" />'
+  platform_xml += '<xi:include href="xml/udev-device-enum.xml" />'
 endif
 
 conf_data_platform.set('PLATFORM_XML', platform_xml)

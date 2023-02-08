@@ -1,4 +1,4 @@
-if target_machine.system() == 'linux' or target_machine.system() == 'android'
+if target_machine.system() == 'linux'
   subdir('linux')
 else
   subdir('dummy')

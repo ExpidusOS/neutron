@@ -15,7 +15,8 @@
  * @instance: An %NtTypeInstance associated with this
  * @added: Signal for when devices are added
  * @removed: Signal for when devices are removed
- * @get_device_count: Method for counting the number of devices
+ * @count: Method for counting a query
+ * @query: Method for performing a query
  *
  * Enumerator for hardware devices
  */
@@ -25,7 +26,8 @@ typedef struct _NtDeviceEnum {
   NtSignal* added;
   NtSignal* removed;
 
-  size_t (*get_device_count)(struct _NtDeviceEnum* self);
+  size_t (*count)(struct _NtDeviceEnum* self, NtDeviceQuery query);
+  NtList* (*query)(struct _NtDeviceEnum* self, NtDeviceQuery query);
 } NtDeviceEnum;
 
 NT_BEGIN_DECLS
@@ -45,14 +47,26 @@ NT_BEGIN_DECLS
 NT_DECLARE_TYPE(NT, DEVICE_ENUM, NtDeviceEnum, nt_device_enum);
 
 /**
- * nt_device_enum_get_device_count:
+ * nt_device_enum_count:
  * @self: The %NtDeviceEnum instance
- * @kind: The kind of device to count
+ * @query: The query to use
  *
- * Counts the number of devices which have been discovered for @kind.
+ * Queries all devices and returns the number of devices discovered for a given query
+ *
  * Returns: The number of devices
  */
-size_t nt_device_enum_get_device_count(NtDeviceEnum* self);
+size_t nt_device_enum_count(NtDeviceEnum* self, NtDeviceQuery query);
+
+/**
+ * nt_device_enum_query:
+ * @self: The %NtDeviceEnum instance
+ * @query: The query to use
+ *
+ * Queries all devices
+ *
+ * Returns: An %NtList holding %NtDevice
+ */
+NtList* nt_device_enum_query(NtDeviceEnum* self, NtDeviceQuery query);
 
 #if defined(__GNUC__)
 #pragma GCC visibility pop

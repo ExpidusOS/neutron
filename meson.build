@@ -121,6 +121,8 @@ if not is_bootstrap
   wayland_server = dependency('wayland-server', native: false, required: wlroots.found())
 
   xkbcommon = dependency('xkbcommon', native: false, required: xcb.found() or wlroots.found())
+
+  libudev = dependency('libudev', native: false, required: target_machine.system() == 'linux')
 else
   ffigen = disabler()
   flutter = disabler()

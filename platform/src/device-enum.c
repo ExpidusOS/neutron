@@ -19,8 +19,14 @@ static void nt_device_enum_destroy(NtTypeInstance* instance) {
   nt_type_instance_unref((NtTypeInstance*)self->removed);
 }
 
-size_t nt_device_enum_get_device_count(NtDeviceEnum* self) {
+size_t nt_device_enum_count(NtDeviceEnum* self, NtDeviceQuery query) {
   assert(NT_IS_DEVICE_ENUM(self));
-  assert(self->get_device_count != NULL);
-  return self->get_device_count(self);
+  assert(self->count != NULL);
+  return self->count(self, query);
+}
+
+NtList* nt_device_enum_query(NtDeviceEnum* self, NtDeviceQuery query) {
+  assert(NT_IS_DEVICE_ENUM(self));
+  assert(self->query != NULL);
+  return self->query(self, query);
 }
