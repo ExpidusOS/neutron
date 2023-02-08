@@ -42,6 +42,7 @@ libplatform = library('neutron-platform', platform_sources,
 platform = declare_dependency(link_with: libplatform,
   include_directories: platform_inc,
   dependencies: platform_deps)
+libplatform_name = fs.name(libplatform.full_path())
 libs += [libplatform]
 neutron_inc += platform_inc
 neutron_deps += platform_deps
@@ -56,6 +57,35 @@ pkg.generate(libplatform,
   description: 'Platform specific API bindings',
   url: 'https://github.com/ExpidusOS/neutron',
   version: shortver)
+
+if dart.found()
+  platform_cmake = configure_file(input: 'CMakeLists.txt.in', output: 'CMakeLists.txt',
+    configuration: conf_data_platform,
+    install: true,
+    install_dir: dartdir / 'platform')
+  install_data(elemental_cmake, install_dir: dartdir / 'platform' / flutter_os)
+
+  platform_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir()], check: false)
+
+  if platform_pub.returncode() != 0
+    warning('Platform ffi generation is disabled due to: @0@'.format(platform_pub.stderr()))
+  endif
+
+  install_data('pubspec.yaml', install_dir: dartdir / 'platform')
+
+  if fs.exists(meson.current_source_dir() / 'pubspec.lock')
+    install_data('.dart_tool/package_config.json', install_dir: dartdir / 'platform' / '.dart_tool')
+    install_data('pubspec.lock', install_dir: dartdir / 'platform')
+  endif
+endif
+
+subdir('lib')
+install_subdir('lib', strip_directory: true,
+  install_dir: dartdir / 'platform' / 'lib',
+  exclude_files: [
+    'path.dart.in',
+    'meson.build'
+  ])
 
 subdir('tests', if_found: [check])
 subdir('docs', if_found: [gtkdoc])
