@@ -23,6 +23,7 @@
     <xi:include href="xml/platform.xml" />
     <xi:include href="xml/process.xml" />
     <xi:include href="xml/signal.xml" />
+    @PLATFORM_XML@
   </part>
 
   <index id="api-index-full">

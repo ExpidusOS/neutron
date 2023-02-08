@@ -1,6 +1,15 @@
 conf_data_platform = configuration_data()
 conf_data_platform.merge_from(conf_data)
 
+platform_xml = ''
+
+if target_machine.system() == 'linux' or target_machine.system() == 'android'
+  platform_xml += '<xi:include href="xml/linux-platform.xml" />'
+  platform_xml += '<xi:include href="xml/linux-process.xml" />'
+endif
+
+conf_data_platform.set('PLATFORM_XML', platform_xml)
+
 build_conf_platform = configure_file(input: 'src/build.h', output: 'neutron-platform-build.h',
   configuration: conf_data_platform)
 
@@ -13,10 +22,13 @@ platform_cflags = [
   '-D@0@=1'.format(target_machine.cpu_family().to_upper())
 ]
 
-platform_inc = include_directories('include')
+platform_inc = [include_directories('include')]
 platform_deps = [elemental]
+platform_docs_inc_paths = []
 
 install_subdir('include', strip_directory: true, install_dir: includedir)
+
+subdir('targets')
 
 libplatform = library('neutron-platform', platform_sources,
   c_args: platform_cflags,
@@ -45,3 +57,7 @@ pkg.generate(libplatform,
 
 subdir('tests', if_found: [check])
 subdir('docs', if_found: [gtkdoc])
+
+summary({
+    'Target': platform_target
+  }, section: 'Platform')

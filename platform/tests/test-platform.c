@@ -4,8 +4,10 @@
 #include <stdio.h>
 
 START_TEST(test_platform_global) {
-  NtType id = NT_TYPE_PLATFORM;
-  ck_assert_uint_gt(id, 0);
+  NtPlatform* global = nt_platform_get_global();
+  ck_assert_ptr_nonnull(global);
+
+  nt_type_instance_unref((NtTypeInstance*)global);
 }
 END_TEST
 

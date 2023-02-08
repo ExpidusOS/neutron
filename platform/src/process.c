@@ -34,12 +34,20 @@ static void nt_process_construct(NtTypeInstance* instance, NtTypeArgument* argum
   self->priv = malloc(sizeof (NtProcessPrivate));
   assert(self->priv != NULL);
 
+  NtValue platform = nt_type_argument_get(arguments, NT_TYPE_ARGUMENT_KEY(NtProcess, platform), NT_VALUE_INSTANCE(NULL));
+  assert(platform.type == NT_VALUE_TYPE_INSTANCE);
+  self->priv->platform = platform.data.instance == NULL ? NULL : NT_PLATFORM(nt_type_instance_ref((NtTypeInstance*)platform.data.instance));
+
   self->priv->signal = nt_signal_new_locking();
 }
 
 static void nt_process_destroy(NtTypeInstance* instance) {
   NtProcess* self = NT_PROCESS(instance);
   assert(self != NULL);
+
+  if (self->priv->platform != NULL) {
+    nt_type_instance_unref((NtTypeInstance*)self->priv->platform);
+  }
 
   nt_type_instance_unref((NtTypeInstance*)self->priv->signal);
   free(self->priv);

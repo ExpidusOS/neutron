@@ -1,6 +1,7 @@
 #include <neutron/platform/platform.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 #include "platform-priv.h"
 
 NT_DEFINE_TYPE(NT, PLATFORM, NtPlatform, nt_platform, NT_TYPE_FLAG_DYNAMIC, NT_TYPE_NONE);
@@ -10,6 +11,7 @@ static void nt_platform_construct(NtTypeInstance* inst, NtTypeArgument* argument
 
   self->priv = malloc(sizeof (NtPlatformPrivate));
   assert(self->priv != NULL);
+  memset(self->priv, 0, sizeof (NtPlatformPrivate));
 }
 
 static void nt_platform_destroy(NtTypeInstance* inst) {
