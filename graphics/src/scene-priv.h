@@ -1,8 +1,8 @@
 #pragma once
 
+#include <neutron/elemental/pthread.h>
 #include <neutron/graphics/scene.h>
 #include <neutron/graphics/scene-layer.h>
-#include <pthread.h>
 
 struct SceneLayerEntry {
   struct SceneLayerEntry* prev;

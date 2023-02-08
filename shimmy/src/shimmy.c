@@ -1,6 +1,6 @@
+#include <neutron/elemental/pthread.h>
 #include <neutron/shimmy.h>
 #include <assert.h>
-#include <pthread.h>
 #include <string.h>
 
 struct ShimEntry {
