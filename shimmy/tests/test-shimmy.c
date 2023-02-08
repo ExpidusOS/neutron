@@ -1,12 +1,11 @@
 #include <neutron/shimmy.h>
 #include <check.h>
-#include <setjmp.h>
 
 static void* test_handler(NtShimBinding* binding, void* stack) {
   int* data = (int*)stack;
   ck_assert_int_eq(*data, 42);
   *data = 43;
-  return "Hello, world";
+  return strdup("Hello, world");
 }
 
 START_TEST(test_exec) {
@@ -24,6 +23,8 @@ START_TEST(test_exec) {
   ck_assert_int_eq(stack, 43);
   ck_assert_ptr_nonnull(ret);
   ck_assert_str_eq(ret, "Hello, world");
+
+  free((char*)ret);
 
   nt_shimmy_unbind(id);
 
