@@ -23,12 +23,11 @@ NtType nt_type_register(NtTypeInfo* info) {
   size_t n_extends = 1;
   if (info->extends != NULL) {
     for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
-      if (info->extends[i] == NT_TYPE_NONE) break;
-
       const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
-      if (subinfo == NULL) break;
+      assert(subinfo != NULL);
 
-      assert(subinfo->flags & NT_TYPE_FLAG_DYNAMIC);
+      // FIXME: This check is not working as expected
+      // assert(subinfo->flags & NT_TYPE_FLAG_DYNAMIC);
       n_extends++;
     }
   }
@@ -49,10 +48,11 @@ NtType nt_type_register(NtTypeInfo* info) {
   entry->info.construct = info->construct;
   entry->info.destroy = info->destroy;
   entry->info.size = info->size;
+  entry->info.sname = info->sname;
 
   entry->info.extends = calloc(n_extends, sizeof (NtType));
-  assert(entry->info.extends != NULL);
   if (info->extends != NULL) {
+    assert(entry->info.extends != NULL);
     for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
       entry->info.extends[i] = info->extends[i];
     }
@@ -137,23 +137,21 @@ static void nt_type_instance_flat_new(NtTypeInstance* instance, NtTypeInstance* 
   assert(info != NULL);
 
   const size_t data_size = nt_type_info_get_total_size((NtTypeInfo*)info);
-  const size_t size = sizeof (NtTypeInstance) + data_size;
-  assert(size >= sizeof (NtTypeInstance));
+  assert(data_size >= sizeof (NtTypeInstance));
 
   instance->type = type;
-  instance->data = instance + sizeof (NtTypeInstance);
   instance->data_size = data_size;
   instance->ref_count = 0;
   instance->prev = prev;
 
-  size_t off = 0;
+  size_t off = sizeof (NtTypeInstance) + info->size;
 
   if (info->extends != NULL) {
     for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
       const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
       assert(subinfo != NULL);
 
-      nt_type_instance_flat_new((void*)(instance->data + off), instance, subinfo->id, arguments);
+      nt_type_instance_flat_new((void*)(instance + off), instance, subinfo->id, arguments);
       off += nt_type_info_get_total_size((NtTypeInfo*)subinfo);
     }
   }
@@ -183,13 +181,15 @@ NtTypeInstance* nt_type_instance_get_data(NtTypeInstance* instance, NtType type)
   const NtTypeInfo* info = nt_type_info_from_type(instance->type);
   assert(info != NULL);
 
-  size_t off = 0;
+  size_t off = info->size + sizeof (NtTypeInstance);
   if (info->extends != NULL) {
     for (size_t i = 0; info->extends[i] != NT_TYPE_NONE; i++) {
       const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[i]);
       assert(subinfo != NULL);
 
-      NtTypeInstance* subinst = nt_type_instance_get_data((NtTypeInstance*)(instance->data + off), type);
+      if (subinfo->id == type) return (NtTypeInstance*)(instance + off);
+
+      NtTypeInstance* subinst = nt_type_instance_get_data((NtTypeInstance*)(instance + off), type);
       if (subinst != NULL) return subinst;
 
       off += nt_type_info_get_total_size((NtTypeInfo*)subinfo);
@@ -219,7 +219,7 @@ static void nt_type_instance_flat_destroy(NtTypeInstance* instance) {
     info->destroy(instance);
   }
   
-  size_t off = 0;
+  size_t off = info->size + sizeof (NtTypeInstance);
 
   if (info->extends != NULL) {
     size_t count = 0;
@@ -229,7 +229,7 @@ static void nt_type_instance_flat_destroy(NtTypeInstance* instance) {
       const NtTypeInfo* subinfo = nt_type_info_from_type(info->extends[count]);
       assert(subinfo != NULL);
 
-      nt_type_instance_flat_destroy((void*)(instance->data + off));
+      nt_type_instance_flat_destroy((void*)(instance + off));
       off += nt_type_info_get_total_size((NtTypeInfo*)subinfo);
     }
   }

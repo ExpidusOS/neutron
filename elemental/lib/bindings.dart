@@ -793,7 +793,6 @@ abstract class _NtValueType {
 
 /// NtTypeInstance:
 /// @type: The type the instance was allocated for
-/// @data: Pointer to the start of the instance data
 /// @data_size: The total size of %NtTypeInstance
 /// @ref_count: Number of references this instance has
 /// @prev: The previous level instance this is tied to
@@ -802,8 +801,6 @@ abstract class _NtValueType {
 class _NtTypeInstance extends ffi.Struct {
   @NtType()
   external int type;
-
-  external ffi.Pointer<ffi.Void> data;
 
   @ffi.Size()
   external int data_size;
@@ -930,6 +927,8 @@ class _NtTypeInfo extends ffi.Struct {
   external ffi.Pointer<
           ffi.NativeFunction<ffi.Void Function(ffi.Pointer<_NtTypeInstance>)>>
       destroy;
+
+  external ffi.Pointer<ffi.Char> sname;
 }
 
 /// NtTypeInfo:
@@ -945,7 +944,6 @@ typedef NtTypeInfo = _NtTypeInfo;
 
 /// NtTypeInstance:
 /// @type: The type the instance was allocated for
-/// @data: Pointer to the start of the instance data
 /// @data_size: The total size of %NtTypeInstance
 /// @ref_count: Number of references this instance has
 /// @prev: The previous level instance this is tied to

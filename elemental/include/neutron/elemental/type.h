@@ -61,12 +61,12 @@ typedef struct _NtTypeInfo {
   size_t size;
   void (*construct)(struct _NtTypeInstance* instance, NtTypeArgument* arguments);
   void (*destroy)(struct _NtTypeInstance* instance);
+  const char* sname;
 } NtTypeInfo;
 
 /**
  * NtTypeInstance:
  * @type: The type the instance was allocated for
- * @data: Pointer to the start of the instance data
  * @data_size: The total size of %NtTypeInstance
  * @ref_count: Number of references this instance has
  * @prev: The previous level instance this is tied to
@@ -75,7 +75,6 @@ typedef struct _NtTypeInfo {
  */
 typedef struct _NtTypeInstance {
   NtType type;
-  void* data;
   size_t data_size;
   size_t ref_count;
   struct _NtTypeInstance* prev;
@@ -101,7 +100,7 @@ typedef struct _NtTypeInstance {
  * NT_TYPEDEF_EXTENDS:
  * @...: The type ID's to extend off of, must end in %NT_TYPE_NONE
  */
-#define NT_TYPEDEF_EXTENDS(...) info.extends = (NtType[]){ __VA_ARGS__ };
+#define NT_TYPEDEF_EXTENDS(...) info.extends = (NtType[]){ __VA_ARGS__, NT_TYPE_NONE };
 
 /**
  * NT_DEFINE_TYPE_WITH_CODE:
@@ -131,6 +130,7 @@ typedef struct _NtTypeInstance {
       static NtTypeInfo info = {}; \
       info.flags = flgs; \
       info.size = sizeof (struct_name) - sizeof (NtTypeInstance); \
+      info.sname = #struct_name; \
       code \
       id = nt_type_register(&info); \
     } \
