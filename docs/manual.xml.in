@@ -60,6 +60,7 @@
       <xi:include href="../platform/docs/xml/platform.xml" />
       <xi:include href="../platform/docs/xml/process.xml" />
       <xi:include href="../platform/docs/xml/signal.xml" />
+      <xi:include href="../platform/docs/xml/thread.xml" />
       @PLATFORM_XML@
     </chapter>
     <chapter id="runtime">
