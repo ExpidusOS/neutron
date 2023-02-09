@@ -3,4 +3,24 @@ files:
   package:neutron_shimmy/bindings.dart:
     used-config:
       ffi-native: false
-    symbols: {}
+    symbols:
+      c:@F@nt_shimmy_bind:
+        name: nt_shimmy_bind
+      c:@F@nt_shimmy_exec:
+        name: nt_shimmy_exec
+      c:@F@nt_shimmy_find:
+        name: nt_shimmy_find
+      c:@F@nt_shimmy_get_reg:
+        name: nt_shimmy_get_reg
+      c:@F@nt_shimmy_get_shim:
+        name: nt_shimmy_get_shim
+      c:@F@nt_shimmy_unbind:
+        name: nt_shimmy_unbind
+      c:@S@_NtShimBinding:
+        name: _NtShimBinding
+      c:shimmy.h@T@NtShim:
+        name: NtShim
+      c:shimmy.h@T@NtShimBinding:
+        name: NtShimBinding
+      c:shimmy.h@T@NtShimMethod:
+        name: NtShimMethod
