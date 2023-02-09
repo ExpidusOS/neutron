@@ -20,7 +20,7 @@ comments:
   style: any
   length: full
 compiler-opts:
-  - '-I include'
+  - '-I include -I../elemental/include'
 import:
   symbol-files:
     - 'package:neutron_elemental/bindings.yaml'
