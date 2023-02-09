@@ -8,6 +8,7 @@ output:
     import-path: 'package:neutron_elemental/bindings.dart'
 headers:
   entry-points:
+    - 'include/neutron/elemental/**.h'
     - 'include/neutron/elemental.h'
   include-directives:
     - 'include/neutron/elemental/**.h'

@@ -4,10 +4,6 @@ files:
     used-config:
       ffi-native: false
     symbols:
-      c:@E@_NtException:
-        name: _NtException
-      c:@E@_NtInterrupt:
-        name: _NtInterrupt
       c:@F@nt_shimmy_bind:
         name: nt_shimmy_bind
       c:@F@nt_shimmy_exec:
@@ -20,23 +16,11 @@ files:
         name: nt_shimmy_get_shim
       c:@F@nt_shimmy_unbind:
         name: nt_shimmy_unbind
-      c:@S@_NtProcess:
-        name: _NtProcess
-      c:@S@_NtProcessPrivate:
-        name: _NtProcessPrivate
       c:@S@_NtShimBinding:
         name: _NtShimBinding
-      c:@S@_NtTypeInstance:
-        name: _NtTypeInstance
-      c:process.h@T@NtProcess:
-        name: NtProcess
       c:shimmy.h@T@NtShim:
         name: NtShim
       c:shimmy.h@T@NtShimBinding:
         name: NtShimBinding
       c:shimmy.h@T@NtShimMethod:
         name: NtShimMethod
-      c:type.h@T@NtType:
-        name: NtType
-      c:type.h@T@NtTypeInstance:
-        name: NtTypeInstance

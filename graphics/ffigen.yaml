@@ -8,6 +8,7 @@ output:
     import-path: 'package:neutron_graphics/bindings.dart'
 headers:
   entry-points:
+    - 'include/neutron/graphics/**.h'
     - 'include/neutron/graphics.h'
   include-directives:
     - 'include/neutron/graphics/**.h'
