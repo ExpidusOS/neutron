@@ -15,5 +15,7 @@ dependencies:
     path: ./platform
   neutron_shimmy:
     path: ./shimmy
+  neutron_inputcore:
+    path: ./inputcore
   neutron_graphics:
     path: ./graphics

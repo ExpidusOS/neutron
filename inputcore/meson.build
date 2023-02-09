@@ -25,6 +25,7 @@ libinputcore = library('neutron-inputcore', inputcore_sources,
 inputcore = declare_dependency(link_with: libinputcore,
   include_directories: inputcore_inc,
   dependencies: inputcore_deps)
+libinputcore_name = fs.name(libinputcore.full_path())
 libs += [libinputcore]
 neutron_inc += inputcore_inc
 neutron_deps += inputcore_deps
@@ -38,5 +39,34 @@ pkg.generate(libinputcore,
   description: 'Input device handling for Neutron',
   url: 'https://github.com/ExpidusOS/neutron',
   version: shortver)
+
+if dart.found()
+  inputcore_cmake = configure_file(input: 'CMakeLists.txt.in', output: 'CMakeLists.txt',
+    configuration: conf_data_inputcore,
+    install: true,
+    install_dir: dartdir / 'inputcore')
+  install_data(inputcore_cmake, install_dir: dartdir / 'inputcore' / flutter_os)
+
+  inputcore_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir()], check: false)
+
+  if inputcore_pub.returncode() != 0
+    warning('InputCore ffi generation is disabled due to: @0@'.format(inputcore_pub.stderr()))
+  endif
+
+  install_data('pubspec.yaml', install_dir: dartdir / 'inputcore')
+
+  if fs.exists(meson.current_source_dir() / 'pubspec.lock')
+    install_data('.dart_tool/package_config.json', install_dir: dartdir / 'inputcore' / '.dart_tool')
+    install_data('pubspec.lock', install_dir: dartdir / 'inputcore')
+  endif
+endif
+
+subdir('lib')
+install_subdir('lib', strip_directory: true,
+  install_dir: dartdir / 'inputcore' / 'lib',
+  exclude_files: [
+    'path.dart.in',
+    'meson.build'
+  ])
 
 subdir('docs', if_found: [gtkdoc])
