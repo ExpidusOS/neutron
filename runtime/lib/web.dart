@@ -7,7 +7,7 @@ Module? _module;
 Future<void> init() async {
   if (_module == null) {
     Memory.init();
-    _module = await EmscriptenModule.process('neutron-platform');
+    _module = await EmscriptenModule.process('neutron-runtime');
   }
 }
 
@@ -17,5 +17,5 @@ DynamicLibrary open() {
     return new DynamicLibrary.fromModule(m);
   }
 
-  throw new StateError('Must call init() before running open() for Neutron Platform')
+  throw new StateError('Must call init() before running open() for Neutron Runtime')
 }
