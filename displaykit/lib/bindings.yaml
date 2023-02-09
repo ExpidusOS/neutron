@@ -1,0 +1,66 @@
+format_version: 1.0.0
+files:
+  package:neutron_displaykit/bindings.dart:
+    used-config:
+      ffi-native: false
+    symbols:
+      c:@F@NT_DISPLAY_CLIENT:
+        name: NT_DISPLAY_CLIENT
+      c:@F@NT_DISPLAY_COMPOSITOR:
+        name: NT_DISPLAY_COMPOSITOR
+      c:@F@NT_DISPLAY_CONTEXT:
+        name: NT_DISPLAY_CONTEXT
+      c:@F@NT_DISPLAY_OUTPUT:
+        name: NT_DISPLAY_OUTPUT
+      c:@F@NT_DISPLAY_VIEW:
+        name: NT_DISPLAY_VIEW
+      c:@F@NT_IS_DISPLAY_CLIENT:
+        name: NT_IS_DISPLAY_CLIENT
+      c:@F@NT_IS_DISPLAY_COMPOSITOR:
+        name: NT_IS_DISPLAY_COMPOSITOR
+      c:@F@NT_IS_DISPLAY_CONTEXT:
+        name: NT_IS_DISPLAY_CONTEXT
+      c:@F@NT_IS_DISPLAY_OUTPUT:
+        name: NT_IS_DISPLAY_OUTPUT
+      c:@F@NT_IS_DISPLAY_VIEW:
+        name: NT_IS_DISPLAY_VIEW
+      c:@F@nt_display_client_get_type:
+        name: nt_display_client_get_type
+      c:@F@nt_display_compositor_get_type:
+        name: nt_display_compositor_get_type
+      c:@F@nt_display_context_get_type:
+        name: nt_display_context_get_type
+      c:@F@nt_display_output_get_type:
+        name: nt_display_output_get_type
+      c:@F@nt_display_view_get_type:
+        name: nt_display_view_get_type
+      c:@NT_DISPLAY_CLIENT_SIZE:
+        name: NT_DISPLAY_CLIENT_SIZE
+      c:@NT_DISPLAY_COMPOSITOR_SIZE:
+        name: NT_DISPLAY_COMPOSITOR_SIZE
+      c:@NT_DISPLAY_CONTEXT_SIZE:
+        name: NT_DISPLAY_CONTEXT_SIZE
+      c:@NT_DISPLAY_OUTPUT_SIZE:
+        name: NT_DISPLAY_OUTPUT_SIZE
+      c:@NT_DISPLAY_VIEW_SIZE:
+        name: NT_DISPLAY_VIEW_SIZE
+      c:@S@_NtDisplayClient:
+        name: _NtDisplayClient
+      c:@S@_NtDisplayCompositor:
+        name: _NtDisplayCompositor
+      c:@S@_NtDisplayContext:
+        name: _NtDisplayContext
+      c:@S@_NtDisplayOutput:
+        name: _NtDisplayOutput
+      c:@S@_NtDisplayView:
+        name: _NtDisplayView
+      c:client.h@T@NtDisplayClient:
+        name: NtDisplayClient
+      c:compositor.h@T@NtDisplayCompositor:
+        name: NtDisplayCompositor
+      c:context.h@T@NtDisplayContext:
+        name: NtDisplayContext
+      c:output.h@T@NtDisplayOutput:
+        name: NtDisplayOutput
+      c:view.h@T@NtDisplayView:
+        name: NtDisplayView

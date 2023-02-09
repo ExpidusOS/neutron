@@ -47,6 +47,7 @@ libdisplaykit = library('neutron-displaykit', displaykit_sources,
 displaykit = declare_dependency(link_with: libdisplaykit,
   include_directories: displaykit_inc,
   dependencies: displaykit_deps)
+libdisplaykit_name = fs.name(libdisplaykit.full_path())
 libs += [libdisplaykit]
 neutron_inc += displaykit_inc
 neutron_cflags += displaykit_cflags
@@ -61,6 +62,36 @@ pkg.generate(libdisplaykit,
   description: 'Display server API for compositors and clients for ExpidusOS\'s Neutron',
   url: 'https://github.com/ExpidusOS/neutron',
   version: shortver)
+
+if dart.found()
+  displaykit_cmake = configure_file(input: 'CMakeLists.txt.in', output: 'CMakeLists.txt',
+    configuration: conf_data_displaykit,
+    install: true,
+    install_dir: dartdir / 'displaykit')
+  install_data(elemental_cmake, install_dir: dartdir / 'displaykit' / flutter_os)
+
+  displaykit_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir()], check: false)
+
+  if displaykit_pub.returncode() != 0
+    warning('DisplayKit ffi generation is disabled due to: @0@'.format(displaykit_pub.stderr()))
+  endif
+
+  install_data('pubspec.yaml', install_dir: dartdir / 'displaykit')
+  install_data('README.md', install_dir: dartdir / 'displaykit')
+
+  if fs.exists(meson.current_source_dir() / 'pubspec.lock')
+    install_data('.dart_tool/package_config.json', install_dir: dartdir / 'displaykit' / '.dart_tool')
+    install_data('pubspec.lock', install_dir: dartdir / 'displaykit')
+  endif
+endif
+
+subdir('lib')
+install_subdir('lib', strip_directory: true,
+  install_dir: dartdir / 'displaykit' / 'lib',
+  exclude_files: [
+    'path.dart.in',
+    'meson.build'
+  ])
 
 subdir('docs', if_found: [gtkdoc])
 
