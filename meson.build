@@ -160,6 +160,8 @@ neutron_deps = []
 subdir('elemental')
 
 if not is_bootstrap
+  subdir('flutter_engine')
+
   foreach name : [ 'platform', 'shimmy', 'graphics', 'inputcore', 'displaykit', 'runtime' ]
     subdir(name)
     neutron_inc += [include_directories(name)]

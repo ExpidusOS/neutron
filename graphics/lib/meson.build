@@ -16,7 +16,7 @@ if fs.exists(meson.project_source_root() / 'graphics' / 'pubspec.lock')
         '--file=@0@'.format(meson.project_source_root() / 'graphics' / 'ffigen.yaml'),
         '--compiler-opts="@0@"'.format(' '.join(graphics_ffigen_compiler_opts))
       ],
-      depends: [elemental_ffi, platform_ffi],
+      depends: [elemental_ffi, platform_ffi, flutter_engine_ffi],
       output: 'bindings.dart',
       input: '../ffigen.yaml',
       build_by_default: true)
@@ -26,7 +26,7 @@ if fs.exists(meson.project_source_root() / 'graphics' / 'pubspec.lock')
         'dart', 'pub', 'run', '-C', meson.project_source_root() / 'graphics', 'ffigen',
         '--compiler-opts="@0@"'.format(' '.join(graphics_ffigen_compiler_opts))
       ],
-      depends: [elemental_ffi, platform_ffi],
+      depends: [elemental_ffi, platform_ffi, flutter_engine_ffi],
       output: 'bindings.dart',
       input: '../ffigen.yaml',
       build_by_default: true)

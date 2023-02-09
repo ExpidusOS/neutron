@@ -25,5 +25,7 @@ compiler-opts:
 import:
   symbol-files:
     - 'package:neutron_elemental/bindings.yaml'
+    - 'package:flutter_engine/bindings.yaml'
 library-imports:
   neutron_elemental: 'package:neutron_elemental/elemental.dart'
+  flutter_engine: 'package:flutter_engine/engine.dart'

@@ -8,3 +8,4 @@ pubspec.lock
 build/
 
 .ffigen.yaml
+flutter-engine/ffigen.yaml

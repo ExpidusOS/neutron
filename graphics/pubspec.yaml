@@ -11,6 +11,8 @@ dependencies:
   web_ffi: ^0.7.2
   neutron_elemental:
     path: ../elemental
+  flutter_engine:
+    path: ../flutter_engine
 
 dev_dependencies:
   ffi: ^2.0.1
