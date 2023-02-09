@@ -1,0 +1,22 @@
+format_version: 1.0.0
+files:
+  package:neutron_runtime/bindings.dart:
+    used-config:
+      ffi-native: false
+    symbols:
+      c:@F@NT_IS_RUNTIME_CONTEXT:
+        name: NT_IS_RUNTIME_CONTEXT
+      c:@F@NT_RUNTIME_CONTEXT:
+        name: NT_RUNTIME_CONTEXT
+      c:@F@nt_runtime_context_get_renderer:
+        name: nt_runtime_context_get_renderer
+      c:@F@nt_runtime_context_get_type:
+        name: nt_runtime_context_get_type
+      c:@NT_RUNTIME_CONTEXT_SIZE:
+        name: NT_RUNTIME_CONTEXT_SIZE
+      c:@S@_NtRuntimeContext:
+        name: _NtRuntimeContext
+      c:@S@_NtRuntimeContextPrivate:
+        name: _NtRuntimeContextPrivate
+      c:context.h@T@NtRuntimeContext:
+        name: NtRuntimeContext

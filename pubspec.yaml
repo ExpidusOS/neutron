@@ -19,3 +19,5 @@ dependencies:
     path: ./inputcore
   neutron_graphics:
     path: ./graphics
+  neutron_runtime:
+    path: ./runtime

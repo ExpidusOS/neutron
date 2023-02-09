@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.10)
+
+set(PROJECT_NAME "neutron_runtime")
+project(${PROJECT_NAME} LANGUAGES CXX)
+
+find_library(neutron_runtime neutron-runtime PATHS @LIBDIR@)
