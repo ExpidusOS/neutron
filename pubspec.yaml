@@ -1,0 +1,19 @@
+name: neutron
+description: Neutron is the core API and runtime for ExpidusOS
+version: 0.1.0
+homepage: https://github.com/ExpidusOS/neutron
+
+environment:
+  sdk: '>=2.18.0 <3.0.0'
+
+dependencies:
+  neutron_elemental:
+    path: ./elemental
+  flutter_engine:
+    path: ./flutter_engine
+  neutron_platform:
+    path: ./platform
+  neutron_shimmy:
+    path: ./shimmy
+  neutron_graphics:
+    path: ./graphics

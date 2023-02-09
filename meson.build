@@ -201,6 +201,22 @@ if not is_bootstrap
     url: 'https://github.com/ExpidusOS/neutron',
     version: shortver)
 
+  if dart.found()
+    neutron_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir()], check: false)
+
+    if neutron_pub.returncode() != 0
+      warning('Dart failed to fetch dependencies for Neutron: @0@'.format(shimmy_pub.stderr()))
+    endif
+
+    install_data('pubspec.yaml', install_dir: dartdir)
+    install_data('README.md', install_dir: dartdir)
+
+    if fs.exists(meson.current_source_dir() / 'pubspec.lock')
+      install_data('.dart_tool/package_config.json', install_dir: dartdir / '.dart_tool')
+      install_data('pubspec.lock', install_dir: dartdir)
+    endif
+  endif
+
   subdir('docs', if_found: [gtkdoc])
 endif
 
