@@ -2,7 +2,6 @@ compile_commands.json
 result*
 .cache
 
-pubspec.lock
 .dart_tool/
 .packages
 build/
