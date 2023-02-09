@@ -1,6 +1,11 @@
 graphics_ffigen_compiler_opts = [
-  '-I @0@'.format(join_paths(meson.project_build_root(), 'graphics', 'include'))
+  '-I@0@'.format(join_paths(meson.project_build_root(), 'graphics', 'include')),
+  '-I@0@'.format(get_option('flutter-engine'))
 ]
+
+foreach inc : graphics_dart_inc_paths
+  graphics_ffigen_compiler_opts += '-I@0@'.format(inc)
+endforeach
 
 if fs.exists(meson.project_source_root() / 'graphics' / 'pubspec.lock')
   if ffigen.found()

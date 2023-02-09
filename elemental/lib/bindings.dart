@@ -24,14 +24,50 @@ class NeutronElemental {
           lookup)
       : _lookup = lookup;
 
-  int NT_DECLARE_TYPE() {
-    return _NT_DECLARE_TYPE();
+  late final ffi.Pointer<ffi.Size> _NT_LIST_SIZE =
+      _lookup<ffi.Size>('NT_LIST_SIZE');
+
+  int get NT_LIST_SIZE => _NT_LIST_SIZE.value;
+
+  set NT_LIST_SIZE(int value) => _NT_LIST_SIZE.value = value;
+
+  ffi.Pointer<NtList> NT_LIST(
+    ffi.Pointer<NtTypeInstance> instance,
+  ) {
+    return _NT_LIST(
+      instance,
+    );
   }
 
-  late final _NT_DECLARE_TYPEPtr =
-      _lookup<ffi.NativeFunction<ffi.Int Function()>>('NT_DECLARE_TYPE');
-  late final _NT_DECLARE_TYPE =
-      _NT_DECLARE_TYPEPtr.asFunction<int Function()>();
+  late final _NT_LISTPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<NtList> Function(
+              ffi.Pointer<NtTypeInstance>)>>('NT_LIST');
+  late final _NT_LIST = _NT_LISTPtr.asFunction<
+      ffi.Pointer<NtList> Function(ffi.Pointer<NtTypeInstance>)>();
+
+  bool NT_IS_LIST(
+    ffi.Pointer<NtList> self,
+  ) {
+    return _NT_IS_LIST(
+      self,
+    );
+  }
+
+  late final _NT_IS_LISTPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(ffi.Pointer<NtList>)>>(
+          'NT_IS_LIST');
+  late final _NT_IS_LIST =
+      _NT_IS_LISTPtr.asFunction<bool Function(ffi.Pointer<NtList>)>();
+
+  int nt_list_get_type() {
+    return _nt_list_get_type();
+  }
+
+  late final _nt_list_get_typePtr =
+      _lookup<ffi.NativeFunction<NtType Function()>>('nt_list_get_type');
+  late final _nt_list_get_type =
+      _nt_list_get_typePtr.asFunction<int Function()>();
 
   /// nt_list_alloc:
   /// @value: The value to use
@@ -40,7 +76,7 @@ class NeutronElemental {
   ///
   /// Returns: The entry
   ffi.Pointer<NtList> nt_list_alloc(
-    int value,
+    NtValue value,
   ) {
     return _nt_list_alloc(
       value,
@@ -48,10 +84,10 @@ class NeutronElemental {
   }
 
   late final _nt_list_allocPtr =
-      _lookup<ffi.NativeFunction<ffi.Pointer<NtList> Function(ffi.Int)>>(
+      _lookup<ffi.NativeFunction<ffi.Pointer<NtList> Function(NtValue)>>(
           'nt_list_alloc');
   late final _nt_list_alloc =
-      _nt_list_allocPtr.asFunction<ffi.Pointer<NtList> Function(int)>();
+      _nt_list_allocPtr.asFunction<ffi.Pointer<NtList> Function(NtValue)>();
 
   /// nt_list_get_head:
   /// @self: The list
@@ -122,7 +158,7 @@ class NeutronElemental {
   /// Returns: The new head of the list.
   ffi.Pointer<NtList> nt_list_prepend(
     ffi.Pointer<NtList> self,
-    int value,
+    NtValue value,
   ) {
     return _nt_list_prepend(
       self,
@@ -133,9 +169,9 @@ class NeutronElemental {
   late final _nt_list_prependPtr = _lookup<
       ffi.NativeFunction<
           ffi.Pointer<NtList> Function(
-              ffi.Pointer<NtList>, ffi.Int)>>('nt_list_prepend');
+              ffi.Pointer<NtList>, NtValue)>>('nt_list_prepend');
   late final _nt_list_prepend = _nt_list_prependPtr
-      .asFunction<ffi.Pointer<NtList> Function(ffi.Pointer<NtList>, int)>();
+      .asFunction<ffi.Pointer<NtList> Function(ffi.Pointer<NtList>, NtValue)>();
 
   /// nt_list_append:
   /// @self: The list to use
@@ -145,7 +181,7 @@ class NeutronElemental {
   /// Returns: The new head of the list.
   ffi.Pointer<NtList> nt_list_append(
     ffi.Pointer<NtList> self,
-    int value,
+    NtValue value,
   ) {
     return _nt_list_append(
       self,
@@ -156,9 +192,9 @@ class NeutronElemental {
   late final _nt_list_appendPtr = _lookup<
       ffi.NativeFunction<
           ffi.Pointer<NtList> Function(
-              ffi.Pointer<NtList>, ffi.Int)>>('nt_list_append');
+              ffi.Pointer<NtList>, NtValue)>>('nt_list_append');
   late final _nt_list_append = _nt_list_appendPtr
-      .asFunction<ffi.Pointer<NtList> Function(ffi.Pointer<NtList>, int)>();
+      .asFunction<ffi.Pointer<NtList> Function(ffi.Pointer<NtList>, NtValue)>();
 
   /// nt_type_argument_get:
   /// @arguments: A list of %NtTypeArgument
@@ -169,10 +205,10 @@ class NeutronElemental {
   /// If @name is not in @arguments, then return @default_value.
   ///
   /// Returns: An %NtValue of either an %NtTypeArgument value or @default_value.
-  int nt_type_argument_get(
+  NtValue nt_type_argument_get(
     ffi.Pointer<NtTypeArgument> arguments,
     ffi.Pointer<ffi.Char> name,
-    int default_value,
+    NtValue default_value,
   ) {
     return _nt_type_argument_get(
       arguments,
@@ -183,10 +219,56 @@ class NeutronElemental {
 
   late final _nt_type_argument_getPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Int Function(ffi.Pointer<NtTypeArgument>, ffi.Pointer<ffi.Char>,
-              ffi.Int)>>('nt_type_argument_get');
+          NtValue Function(ffi.Pointer<NtTypeArgument>, ffi.Pointer<ffi.Char>,
+              NtValue)>>('nt_type_argument_get');
   late final _nt_type_argument_get = _nt_type_argument_getPtr.asFunction<
-      int Function(ffi.Pointer<NtTypeArgument>, ffi.Pointer<ffi.Char>, int)>();
+      NtValue Function(
+          ffi.Pointer<NtTypeArgument>, ffi.Pointer<ffi.Char>, NtValue)>();
+
+  late final ffi.Pointer<ffi.Size> _NT_SIGNAL_SIZE =
+      _lookup<ffi.Size>('NT_SIGNAL_SIZE');
+
+  int get NT_SIGNAL_SIZE => _NT_SIGNAL_SIZE.value;
+
+  set NT_SIGNAL_SIZE(int value) => _NT_SIGNAL_SIZE.value = value;
+
+  ffi.Pointer<NtSignal> NT_SIGNAL(
+    ffi.Pointer<NtTypeInstance> instance,
+  ) {
+    return _NT_SIGNAL(
+      instance,
+    );
+  }
+
+  late final _NT_SIGNALPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<NtSignal> Function(
+              ffi.Pointer<NtTypeInstance>)>>('NT_SIGNAL');
+  late final _NT_SIGNAL = _NT_SIGNALPtr.asFunction<
+      ffi.Pointer<NtSignal> Function(ffi.Pointer<NtTypeInstance>)>();
+
+  bool NT_IS_SIGNAL(
+    ffi.Pointer<NtSignal> self,
+  ) {
+    return _NT_IS_SIGNAL(
+      self,
+    );
+  }
+
+  late final _NT_IS_SIGNALPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(ffi.Pointer<NtSignal>)>>(
+          'NT_IS_SIGNAL');
+  late final _NT_IS_SIGNAL =
+      _NT_IS_SIGNALPtr.asFunction<bool Function(ffi.Pointer<NtSignal>)>();
+
+  int nt_signal_get_type() {
+    return _nt_signal_get_type();
+  }
+
+  late final _nt_signal_get_typePtr =
+      _lookup<ffi.NativeFunction<NtType Function()>>('nt_signal_get_type');
+  late final _nt_signal_get_type =
+      _nt_signal_get_typePtr.asFunction<int Function()>();
 
   /// nt_signal_new:
   ///
@@ -228,7 +310,7 @@ class NeutronElemental {
   /// Returns: The ID of the signal
   int nt_signal_attach(
     ffi.Pointer<NtSignal> self,
-    int handler,
+    NtSignalHandler handler,
     ffi.Pointer<ffi.Void> data,
   ) {
     return _nt_signal_attach(
@@ -240,10 +322,11 @@ class NeutronElemental {
 
   late final _nt_signal_attachPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Int Function(ffi.Pointer<NtSignal>, ffi.Int,
+          ffi.Int Function(ffi.Pointer<NtSignal>, NtSignalHandler,
               ffi.Pointer<ffi.Void>)>>('nt_signal_attach');
   late final _nt_signal_attach = _nt_signal_attachPtr.asFunction<
-      int Function(ffi.Pointer<NtSignal>, int, ffi.Pointer<ffi.Void>)>();
+      int Function(
+          ffi.Pointer<NtSignal>, NtSignalHandler, ffi.Pointer<ffi.Void>)>();
 
   /// nt_signal_detach:
   /// @self: The %NtSignal
@@ -276,7 +359,7 @@ class NeutronElemental {
   /// Triggers signal execution
   void nt_signal_emit(
     ffi.Pointer<NtSignal> self,
-    ffi.Pointer<ffi.Int> arguments,
+    ffi.Pointer<NtTypeArgument> arguments,
   ) {
     return _nt_signal_emit(
       self,
@@ -286,10 +369,55 @@ class NeutronElemental {
 
   late final _nt_signal_emitPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Void Function(
-              ffi.Pointer<NtSignal>, ffi.Pointer<ffi.Int>)>>('nt_signal_emit');
-  late final _nt_signal_emit = _nt_signal_emitPtr
-      .asFunction<void Function(ffi.Pointer<NtSignal>, ffi.Pointer<ffi.Int>)>();
+          ffi.Void Function(ffi.Pointer<NtSignal>,
+              ffi.Pointer<NtTypeArgument>)>>('nt_signal_emit');
+  late final _nt_signal_emit = _nt_signal_emitPtr.asFunction<
+      void Function(ffi.Pointer<NtSignal>, ffi.Pointer<NtTypeArgument>)>();
+
+  late final ffi.Pointer<ffi.Size> _NT_BACKTRACE_SIZE =
+      _lookup<ffi.Size>('NT_BACKTRACE_SIZE');
+
+  int get NT_BACKTRACE_SIZE => _NT_BACKTRACE_SIZE.value;
+
+  set NT_BACKTRACE_SIZE(int value) => _NT_BACKTRACE_SIZE.value = value;
+
+  ffi.Pointer<NtBacktrace> NT_BACKTRACE(
+    ffi.Pointer<NtTypeInstance> instance,
+  ) {
+    return _NT_BACKTRACE(
+      instance,
+    );
+  }
+
+  late final _NT_BACKTRACEPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<NtBacktrace> Function(
+              ffi.Pointer<NtTypeInstance>)>>('NT_BACKTRACE');
+  late final _NT_BACKTRACE = _NT_BACKTRACEPtr.asFunction<
+      ffi.Pointer<NtBacktrace> Function(ffi.Pointer<NtTypeInstance>)>();
+
+  bool NT_IS_BACKTRACE(
+    ffi.Pointer<NtBacktrace> self,
+  ) {
+    return _NT_IS_BACKTRACE(
+      self,
+    );
+  }
+
+  late final _NT_IS_BACKTRACEPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(ffi.Pointer<NtBacktrace>)>>(
+          'NT_IS_BACKTRACE');
+  late final _NT_IS_BACKTRACE =
+      _NT_IS_BACKTRACEPtr.asFunction<bool Function(ffi.Pointer<NtBacktrace>)>();
+
+  int nt_backtrace_get_type() {
+    return _nt_backtrace_get_type();
+  }
+
+  late final _nt_backtrace_get_typePtr =
+      _lookup<ffi.NativeFunction<NtType Function()>>('nt_backtrace_get_type');
+  late final _nt_backtrace_get_type =
+      _nt_backtrace_get_typePtr.asFunction<int Function()>();
 
   /// nt_backtrace_new:
   ///
@@ -372,6 +500,26 @@ class NeutronElemental {
           'nt_backtrace_pop');
   late final _nt_backtrace_pop = _nt_backtrace_popPtr
       .asFunction<void Function(ffi.Pointer<NtBacktrace>)>();
+
+  /// nt_type_register:
+  /// @info: The %NtTypeInfo for the new type
+  ///
+  /// Register a new type
+  ///
+  /// Returns: The %NtType ID of the new type
+  int nt_type_register(
+    ffi.Pointer<NtTypeInfo> info,
+  ) {
+    return _nt_type_register(
+      info,
+    );
+  }
+
+  late final _nt_type_registerPtr =
+      _lookup<ffi.NativeFunction<NtType Function(ffi.Pointer<NtTypeInfo>)>>(
+          'nt_type_register');
+  late final _nt_type_register =
+      _nt_type_registerPtr.asFunction<int Function(ffi.Pointer<NtTypeInfo>)>();
 
   /// nt_type_register:
   /// @info: The %NtTypeInfo to unregister
@@ -460,7 +608,7 @@ class NeutronElemental {
   /// Returns: The new instance of @type
   ffi.Pointer<NtTypeInstance> nt_type_instance_new(
     int type,
-    ffi.Pointer<ffi.Int> arguments,
+    ffi.Pointer<NtTypeArgument> arguments,
   ) {
     return _nt_type_instance_new(
       type,
@@ -471,9 +619,9 @@ class NeutronElemental {
   late final _nt_type_instance_newPtr = _lookup<
       ffi.NativeFunction<
           ffi.Pointer<NtTypeInstance> Function(
-              NtType, ffi.Pointer<ffi.Int>)>>('nt_type_instance_new');
+              NtType, ffi.Pointer<NtTypeArgument>)>>('nt_type_instance_new');
   late final _nt_type_instance_new = _nt_type_instance_newPtr.asFunction<
-      ffi.Pointer<NtTypeInstance> Function(int, ffi.Pointer<ffi.Int>)>();
+      ffi.Pointer<NtTypeInstance> Function(int, ffi.Pointer<NtTypeArgument>)>();
 
   /// nt_type_instance_get_data:
   /// @instance: The type instance to get data for
@@ -539,6 +687,51 @@ class NeutronElemental {
   late final _nt_type_instance_unref = _nt_type_instance_unrefPtr
       .asFunction<void Function(ffi.Pointer<NtTypeInstance>)>();
 
+  late final ffi.Pointer<ffi.Size> _NT_ERROR_SIZE =
+      _lookup<ffi.Size>('NT_ERROR_SIZE');
+
+  int get NT_ERROR_SIZE => _NT_ERROR_SIZE.value;
+
+  set NT_ERROR_SIZE(int value) => _NT_ERROR_SIZE.value = value;
+
+  ffi.Pointer<NtError> NT_ERROR(
+    ffi.Pointer<NtTypeInstance> instance,
+  ) {
+    return _NT_ERROR(
+      instance,
+    );
+  }
+
+  late final _NT_ERRORPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<NtError> Function(
+              ffi.Pointer<NtTypeInstance>)>>('NT_ERROR');
+  late final _NT_ERROR = _NT_ERRORPtr.asFunction<
+      ffi.Pointer<NtError> Function(ffi.Pointer<NtTypeInstance>)>();
+
+  bool NT_IS_ERROR(
+    ffi.Pointer<NtError> self,
+  ) {
+    return _NT_IS_ERROR(
+      self,
+    );
+  }
+
+  late final _NT_IS_ERRORPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(ffi.Pointer<NtError>)>>(
+          'NT_IS_ERROR');
+  late final _NT_IS_ERROR =
+      _NT_IS_ERRORPtr.asFunction<bool Function(ffi.Pointer<NtError>)>();
+
+  int nt_error_get_type() {
+    return _nt_error_get_type();
+  }
+
+  late final _nt_error_get_typePtr =
+      _lookup<ffi.NativeFunction<NtType Function()>>('nt_error_get_type');
+  late final _nt_error_get_type =
+      _nt_error_get_typePtr.asFunction<int Function()>();
+
   /// nt_error_new_full:
   /// @file: The file the error comes from
   /// @method: The method the error comes from
@@ -554,7 +747,7 @@ class NeutronElemental {
     ffi.Pointer<ffi.Char> method,
     int line,
     ffi.Pointer<ffi.Char> message,
-    ffi.Pointer<ffi.Int> backtrace,
+    ffi.Pointer<NtBacktrace> backtrace,
   ) {
     return _nt_error_new_full(
       file,
@@ -572,14 +765,14 @@ class NeutronElemental {
               ffi.Pointer<ffi.Char>,
               ffi.Int,
               ffi.Pointer<ffi.Char>,
-              ffi.Pointer<ffi.Int>)>>('nt_error_new_full');
+              ffi.Pointer<NtBacktrace>)>>('nt_error_new_full');
   late final _nt_error_new_full = _nt_error_new_fullPtr.asFunction<
       ffi.Pointer<NtError> Function(
           ffi.Pointer<ffi.Char>,
           ffi.Pointer<ffi.Char>,
           int,
           ffi.Pointer<ffi.Char>,
-          ffi.Pointer<ffi.Int>)>();
+          ffi.Pointer<NtBacktrace>)>();
 }
 
 /// NtList:
@@ -590,18 +783,124 @@ class NeutronElemental {
 ///
 /// A linked-list type which holds %NtValue
 class _NtList extends ffi.Struct {
-  @ffi.Int()
-  external int instance;
+  external NtTypeInstance instance;
 
   external ffi.Pointer<_NtList> prev;
 
   external ffi.Pointer<_NtList> next;
 
-  @ffi.Int()
-  external int value;
+  external NtValue value;
 }
 
-typedef NtList = ffi.Int;
+/// NtTypeInstance:
+/// @type: The type the instance was allocated for
+/// @data_size: The total size of %NtTypeInstance
+/// @ref_count: Number of references this instance has
+/// @prev: The previous level instance this is tied to
+///
+/// Instance of a type
+typedef NtTypeInstance = _NtTypeInstance;
+
+/// NtTypeInstance:
+/// @type: The type the instance was allocated for
+/// @data_size: The total size of %NtTypeInstance
+/// @ref_count: Number of references this instance has
+/// @prev: The previous level instance this is tied to
+///
+/// Instance of a type
+class _NtTypeInstance extends ffi.Struct {
+  @NtType()
+  external int type;
+
+  @ffi.Size()
+  external int data_size;
+
+  @ffi.Size()
+  external int ref_count;
+
+  external ffi.Pointer<_NtTypeInstance> prev;
+}
+
+/// NtType:
+///
+/// ID of a registered type
+typedef NtType = ffi.Uint32;
+
+/// NtValue:
+/// @type: The type of value
+/// @data: The data being held
+///
+/// A static structure type for holding different kinds of data
+typedef NtValue = _NtValue;
+
+/// NtValue:
+/// @type: The type of value
+/// @data: The data being held
+///
+/// A static structure type for holding different kinds of data
+class _NtValue extends ffi.Struct {
+  @ffi.Int32()
+  external int type;
+
+  external NtValueData data;
+}
+
+/// NtValueType:
+/// @NT_VALUE_TYPE_POINTER: A pointer type
+/// @NT_VALUE_TYPE_STRING: A string type
+/// @NT_VALUE_TYPE_NUMBER: An integer type
+/// @NT_VALUE_TYPE_BOOL: A boolean type
+/// @NT_VALUE_TYPE_INSTANCE: An %NtTypeInstance type
+///
+/// An enum for describing what %NtValue is holding
+abstract class _NtValueType {
+  static const int NT_VALUE_TYPE_POINTER = 0;
+  static const int NT_VALUE_TYPE_STRING = 1;
+  static const int NT_VALUE_TYPE_NUMBER = 2;
+  static const int NT_VALUE_TYPE_BOOL = 3;
+  static const int NT_VALUE_TYPE_INSTANCE = 4;
+}
+
+/// NtValueData:
+/// @pointer: Data being held as a pointer
+/// @string: Data being held as a string
+/// @number: Data being held as a number
+/// @boolean: Data being held as a boolean
+/// @instance: Data being held as an %NtTypeInstance
+///
+/// A union for holding data in %NtValue
+typedef NtValueData = _NtValueData;
+
+/// NtValueData:
+/// @pointer: Data being held as a pointer
+/// @string: Data being held as a string
+/// @number: Data being held as a number
+/// @boolean: Data being held as a boolean
+/// @instance: Data being held as an %NtTypeInstance
+///
+/// A union for holding data in %NtValue
+class _NtValueData extends ffi.Union {
+  external ffi.Pointer<ffi.Void> pointer;
+
+  external ffi.Pointer<ffi.Char> string;
+
+  @ffi.Int()
+  external int number;
+
+  @ffi.Bool()
+  external bool boolean;
+
+  external ffi.Pointer<_NtTypeInstance> instance;
+}
+
+/// NtList:
+/// @instance: The %NtTypeInstance associated
+/// @prev: The previous element
+/// @next: The next element
+/// @value: The value being held in the list element
+///
+/// A linked-list type which holds %NtValue
+typedef NtList = _NtList;
 
 /// NtTypeArgument:
 /// @name: Argument name
@@ -611,11 +910,15 @@ typedef NtList = ffi.Int;
 class _NtTypeArgument extends ffi.Struct {
   external ffi.Pointer<ffi.Char> name;
 
-  @ffi.Int()
-  external int value;
+  external NtValue value;
 }
 
-typedef NtTypeArgument = ffi.Int;
+/// NtTypeArgument:
+/// @name: Argument name
+/// @value: Argument value
+///
+/// A structure which holds a single argument for %NtTypeInstance and %NtSignal.
+typedef NtTypeArgument = _NtTypeArgument;
 
 /// NtSignal:
 /// @instance: The %NtTypeInstance associated
@@ -623,8 +926,7 @@ typedef NtTypeArgument = ffi.Int;
 ///
 /// A signal
 class _NtSignal extends ffi.Struct {
-  @ffi.Int()
-  external int instance;
+  external NtTypeInstance instance;
 
   /// < private >
   external ffi.Pointer<_NtSignalPrivate> priv;
@@ -632,7 +934,25 @@ class _NtSignal extends ffi.Struct {
 
 class _NtSignalPrivate extends ffi.Opaque {}
 
-typedef NtSignal = ffi.Int;
+/// NtSignal:
+/// @instance: The %NtTypeInstance associated
+/// @priv: Private data
+///
+/// A signal
+typedef NtSignal = _NtSignal;
+
+/// NtSignalHandler:
+/// @signal: The signal which was emitted
+/// @arguments: The arguments passed to the emit method
+/// @data: User data
+///
+/// Method type used for signal emittion.
+///
+/// Returns: %TRUE to continue, %FALSE to stop
+typedef NtSignalHandler = ffi.Pointer<
+    ffi.NativeFunction<
+        ffi.Bool Function(ffi.Pointer<NtSignal>, ffi.Pointer<NtTypeArgument>,
+            ffi.Pointer<ffi.Void>)>>;
 
 /// NtBacktraceEntry:
 /// @prev: The entry which was called from this
@@ -660,8 +980,7 @@ class _NtBacktraceEntry extends ffi.Struct {
 ///
 /// Backtrace
 class _NtBacktrace extends ffi.Struct {
-  @ffi.Int()
-  external int instance;
+  external NtTypeInstance instance;
 
   external ffi.Pointer<_NtBacktraceEntry> entries;
 }
@@ -683,31 +1002,6 @@ abstract class _NtTypeFlags {
   static const int NT_TYPE_FLAG_DYNAMIC = 0;
   static const int NT_TYPE_FLAG_NOREF = 2;
 }
-
-/// NtTypeInstance:
-/// @type: The type the instance was allocated for
-/// @data_size: The total size of %NtTypeInstance
-/// @ref_count: Number of references this instance has
-/// @prev: The previous level instance this is tied to
-///
-/// Instance of a type
-class _NtTypeInstance extends ffi.Struct {
-  @NtType()
-  external int type;
-
-  @ffi.Size()
-  external int data_size;
-
-  @ffi.Size()
-  external int ref_count;
-
-  external ffi.Pointer<_NtTypeInstance> prev;
-}
-
-/// NtType:
-///
-/// ID of a registered type
-typedef NtType = ffi.Uint32;
 
 /// NtTypeInfo:
 /// @id: The ID of the type
@@ -731,9 +1025,10 @@ class _NtTypeInfo extends ffi.Struct {
   external int size;
 
   external ffi.Pointer<
-      ffi.NativeFunction<
-          ffi.Void Function(
-              ffi.Pointer<_NtTypeInstance>, ffi.Pointer<ffi.Int>)>> construct;
+          ffi.NativeFunction<
+              ffi.Void Function(
+                  ffi.Pointer<_NtTypeInstance>, ffi.Pointer<NtTypeArgument>)>>
+      construct;
 
   external ffi.Pointer<
           ffi.NativeFunction<ffi.Void Function(ffi.Pointer<_NtTypeInstance>)>>
@@ -753,85 +1048,13 @@ class _NtTypeInfo extends ffi.Struct {
 /// Describes how a type should be defined
 typedef NtTypeInfo = _NtTypeInfo;
 
-/// NtTypeInstance:
-/// @type: The type the instance was allocated for
-/// @data_size: The total size of %NtTypeInstance
-/// @ref_count: Number of references this instance has
-/// @prev: The previous level instance this is tied to
-///
-/// Instance of a type
-typedef NtTypeInstance = _NtTypeInstance;
-
-/// NtValueType:
-/// @NT_VALUE_TYPE_POINTER: A pointer type
-/// @NT_VALUE_TYPE_STRING: A string type
-/// @NT_VALUE_TYPE_NUMBER: An integer type
-/// @NT_VALUE_TYPE_BOOL: A boolean type
-/// @NT_VALUE_TYPE_INSTANCE: An %NtTypeInstance type
-///
-/// An enum for describing what %NtValue is holding
-abstract class _NtValueType {
-  static const int NT_VALUE_TYPE_POINTER = 0;
-  static const int NT_VALUE_TYPE_STRING = 1;
-  static const int NT_VALUE_TYPE_NUMBER = 2;
-  static const int NT_VALUE_TYPE_BOOL = 3;
-  static const int NT_VALUE_TYPE_INSTANCE = 4;
-}
-
-/// NtValueData:
-/// @pointer: Data being held as a pointer
-/// @string: Data being held as a string
-/// @number: Data being held as a number
-/// @boolean: Data being held as a boolean
-/// @instance: Data being held as an %NtTypeInstance
-///
-/// A union for holding data in %NtValue
-class _NtValueData extends ffi.Union {
-  external ffi.Pointer<ffi.Void> pointer;
-
-  external ffi.Pointer<ffi.Char> string;
-
-  @ffi.Int()
-  external int number;
-
-  @ffi.Bool()
-  external bool boolean;
-
-  external ffi.Pointer<_NtTypeInstance> instance;
-}
-
-/// NtValue:
-/// @type: The type of value
-/// @data: The data being held
-///
-/// A static structure type for holding different kinds of data
-class _NtValue extends ffi.Struct {
-  @NtValueType()
-  external int type;
-
-  external NtValueData data;
-}
-
-typedef NtValueType = ffi.Int;
-
-/// NtValueData:
-/// @pointer: Data being held as a pointer
-/// @string: Data being held as a string
-/// @number: Data being held as a number
-/// @boolean: Data being held as a boolean
-/// @instance: Data being held as an %NtTypeInstance
-///
-/// A union for holding data in %NtValue
-typedef NtValueData = _NtValueData;
-
 /// NtError:
 /// @instance: The %NtTypeInstance associated
 /// @priv: Private data
 ///
 /// An error
 class _NtError extends ffi.Struct {
-  @ffi.Int()
-  external int instance;
+  external NtTypeInstance instance;
 
   /// < private >
   external ffi.Pointer<_NtErrorPrivate> priv;
@@ -839,6 +1062,11 @@ class _NtError extends ffi.Struct {
 
 class _NtErrorPrivate extends ffi.Opaque {}
 
-typedef NtError = ffi.Int;
+/// NtError:
+/// @instance: The %NtTypeInstance associated
+/// @priv: Private data
+///
+/// An error
+typedef NtError = _NtError;
 
 const int NT_TYPE_NONE = 0;

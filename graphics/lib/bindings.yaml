@@ -4,6 +4,12 @@ files:
     used-config:
       ffi-native: false
     symbols:
+      c:@EA@FlutterBackingStoreType:
+        name: FlutterBackingStoreType
+      c:@EA@FlutterLayerContentType:
+        name: FlutterLayerContentType
+      c:@EA@FlutterRendererType:
+        name: FlutterRendererType
       c:@F@NT_IS_RENDERER:
         name: NT_IS_RENDERER
       c:@F@NT_IS_SCENE:
@@ -62,6 +68,26 @@ files:
         name: _NtSceneLayerPrivate
       c:@S@_NtScenePrivate:
         name: _NtScenePrivate
+      c:@SA@FlutterBackingStore:
+        name: FlutterBackingStore
+      c:@SA@FlutterBackingStoreConfig:
+        name: FlutterBackingStoreConfig
+      c:@SA@FlutterCompositor:
+        name: FlutterCompositor
+      c:@SA@FlutterLayer:
+        name: FlutterLayer
+      c:@SA@FlutterPoint:
+        name: FlutterPoint
+      c:@SA@FlutterRendererConfig:
+        name: FlutterRendererConfig
+      c:@SA@FlutterSize:
+        name: FlutterSize
+      c:flutter_embedder.h@T@FlutterBackingStoreCollectCallback:
+        name: FlutterBackingStoreCollectCallback
+      c:flutter_embedder.h@T@FlutterBackingStoreCreateCallback:
+        name: FlutterBackingStoreCreateCallback
+      c:flutter_embedder.h@T@FlutterLayersPresentCallback:
+        name: FlutterLayersPresentCallback
       c:renderer.h@T@NtRenderer:
         name: NtRenderer
       c:scene-layer.h@T@NtSceneLayer:

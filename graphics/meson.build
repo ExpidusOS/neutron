@@ -26,6 +26,7 @@ graphics_cflags = []
 
 graphics_inc = [include_directories('include')]
 graphics_docs_inc_paths = []
+graphics_dart_inc_paths = []
 graphics_deps = [elemental, flutter_engine, thread]
 graphics_renderers = []
 

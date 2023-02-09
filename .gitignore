@@ -6,3 +6,5 @@ pubspec.lock
 .dart_tool/
 .packages
 build/
+
+.ffigen.yaml

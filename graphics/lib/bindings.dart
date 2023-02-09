@@ -302,7 +302,7 @@ class NeutronGraphics {
   ///
   /// Gets the renderer configuration for Flutter
   /// Returns: A pointer to the renderer configuration
-  ffi.Pointer<ffi.Int> nt_renderer_get_config(
+  ffi.Pointer<FlutterRendererConfig> nt_renderer_get_config(
     ffi.Pointer<NtRenderer> self,
   ) {
     return _nt_renderer_get_config(
@@ -312,17 +312,17 @@ class NeutronGraphics {
 
   late final _nt_renderer_get_configPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Pointer<ffi.Int> Function(
+          ffi.Pointer<FlutterRendererConfig> Function(
               ffi.Pointer<NtRenderer>)>>('nt_renderer_get_config');
-  late final _nt_renderer_get_config = _nt_renderer_get_configPtr
-      .asFunction<ffi.Pointer<ffi.Int> Function(ffi.Pointer<NtRenderer>)>();
+  late final _nt_renderer_get_config = _nt_renderer_get_configPtr.asFunction<
+      ffi.Pointer<FlutterRendererConfig> Function(ffi.Pointer<NtRenderer>)>();
 
   /// nt_renderer_get_compositor:
   /// @self: The %NtRenderer instance
   ///
   /// Gets the compositor for Flutter
   /// Returns: A pointer to the compositor
-  ffi.Pointer<ffi.Int> nt_renderer_get_compositor(
+  ffi.Pointer<FlutterCompositor> nt_renderer_get_compositor(
     ffi.Pointer<NtRenderer> self,
   ) {
     return _nt_renderer_get_compositor(
@@ -332,10 +332,11 @@ class NeutronGraphics {
 
   late final _nt_renderer_get_compositorPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Pointer<ffi.Int> Function(
+          ffi.Pointer<FlutterCompositor> Function(
               ffi.Pointer<NtRenderer>)>>('nt_renderer_get_compositor');
-  late final _nt_renderer_get_compositor = _nt_renderer_get_compositorPtr
-      .asFunction<ffi.Pointer<ffi.Int> Function(ffi.Pointer<NtRenderer>)>();
+  late final _nt_renderer_get_compositor =
+      _nt_renderer_get_compositorPtr.asFunction<
+          ffi.Pointer<FlutterCompositor> Function(ffi.Pointer<NtRenderer>)>();
 
   /// nt_renderer_wait_sync:
   /// @self: The %NtRenderer instance
@@ -396,12 +397,13 @@ class _NtRenderer extends ffi.Struct {
 
   external ffi.Pointer<
       ffi.NativeFunction<
-          ffi.Pointer<ffi.Int> Function(ffi.Pointer<_NtRenderer>)>> get_config;
+          ffi.Pointer<FlutterRendererConfig> Function(
+              ffi.Pointer<_NtRenderer>)>> get_config;
 
   external ffi.Pointer<
-          ffi.NativeFunction<
-              ffi.Pointer<ffi.Int> Function(ffi.Pointer<_NtRenderer>)>>
-      get_compositor;
+      ffi.NativeFunction<
+          ffi.Pointer<FlutterCompositor> Function(
+              ffi.Pointer<_NtRenderer>)>> get_compositor;
 
   external ffi.Pointer<
           ffi.NativeFunction<ffi.Void Function(ffi.Pointer<_NtRenderer>)>>
@@ -416,6 +418,158 @@ class _NtRenderer extends ffi.Struct {
 
   /// < private >
   external ffi.Pointer<_NtRendererPrivate> priv;
+}
+
+class FlutterRendererConfig extends ffi.Struct {
+  @ffi.Int32()
+  external int type;
+}
+
+abstract class FlutterRendererType {
+  static const int kOpenGL = 0;
+  static const int kSoftware = 1;
+
+  /// Metal is only supported on Darwin platforms (macOS / iOS).
+  /// iOS version >= 10.0 (device), 13.0 (simulator)
+  /// macOS version >= 10.14
+  static const int kMetal = 2;
+  static const int kVulkan = 3;
+}
+
+class FlutterCompositor extends ffi.Struct {
+  /// This size of this struct. Must be sizeof(FlutterCompositor).
+  @ffi.Size()
+  external int struct_size;
+
+  /// A baton that in not interpreted by the engine in any way. If it passed
+  /// back to the embedder in `FlutterCompositor.create_backing_store_callback`,
+  /// `FlutterCompositor.collect_backing_store_callback` and
+  /// `FlutterCompositor.present_layers_callback`
+  external ffi.Pointer<ffi.Void> user_data;
+
+  /// A callback invoked by the engine to obtain a backing store for a specific
+  /// `FlutterLayer`.
+  ///
+  /// On ABI stability: Callers must take care to restrict access within
+  /// `FlutterBackingStore::struct_size` when specifying a new backing store to
+  /// the engine. This only matters if the embedder expects to be used with
+  /// engines older than the version whose headers it used during compilation.
+  external FlutterBackingStoreCreateCallback create_backing_store_callback;
+
+  /// A callback invoked by the engine to release the backing store. The
+  /// embedder may collect any resources associated with the backing store.
+  external FlutterBackingStoreCollectCallback collect_backing_store_callback;
+
+  /// Callback invoked by the engine to composite the contents of each layer
+  /// onto the screen.
+  external FlutterLayersPresentCallback present_layers_callback;
+
+  /// Avoid caching backing stores provided by this compositor.
+  @ffi.Bool()
+  external bool avoid_backing_store_cache;
+}
+
+typedef FlutterBackingStoreCreateCallback = ffi.Pointer<
+    ffi.NativeFunction<
+        ffi.Bool Function(ffi.Pointer<FlutterBackingStoreConfig>,
+            ffi.Pointer<FlutterBackingStore>, ffi.Pointer<ffi.Void>)>>;
+
+class FlutterBackingStoreConfig extends ffi.Struct {
+  /// The size of this struct. Must be sizeof(FlutterBackingStoreConfig).
+  @ffi.Size()
+  external int struct_size;
+
+  /// The size of the render target the engine expects to render into.
+  external FlutterSize size;
+}
+
+/// A structure to represent the width and height.
+class FlutterSize extends ffi.Struct {
+  @ffi.Double()
+  external double width;
+
+  @ffi.Double()
+  external double height;
+}
+
+class FlutterBackingStore extends ffi.Struct {
+  /// The size of this struct. Must be sizeof(FlutterBackingStore).
+  @ffi.Size()
+  external int struct_size;
+
+  /// A baton that is not interpreted by the engine in any way. The embedder may
+  /// use this to associate resources that are tied to the lifecycle of the
+  /// `FlutterBackingStore`.
+  external ffi.Pointer<ffi.Void> user_data;
+
+  /// Specifies the type of backing store.
+  @ffi.Int32()
+  external int type;
+
+  /// Indicates if this backing store was updated since the last time it was
+  /// associated with a presented layer.
+  @ffi.Bool()
+  external bool did_update;
+}
+
+abstract class FlutterBackingStoreType {
+  /// Specifies an OpenGL backing store. Can either be an OpenGL texture or
+  /// framebuffer.
+  static const int kFlutterBackingStoreTypeOpenGL = 0;
+
+  /// Specified an software allocation for Flutter to render into using the CPU.
+  static const int kFlutterBackingStoreTypeSoftware = 1;
+
+  /// Specifies a Metal backing store. This is backed by a Metal texture.
+  static const int kFlutterBackingStoreTypeMetal = 2;
+
+  /// Specifies a Vulkan backing store. This is backed by a Vulkan VkImage.
+  static const int kFlutterBackingStoreTypeVulkan = 3;
+}
+
+typedef FlutterBackingStoreCollectCallback = ffi.Pointer<
+    ffi.NativeFunction<
+        ffi.Bool Function(
+            ffi.Pointer<FlutterBackingStore>, ffi.Pointer<ffi.Void>)>>;
+typedef FlutterLayersPresentCallback = ffi.Pointer<
+    ffi.NativeFunction<
+        ffi.Bool Function(ffi.Pointer<ffi.Pointer<FlutterLayer>>, ffi.Size,
+            ffi.Pointer<ffi.Void>)>>;
+
+class FlutterLayer extends ffi.Struct {
+  /// This size of this struct. Must be sizeof(FlutterLayer).
+  @ffi.Size()
+  external int struct_size;
+
+  /// Each layer displays contents in one way or another. The type indicates
+  /// whether those contents are specified by Flutter or the embedder.
+  @ffi.Int32()
+  external int type;
+
+  /// The offset of this layer (in physical pixels) relative to the top left of
+  /// the root surface used by the engine.
+  external FlutterPoint offset;
+
+  /// The size of the layer (in physical pixels).
+  external FlutterSize size;
+}
+
+abstract class FlutterLayerContentType {
+  /// Indicates that the contents of this layer are rendered by Flutter into a
+  /// backing store.
+  static const int kFlutterLayerContentTypeBackingStore = 0;
+
+  /// Indicates that the contents of this layer are determined by the embedder.
+  static const int kFlutterLayerContentTypePlatformView = 1;
+}
+
+/// A structure to represent a 2D point.
+class FlutterPoint extends ffi.Struct {
+  @ffi.Double()
+  external double x;
+
+  @ffi.Double()
+  external double y;
 }
 
 class _NtRendererPrivate extends ffi.Opaque {}
