@@ -1,10 +1,16 @@
+graphics_ffigen_compiler_opts = [
+  '-I @0@'.format(join_paths(meson.project_source_root(), 'graphics', 'include'))
+]
+
 if fs.exists(meson.project_source_root() / 'graphics' / 'pubspec.lock')
   if ffigen.found()
     graphics_ffi = custom_target('graphics-ffigen',
       command: [
         ffigen,
         '--directory=@0@'.format(meson.project_source_root() / 'graphics'),
-        '--file=@0@'.format(meson.project_source_root() / 'graphics' / 'ffigen.yaml')
+        '--file=@0@'.format(meson.project_source_root() / 'graphics' / 'ffigen.yaml'),
+        '--compiler-opts="@0@"'.format(' '.join(graphics_ffigen_compiler_opts)),
+        '--verbose=all'
       ],
       depends: [elemental_ffi, platform_ffi],
       output: 'bindings.dart',
@@ -13,7 +19,9 @@ if fs.exists(meson.project_source_root() / 'graphics' / 'pubspec.lock')
   elif dart.found()
     graphics_ffi = custom_target('graphics-ffigen',
       command: [
-        'dart', 'pub', 'run', '-C', meson.project_source_root() / 'graphics', 'ffigen'
+        'dart', 'pub', 'run', '-C', meson.project_source_root() / 'graphics', 'ffigen',
+        '--compiler-opts="@0@"'.format(' '.join(graphics_ffigen_compiler_opts)),
+        '--verbose=all'
       ],
       depends: [elemental_ffi, platform_ffi],
       output: 'bindings.dart',
