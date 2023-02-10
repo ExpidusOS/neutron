@@ -5,17 +5,18 @@ with lib;
 rec {
   expidus = prev.expidus.extend (f: p:
     let
-      makeOverride = p: p.neutron.mkPackage {
+      makeOverride = p: isWASM: p.neutron.mkPackage {
         rev = self.shortRev or "dirty";
         src = cleanSource self;
         buildType = "release";
+        inherit isWASM;
       };
     in {
       defaultPackage = f.neutron;
-      neutron = makeOverride p;
+      neutron = makeOverride p false;
 
       wasm = p.wasm.extend(f: p: {
-        neutron = makeOverride p;
+        neutron = makeOverride p true;
       });
     });
 }
