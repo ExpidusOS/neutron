@@ -25,11 +25,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1675973203,
-        "narHash": "sha256-ZQeOOSZA6HzQQ5iwqqxx4XhYFvKJyk1OwxIm00UcxmQ=",
+        "lastModified": 1675992290,
+        "narHash": "sha256-QtjuAZrhkp459czc6VBCHjFH4LvfFxniB5IudH0R5DA=",
         "owner": "ExpidusOS",
         "repo": "sdk",
-        "rev": "7c5488a4b2d60cb4a37aee781a83b2912174acb0",
+        "rev": "1e2fcec51688ac853b08032dbb631e75c40c5f02",
         "type": "github"
       },
       "original": {
