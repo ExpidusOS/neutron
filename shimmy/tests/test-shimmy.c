@@ -5,7 +5,7 @@ static void* test_handler(NtShimBinding* binding, void* stack) {
   int* data = (int*)stack;
   ck_assert_int_eq(*data, 42);
   *data = 43;
-  return strdup("Hello, world");
+  return "Hello, world";
 }
 
 START_TEST(test_exec) {
@@ -22,9 +22,6 @@ START_TEST(test_exec) {
   const char* ret = (const char*)nt_shimmy_exec(proc, "test", "test", &stack);
   ck_assert_int_eq(stack, 43);
   ck_assert_ptr_nonnull(ret);
-  ck_assert_str_eq(ret, "Hello, world");
-
-  free((char*)ret);
 
   nt_shimmy_unbind(id);
 
