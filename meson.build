@@ -108,9 +108,10 @@ check = dependency('check', required: get_option('tests'), native: true)
 gnome = import('gnome')
 gtkdoc = dependency('gtk-doc', native: true, required: docs)
 
+dart = find_program('dart', native: true, required: false)
+
 if not is_bootstrap
   ffigen = find_program('ffigen', native: true, required: false)
-  dart = find_program('dart', native: true, required: true)
 
   if get_option('flutter-engine') == ''
     error('Must set the flutter-engine option')
