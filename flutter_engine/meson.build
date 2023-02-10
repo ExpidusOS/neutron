@@ -21,11 +21,6 @@ if dart.found()
   endif
 
   install_data('pubspec.yaml', install_dir: dartdir / 'flutter_engine')
-
-  if fs.exists(meson.current_source_dir() / 'pubspec.lock')
-    install_data('.dart_tool/package_config.json', install_dir: dartdir / 'flutter_engine' / '.dart_tool')
-    install_data('pubspec.lock', install_dir: dartdir / 'flutter_engine')
-  endif
 endif
 
 subdir('lib')

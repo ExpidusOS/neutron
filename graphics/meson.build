@@ -79,11 +79,6 @@ if dart.found()
   endif
 
   install_data('pubspec.yaml', install_dir: dartdir / 'graphics')
-
-  if fs.exists(meson.current_source_dir() / 'pubspec.lock')
-    install_data('.dart_tool/package_config.json', install_dir: dartdir / 'graphics' / '.dart_tool')
-    install_data('pubspec.lock', install_dir: dartdir / 'graphics')
-  endif
 endif
 
 subdir('lib')

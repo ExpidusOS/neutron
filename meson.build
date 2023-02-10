@@ -210,11 +210,6 @@ if not is_bootstrap
 
     install_data('pubspec.yaml', install_dir: dartdir)
     install_data('README.md', install_dir: dartdir)
-
-    if fs.exists(meson.current_source_dir() / 'pubspec.lock')
-      install_data('.dart_tool/package_config.json', install_dir: dartdir / '.dart_tool')
-      install_data('pubspec.lock', install_dir: dartdir)
-    endif
   endif
 
   subdir('docs', if_found: [gtkdoc])

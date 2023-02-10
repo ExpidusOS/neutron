@@ -52,11 +52,6 @@ if dart.found()
 
   install_data('pubspec.yaml', install_dir: dartdir / 'runtime')
   install_data('README.md', install_dir: dartdir / 'runtime')
-
-  if fs.exists(meson.current_source_dir() / 'pubspec.lock')
-    install_data('.dart_tool/package_config.json', install_dir: dartdir / 'runtime' / '.dart_tool')
-    install_data('pubspec.lock', install_dir: dartdir / 'runtime')
-  endif
 endif
 
 subdir('lib')
