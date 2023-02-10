@@ -2,7 +2,7 @@ elemental_ffigen_compiler_opts = [
   '-I @0@'.format(join_paths(meson.project_build_root(), 'elemental', 'include'))
 ]
 
-if fs.exists(meson.project_source_root() / 'elemental' / 'pubspec.lock')
+if fs.exists(meson.project_source_root() / 'elemental' / 'pubspec.lock') and elemental_pub.returncode() == 0
   if ffigen.found()
     elemental_ffi = custom_target('elemental-ffigen',
       command: [

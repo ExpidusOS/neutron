@@ -1,4 +1,4 @@
-if fs.exists(meson.project_source_root() / 'platform' / 'pubspec.lock')
+if fs.exists(meson.project_source_root() / 'platform' / 'pubspec.lock') and platform_pub.returncode() == 0
   if ffigen.found()
     platform_ffi = custom_target('platform-ffigen',
       command: [

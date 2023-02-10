@@ -1,4 +1,4 @@
-if fs.exists(meson.project_source_root() / 'runtime' / 'pubspec.lock')
+if fs.exists(meson.project_source_root() / 'runtime' / 'pubspec.lock') and runtime_pub.returncode() == 0
   if ffigen.found()
     runtime_ffi = custom_target('runtime-ffigen',
       command: [

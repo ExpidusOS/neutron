@@ -1,4 +1,4 @@
-if fs.exists(meson.project_source_root() / 'shimmy' / 'pubspec.lock')
+if fs.exists(meson.project_source_root() / 'shimmy' / 'pubspec.lock') and shimmy_pub.returncode() == 0
   if ffigen.found()
     shimmy_ffi = custom_target('shimmy-ffigen',
       command: [

@@ -1,4 +1,4 @@
-if fs.exists(meson.project_source_root() / 'inputcore' / 'pubspec.lock')
+if fs.exists(meson.project_source_root() / 'inputcore' / 'pubspec.lock') and inputcore_pub.returncode() == 0
   if ffigen.found()
     inputcore_ffi = custom_target('inputcore-ffigen',
       command: [

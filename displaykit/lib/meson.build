@@ -1,4 +1,4 @@
-if fs.exists(meson.project_source_root() / 'displaykit' / 'pubspec.lock')
+if fs.exists(meson.project_source_root() / 'displaykit' / 'pubspec.lock') and displaykit_pub.returncode() == 0
   if ffigen.found()
     displaykit_ffi = custom_target('displaykit-ffigen',
       command: [

@@ -7,7 +7,7 @@ foreach inc : graphics_dart_inc_paths
   graphics_ffigen_compiler_opts += '-I@0@'.format(inc)
 endforeach
 
-if fs.exists(meson.project_source_root() / 'graphics' / 'pubspec.lock')
+if fs.exists(meson.project_source_root() / 'graphics' / 'pubspec.lock') and graphics_pub.returncode() == 0
   if ffigen.found()
     graphics_ffi = custom_target('graphics-ffigen',
       command: [

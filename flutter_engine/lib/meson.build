@@ -2,7 +2,7 @@ flutter_engine_ffigen_compiler_opts = [
   '-I@0@'.format(get_option('flutter-engine'))
 ]
 
-if fs.exists(meson.project_source_root() / 'flutter_engine' / 'pubspec.lock')
+if fs.exists(meson.project_source_root() / 'flutter_engine' / 'pubspec.lock') and flutter_engine_pub.returncode() == 0
   if ffigen.found()
     flutter_engine_ffi = custom_target('flutter-engine-ffigen',
       command: [
