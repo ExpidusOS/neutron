@@ -3,9 +3,7 @@
 with pkgs;
 with lib;
 let
-  commonBuildInputs = [
-    flutter-engine
-  ];
+  pkg = (import ./overlay.nix { inherit self; } pkgs pkgs).expidus.neutron;
 in
 mkShell rec {
   pname = "neutron";
@@ -14,23 +12,17 @@ mkShell rec {
 
   packages = with pkgs; [
     emscripten
-    gdb valgrind lcov llvmPackages_14.llvm
-    meson ninja clang pkg-config dart flutter expidus.sdk
-    gtk-doc libxslt docbook_xsl docbook_xml_dtd_412 docbook_xml_dtd_42 docbook_xml_dtd_43
-    check pixman libglvnd xorg.libxcb wlroots wayland wayland-protocols udev libxkbcommon
-  ] ++ commonBuildInputs;
+    gdb valgrind lcov
+  ] ++ pkg.buildInputs ++ pkg.nativeBuildInputs;
 
-  mesonFlags = [
-    "-Dbootstrap=false"
-    "-Dflutter-engine=${flutter-engine}/lib/flutter/out/release"
-  ];
+  inherit (pkg) mesonFlags;
 
   emscriptenCross = pkgs.writeText "emscripten.cross" ''
     [binaries]
     c = '${emscripten}/bin/emcc'
     cpp = '${emscripten}/bin/em++'
     ar = '${emscripten}/bin/emar'
-    pkgconfig = ['${emscripten}/bin/emmake', 'env', 'PKG_CONFIG_PATH=${concatMapStringsSep ":" (pkg: "${if "dev" ? pkg then pkg.dev else pkg}/lib/pkgconfig") commonBuildInputs}', '${pkg-config}/bin/pkg-config']
+    pkgconfig = ['${emscripten}/bin/emmake', 'env', 'PKG_CONFIG_PATH=${concatMapStringsSep ":" (pkg: "${if "dev" ? pkg then pkg.dev else pkg}/lib/pkgconfig") [ flutter-engine ]}', '${pkg-config}/bin/pkg-config']
     exec_wrapper = '${nodejs}/bin/node'
 
     [properties]
