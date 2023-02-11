@@ -47,6 +47,8 @@
       @GRAPHICS_RENDERERS_XML@
       <xi:include href="../graphics/docs/xml/scene.xml" />
       <xi:include href="../graphics/docs/xml/scene-layer.xml" />
+      <xi:include href="../graphics/docs/xml/shader.xml" />
+      <xi:include href="../graphics/docs/xml/shader-program.xml" />
     </chapter>
     <chapter id="inputcore">
       <title>InputCore</title>

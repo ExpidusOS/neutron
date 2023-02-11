@@ -26,6 +26,122 @@ class NeutronGraphics {
           lookup)
       : _lookup = lookup;
 
+  late final ffi.Pointer<ffi.Size> _NT_SHADER_SIZE =
+      _lookup<ffi.Size>('NT_SHADER_SIZE');
+
+  int get NT_SHADER_SIZE => _NT_SHADER_SIZE.value;
+
+  set NT_SHADER_SIZE(int value) => _NT_SHADER_SIZE.value = value;
+
+  ffi.Pointer<NtShader> NT_SHADER(
+    ffi.Pointer<_imp1.NtTypeInstance> instance,
+  ) {
+    return _NT_SHADER(
+      instance,
+    );
+  }
+
+  late final _NT_SHADERPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<NtShader> Function(
+              ffi.Pointer<_imp1.NtTypeInstance>)>>('NT_SHADER');
+  late final _NT_SHADER = _NT_SHADERPtr.asFunction<
+      ffi.Pointer<NtShader> Function(ffi.Pointer<_imp1.NtTypeInstance>)>();
+
+  bool NT_IS_SHADER(
+    ffi.Pointer<NtShader> self,
+  ) {
+    return _NT_IS_SHADER(
+      self,
+    );
+  }
+
+  late final _NT_IS_SHADERPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(ffi.Pointer<NtShader>)>>(
+          'NT_IS_SHADER');
+  late final _NT_IS_SHADER =
+      _NT_IS_SHADERPtr.asFunction<bool Function(ffi.Pointer<NtShader>)>();
+
+  _imp1.NtType nt_shader_get_type() {
+    return _nt_shader_get_type();
+  }
+
+  late final _nt_shader_get_typePtr =
+      _lookup<ffi.NativeFunction<_imp1.NtType Function()>>(
+          'nt_shader_get_type');
+  late final _nt_shader_get_type =
+      _nt_shader_get_typePtr.asFunction<_imp1.NtType Function()>();
+
+  /// nt_shader_get_kind:
+  /// @self: The instance of the shader
+  ///
+  /// Used for getting the kind of shader this is.
+  ///
+  /// Returns: The kind of shader
+  int nt_shader_get_kind(
+    ffi.Pointer<NtShader> self,
+  ) {
+    return _nt_shader_get_kind(
+      self,
+    );
+  }
+
+  late final _nt_shader_get_kindPtr =
+      _lookup<ffi.NativeFunction<ffi.Int32 Function(ffi.Pointer<NtShader>)>>(
+          'nt_shader_get_kind');
+  late final _nt_shader_get_kind =
+      _nt_shader_get_kindPtr.asFunction<int Function(ffi.Pointer<NtShader>)>();
+
+  /// nt_shader_get_source:
+  /// @self: The instance of the shader
+  /// @len: Pointer for storing the length
+  ///
+  /// Used for getting the source code of the shader.
+  ///
+  /// Returns: An allocated string of the shader source code.
+  ffi.Pointer<ffi.Char> nt_shader_get_source(
+    ffi.Pointer<NtShader> self,
+    ffi.Pointer<ffi.Size> len,
+  ) {
+    return _nt_shader_get_source(
+      self,
+      len,
+    );
+  }
+
+  late final _nt_shader_get_sourcePtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(ffi.Pointer<NtShader>,
+              ffi.Pointer<ffi.Size>)>>('nt_shader_get_source');
+  late final _nt_shader_get_source = _nt_shader_get_sourcePtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(
+          ffi.Pointer<NtShader>, ffi.Pointer<ffi.Size>)>();
+
+  /// nt_shader_get_binary:
+  /// @self: The instance of the shader
+  /// @len: Pointer for storing the length
+  ///
+  /// Used for getting the binary code of the shader.
+  ///
+  /// Returns: An pointer of the binary
+  ffi.Pointer<ffi.Void> nt_shader_get_binary(
+    ffi.Pointer<NtShader> self,
+    ffi.Pointer<ffi.Size> len,
+  ) {
+    return _nt_shader_get_binary(
+      self,
+      len,
+    );
+  }
+
+  late final _nt_shader_get_binaryPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Void> Function(ffi.Pointer<NtShader>,
+              ffi.Pointer<ffi.Size>)>>('nt_shader_get_binary');
+  late final _nt_shader_get_binary = _nt_shader_get_binaryPtr.asFunction<
+      ffi.Pointer<ffi.Void> Function(
+          ffi.Pointer<NtShader>, ffi.Pointer<ffi.Size>)>();
+
   late final ffi.Pointer<ffi.Size> _NT_SCENE_SIZE =
       _lookup<ffi.Size>('NT_SCENE_SIZE');
 
@@ -233,6 +349,150 @@ class NeutronGraphics {
   late final _nt_scene_layer_clean = _nt_scene_layer_cleanPtr
       .asFunction<void Function(ffi.Pointer<NtSceneLayer>)>();
 
+  late final ffi.Pointer<ffi.Size> _NT_SHADER_PROGRAM_SIZE =
+      _lookup<ffi.Size>('NT_SHADER_PROGRAM_SIZE');
+
+  int get NT_SHADER_PROGRAM_SIZE => _NT_SHADER_PROGRAM_SIZE.value;
+
+  set NT_SHADER_PROGRAM_SIZE(int value) =>
+      _NT_SHADER_PROGRAM_SIZE.value = value;
+
+  ffi.Pointer<NtShaderProgram> NT_SHADER_PROGRAM(
+    ffi.Pointer<_imp1.NtTypeInstance> instance,
+  ) {
+    return _NT_SHADER_PROGRAM(
+      instance,
+    );
+  }
+
+  late final _NT_SHADER_PROGRAMPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<NtShaderProgram> Function(
+              ffi.Pointer<_imp1.NtTypeInstance>)>>('NT_SHADER_PROGRAM');
+  late final _NT_SHADER_PROGRAM = _NT_SHADER_PROGRAMPtr.asFunction<
+      ffi.Pointer<NtShaderProgram> Function(
+          ffi.Pointer<_imp1.NtTypeInstance>)>();
+
+  bool NT_IS_SHADER_PROGRAM(
+    ffi.Pointer<NtShaderProgram> self,
+  ) {
+    return _NT_IS_SHADER_PROGRAM(
+      self,
+    );
+  }
+
+  late final _NT_IS_SHADER_PROGRAMPtr = _lookup<
+          ffi.NativeFunction<ffi.Bool Function(ffi.Pointer<NtShaderProgram>)>>(
+      'NT_IS_SHADER_PROGRAM');
+  late final _NT_IS_SHADER_PROGRAM = _NT_IS_SHADER_PROGRAMPtr.asFunction<
+      bool Function(ffi.Pointer<NtShaderProgram>)>();
+
+  _imp1.NtType nt_shader_program_get_type() {
+    return _nt_shader_program_get_type();
+  }
+
+  late final _nt_shader_program_get_typePtr =
+      _lookup<ffi.NativeFunction<_imp1.NtType Function()>>(
+          'nt_shader_program_get_type');
+  late final _nt_shader_program_get_type =
+      _nt_shader_program_get_typePtr.asFunction<_imp1.NtType Function()>();
+
+  /// nt_shader_program_attach:
+  /// @self: Instance of a shader program
+  /// @shader: The shader to attach
+  ///
+  /// Attaches the shader to the program.
+  ///
+  /// Returns: %TRUE if the shader was added, %FALSE if it failed.
+  bool nt_shader_program_attach(
+    ffi.Pointer<NtShaderProgram> self,
+    ffi.Pointer<NtShader> shader,
+  ) {
+    return _nt_shader_program_attach(
+      self,
+      shader,
+    );
+  }
+
+  late final _nt_shader_program_attachPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Bool Function(ffi.Pointer<NtShaderProgram>,
+              ffi.Pointer<NtShader>)>>('nt_shader_program_attach');
+  late final _nt_shader_program_attach =
+      _nt_shader_program_attachPtr.asFunction<
+          bool Function(ffi.Pointer<NtShaderProgram>, ffi.Pointer<NtShader>)>();
+
+  /// nt_shader_program_detach:
+  /// @self: Instance of a shader program
+  /// @shader: The shader to detach
+  ///
+  /// Detaches the shader to the program.
+  ///
+  /// Returns: %TRUE if the shader was removed, %FALSE if it failed.
+  bool nt_shader_program_detach(
+    ffi.Pointer<NtShaderProgram> self,
+    ffi.Pointer<NtShader> shader,
+  ) {
+    return _nt_shader_program_detach(
+      self,
+      shader,
+    );
+  }
+
+  late final _nt_shader_program_detachPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Bool Function(ffi.Pointer<NtShaderProgram>,
+              ffi.Pointer<NtShader>)>>('nt_shader_program_detach');
+  late final _nt_shader_program_detach =
+      _nt_shader_program_detachPtr.asFunction<
+          bool Function(ffi.Pointer<NtShaderProgram>, ffi.Pointer<NtShader>)>();
+
+  /// nt_shader_program_link:
+  /// @self: Instance of a shader program
+  ///
+  /// Links all the shaders together which makes the program usable.
+  ///
+  /// Returns: %TRUE if the shader program was linked, %FALSE if it failed.
+  bool nt_shader_program_link(
+    ffi.Pointer<NtShaderProgram> self,
+  ) {
+    return _nt_shader_program_link(
+      self,
+    );
+  }
+
+  late final _nt_shader_program_linkPtr = _lookup<
+          ffi.NativeFunction<ffi.Bool Function(ffi.Pointer<NtShaderProgram>)>>(
+      'nt_shader_program_link');
+  late final _nt_shader_program_link = _nt_shader_program_linkPtr
+      .asFunction<bool Function(ffi.Pointer<NtShaderProgram>)>();
+
+  /// nt_shader_program_get_binary:
+  /// @self: Instance of a shader program
+  /// @len: Pointer for storing the length
+  ///
+  /// Used for getting the binary code of the shader program.
+  ///
+  /// Returns: An pointer of the binary
+  ffi.Pointer<ffi.Void> nt_shader_program_get_binary(
+    ffi.Pointer<NtShaderProgram> self,
+    ffi.Pointer<ffi.Size> len,
+  ) {
+    return _nt_shader_program_get_binary(
+      self,
+      len,
+    );
+  }
+
+  late final _nt_shader_program_get_binaryPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Void> Function(ffi.Pointer<NtShaderProgram>,
+              ffi.Pointer<ffi.Size>)>>('nt_shader_program_get_binary');
+  late final _nt_shader_program_get_binary =
+      _nt_shader_program_get_binaryPtr.asFunction<
+          ffi.Pointer<ffi.Void> Function(
+              ffi.Pointer<NtShaderProgram>, ffi.Pointer<ffi.Size>)>();
+
   late final ffi.Pointer<ffi.Size> _NT_RENDERER_SIZE =
       _lookup<ffi.Size>('NT_RENDERER_SIZE');
 
@@ -378,6 +638,55 @@ class NeutronGraphics {
       .asFunction<void Function(ffi.Pointer<NtRenderer>)>();
 }
 
+/// NtShaderKind:
+/// @NT_SHADER_VERT: Vertex shader
+/// @NT_SHADER_TESS: Tessellation shader
+/// @NT_SHADER_GEOM: Geometry shader
+/// @NT_SHADER_FRAG: Fragment shader
+/// @NT_SHADER_COMP: Compute shader
+///
+/// The different kinds of shader
+abstract class _NtShaderKind {
+  static const int NT_SHADER_VERT = 0;
+  static const int NT_SHADER_TESS = 1;
+  static const int NT_SHADER_GEOM = 2;
+  static const int NT_SHADER_FRAG = 3;
+  static const int NT_SHADER_COMP = 4;
+}
+
+/// NtShader:
+/// @instance: The %NtTypeInstance associated with this
+/// @get_kind: Method for getting the kind of shader
+/// @get_source: Method for getting the shader code
+/// @get_binary: Method for getting the binary code
+///
+/// A shader
+class _NtShader extends ffi.Struct {
+  external _imp1.NtTypeInstance instance;
+
+  external ffi.Pointer<
+      ffi.NativeFunction<ffi.Int32 Function(ffi.Pointer<_NtShader>)>> get_kind;
+
+  external ffi.Pointer<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(
+              ffi.Pointer<_NtShader>, ffi.Pointer<ffi.Size>)>> get_source;
+
+  external ffi.Pointer<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Void> Function(
+              ffi.Pointer<_NtShader>, ffi.Pointer<ffi.Size>)>> get_binary;
+}
+
+/// NtShader:
+/// @instance: The %NtTypeInstance associated with this
+/// @get_kind: Method for getting the kind of shader
+/// @get_source: Method for getting the shader code
+/// @get_binary: Method for getting the binary code
+///
+/// A shader
+typedef NtShader = _NtShader;
+
 /// NtRenderer:
 /// @instance: The %NtTypeInstance associated with this
 /// @is_software: Method for getting whether or not the renderer is doing software rendering
@@ -479,6 +788,48 @@ typedef NtScene = _NtScene;
 ///
 /// A layer in a scene for rendering
 typedef NtSceneLayer = _NtSceneLayer;
+
+/// NtShaderProgram:
+/// @instance: The %NtTypeInstance associated with this
+/// @attach: Method for attaching a shader to the program
+/// @detach: Method for detaching a shader from the program
+/// @link: Method for linking the shaders
+/// @get_binary: Method for getting the binary data of the shader
+///
+/// A shader program
+class _NtShaderProgram extends ffi.Struct {
+  external _imp1.NtTypeInstance instance;
+
+  external ffi.Pointer<
+      ffi.NativeFunction<
+          ffi.Bool Function(
+              ffi.Pointer<_NtShaderProgram>, ffi.Pointer<NtShader>)>> attach;
+
+  external ffi.Pointer<
+      ffi.NativeFunction<
+          ffi.Bool Function(
+              ffi.Pointer<_NtShaderProgram>, ffi.Pointer<NtShader>)>> detach;
+
+  external ffi.Pointer<
+          ffi.NativeFunction<ffi.Bool Function(ffi.Pointer<_NtShaderProgram>)>>
+      link;
+
+  external ffi.Pointer<
+          ffi.NativeFunction<
+              ffi.Pointer<ffi.Void> Function(
+                  ffi.Pointer<_NtShaderProgram>, ffi.Pointer<ffi.Size>)>>
+      get_binary;
+}
+
+/// NtShaderProgram:
+/// @instance: The %NtTypeInstance associated with this
+/// @attach: Method for attaching a shader to the program
+/// @detach: Method for detaching a shader from the program
+/// @link: Method for linking the shaders
+/// @get_binary: Method for getting the binary data of the shader
+///
+/// A shader program
+typedef NtShaderProgram = _NtShaderProgram;
 
 /// NtRenderer:
 /// @instance: The %NtTypeInstance associated with this
