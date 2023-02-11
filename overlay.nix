@@ -10,8 +10,6 @@ rec {
         src = cleanSource self;
         buildType = "release";
         inherit isWASM;
-      }).overrideAttrs (p: {
-        nativeBuildInputs = p.nativeBuildInputs ++ (with buildPackages; [ busybox ]);
       });
     in {
       defaultPackage = f.neutron;
