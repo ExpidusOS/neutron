@@ -51,7 +51,7 @@ if dart.found()
     install_dir: dartdir / 'shimmy')
   install_data(shimmy_cmake, install_dir: dartdir / 'shimmy' / flutter_os)
 
-  shimmy_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir()], check: false)
+  shimmy_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir(), dart_pub_flags], check: false)
 
   if shimmy_pub.returncode() != 0
     warning('Shimmy ffi generation is disabled due to: @0@'.format(shimmy_pub.stderr()))

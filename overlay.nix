@@ -9,6 +9,7 @@ rec {
         rev = self.shortRev or "dirty";
         src = cleanSource self;
         buildType = "release";
+        mesonFlags = [ "-Ddart-offline=true" ];
         inherit isWASM;
       });
     in {

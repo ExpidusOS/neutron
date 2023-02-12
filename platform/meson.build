@@ -65,7 +65,7 @@ if dart.found()
     install_dir: dartdir / 'platform')
   install_data(elemental_cmake, install_dir: dartdir / 'platform' / flutter_os)
 
-  platform_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir()], check: false)
+  platform_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir(), dart_pub_flags], check: false)
 
   if platform_pub.returncode() != 0
     warning('Platform ffi generation is disabled due to: @0@'.format(platform_pub.stderr()))

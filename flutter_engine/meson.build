@@ -14,7 +14,7 @@ if dart.found()
     install_dir: dartdir / 'elemental')
   install_data(flutter_engine_cmake, install_dir: dartdir / 'flutter_engine' / flutter_os)
 
-  flutter_engine_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir()], check: false)
+  flutter_engine_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir(), dart_pub_flags], check: false)
 
   if flutter_engine_pub.returncode() != 0
     warning('Flutter Engine ffi generation is disabled due to: @0@'.format(flutter_engine_pub.stderr()))

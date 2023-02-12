@@ -47,7 +47,7 @@ if dart.found()
     install_dir: dartdir / 'inputcore')
   install_data(inputcore_cmake, install_dir: dartdir / 'inputcore' / flutter_os)
 
-  inputcore_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir()], check: false)
+  inputcore_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir(), dart_pub_flags], check: false)
 
   if inputcore_pub.returncode() != 0
     warning('InputCore ffi generation is disabled due to: @0@'.format(inputcore_pub.stderr()))

@@ -73,7 +73,7 @@ if dart.found()
     install_dir: dartdir / 'graphics')
   install_data(graphics_cmake, install_dir: dartdir / 'graphics' / flutter_os)
 
-  graphics_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir()], check: false)
+  graphics_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir(), dart_pub_flags], check: false)
 
   if graphics_pub.returncode() != 0
     warning('Graphics ffi generation is disabled due to: @0@'.format(graphics_pub.stderr()))

@@ -75,6 +75,11 @@ conf_data.set('VERSION', version)
 conf_data.set('VERSION_LONG', longver)
 conf_data.set('VERSION_SHORT', shortver)
 
+dart_pub_flags = []
+if get_option('dart-offline')
+  dart_pub_flags += '--offline'
+endif
+
 is_bootstrap = get_option('bootstrap')
 
 tests = get_option('tests').disable_auto_if(not dependency('check', native: true, required: false).found())
@@ -202,7 +207,7 @@ if not is_bootstrap
     version: shortver)
 
   if dart.found()
-    neutron_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir()], check: false)
+    neutron_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir(), dart_pub_flags], check: false)
 
     if neutron_pub.returncode() != 0
       warning('Dart failed to fetch dependencies for Neutron: @0@'.format(shimmy_pub.stderr()))
