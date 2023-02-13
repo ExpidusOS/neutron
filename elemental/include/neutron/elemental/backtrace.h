@@ -71,6 +71,15 @@ NtBacktrace* nt_backtrace_new();
 NtBacktrace* nt_backtrace_new_auto();
 
 /**
+ * nt_backtrace_copy:
+ * @self: The original backtrace
+ *
+ * Creates a new backtrace and duplicate its entires to the new one.
+ * Returns: A newly allocated backtrace.
+ */
+NtBacktrace* nt_backtrace_copy(NtBacktrace* self);
+
+/**
  * nt_backtrace_push_full:
  * @self: An instance of a backtrace
  * @file: The source file

@@ -35,7 +35,7 @@ static void nt_error_construct(NtTypeInstance* instance, NtTypeArgument* argumen
 
   if (backtrace.data.instance != NULL) {
     assert(NT_IS_BACKTRACE((void*)backtrace.data.instance));
-    self->priv->backtrace = NT_BACKTRACE(nt_type_instance_ref(backtrace.data.instance));
+    self->priv->backtrace = nt_backtrace_copy(NT_BACKTRACE(backtrace.data.instance));
     assert(self->priv->backtrace != NULL);
   }
 }
@@ -43,6 +43,11 @@ static void nt_error_construct(NtTypeInstance* instance, NtTypeArgument* argumen
 static void nt_error_destroy(NtTypeInstance* instance) {
   NtError* self = NT_ERROR(instance);
   assert(self != NULL);
+
+  if (self->priv->backtrace != NULL) {
+    nt_type_instance_unref((NtTypeInstance*)self->priv->backtrace);
+  }
+
   free(self->priv);
 }
 

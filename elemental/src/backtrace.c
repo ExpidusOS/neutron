@@ -61,6 +61,18 @@ NtBacktrace* nt_backtrace_new_auto() {
   return self;
 }
 
+NtBacktrace* nt_backtrace_copy(NtBacktrace* self) {
+  assert(NT_IS_BACKTRACE(self));
+
+  NtBacktrace* child = nt_backtrace_new();
+  assert(child != NULL);
+
+  for (NtBacktraceEntry* entry = self->entries; entry != NULL;) {
+    nt_backtrace_push_full(child, entry->file, entry->method, entry->line, entry->address);
+  }
+  return child;
+}
+
 void nt_backtrace_push_full(NtBacktrace* self, const char* file, const char* method, int line, void* address) {
   assert(NT_IS_BACKTRACE(self));
 
