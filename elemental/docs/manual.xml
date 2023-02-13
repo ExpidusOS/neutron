@@ -26,6 +26,7 @@
     <xi:include href="xml/list.xml" />
     <xi:include href="xml/pthread.xml" />
     <xi:include href="xml/signal.xml" />
+    <xi:include href="xml/string.xml" />
     <xi:include href="xml/type.xml" />
     <xi:include href="xml/value.xml" />
   </chapter>

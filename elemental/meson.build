@@ -11,7 +11,7 @@ build_conf_elemental = configure_file(input: 'src/build.h', output: 'neutron-ele
 
 elemental_sources = [
   'src/argument.c', 'src/backtrace.c', 'src/error.c',
-  'src/list.c', 'src/signal.c', 'src/type.c'
+  'src/list.c', 'src/signal.c', 'src/string.c', 'src/type.c'
 ]
 
 elemental_cflags = [

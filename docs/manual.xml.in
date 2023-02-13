@@ -37,6 +37,7 @@
       <xi:include href="../elemental/docs/xml/list.xml" />
       <xi:include href="../elemental/docs/xml/pthread.xml" />
       <xi:include href="../elemental/docs/xml/signal.xml" />
+      <xi:include href="../elemental/docs/xml/string.xml" />
       <xi:include href="../elemental/docs/xml/type.xml" />
       <xi:include href="../elemental/docs/xml/value.xml" />
     </chapter>

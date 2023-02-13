@@ -6,5 +6,6 @@
 #include <neutron/elemental/error.h>
 #include <neutron/elemental/list.h>
 #include <neutron/elemental/signal.h>
+#include <neutron/elemental/string.h>
 #include <neutron/elemental/type.h>
 #include <neutron/elemental/value.h>
