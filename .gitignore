@@ -4,7 +4,10 @@ result*
 
 .dart_tool/
 .packages
+pubspec.lock
 build/
 
 .ffigen.yaml
+*/lib/bindings.dart
+*/lib/bindings.yaml
 flutter-engine/ffigen.yaml
