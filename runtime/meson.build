@@ -47,7 +47,7 @@ if dart.found()
   runtime_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir(), dart_pub_flags], check: false)
 
   if runtime_pub.returncode() != 0
-    warning('Runtime ffi generation is disabled due to: @0@'.format(runtime_pub.stderr()))
+    error('Runtime ffi generation is disabled due to: @0@'.format(runtime_pub.stderr()))
   endif
 
   install_data('pubspec.yaml', install_dir: dartdir / 'runtime')

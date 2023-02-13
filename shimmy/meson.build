@@ -54,7 +54,7 @@ if dart.found()
   shimmy_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir(), dart_pub_flags], check: false)
 
   if shimmy_pub.returncode() != 0
-    warning('Shimmy ffi generation is disabled due to: @0@'.format(shimmy_pub.stderr()))
+    error('Shimmy ffi generation is disabled due to: @0@'.format(shimmy_pub.stderr()))
   endif
 
   install_data('pubspec.yaml', install_dir: dartdir / 'shimmy')

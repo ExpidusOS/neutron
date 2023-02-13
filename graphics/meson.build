@@ -76,7 +76,7 @@ if dart.found()
   graphics_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir(), dart_pub_flags], check: false)
 
   if graphics_pub.returncode() != 0
-    warning('Graphics ffi generation is disabled due to: @0@'.format(graphics_pub.stderr()))
+    error('Graphics ffi generation is disabled due to: @0@'.format(graphics_pub.stderr()))
   endif
 
   install_data('pubspec.yaml', install_dir: dartdir / 'graphics')

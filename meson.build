@@ -210,7 +210,7 @@ if not is_bootstrap
     neutron_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir(), dart_pub_flags], check: false)
 
     if neutron_pub.returncode() != 0
-      warning('Dart failed to fetch dependencies for Neutron: @0@'.format(shimmy_pub.stderr()))
+      error('Dart failed to fetch dependencies for Neutron: @0@'.format(shimmy_pub.stderr()))
     endif
 
     install_data('pubspec.yaml', install_dir: dartdir)

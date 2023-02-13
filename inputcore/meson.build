@@ -50,7 +50,7 @@ if dart.found()
   inputcore_pub = run_command([dart, 'pub', 'get', '-C', meson.current_source_dir(), dart_pub_flags], check: false)
 
   if inputcore_pub.returncode() != 0
-    warning('InputCore ffi generation is disabled due to: @0@'.format(inputcore_pub.stderr()))
+    error('InputCore ffi generation is disabled due to: @0@'.format(inputcore_pub.stderr()))
   endif
 
   install_data('pubspec.yaml', install_dir: dartdir / 'inputcore')
