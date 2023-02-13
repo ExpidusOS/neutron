@@ -1,6 +1,7 @@
 #pragma once
 
 #include <neutron/displaykit/compositors/wlroots-compositor.h>
+#include <neutron/graphics.h>
 #include <wlr/backend.h>
 #include <wlr/render/allocator.h>
 #include <wlr/render/pixman.h>
@@ -15,6 +16,9 @@
 #include <wayland-server-core.h>
 
 typedef struct _NtWlrootsCompositorPrivate {
+  const char* socket;
+  NtRenderer* renderer;
+  struct wlr_compositor* compositor;
   struct wl_display* display;
   struct wl_event_loop* event_loop;
   struct wlr_backend* backend;

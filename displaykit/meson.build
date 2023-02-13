@@ -21,7 +21,7 @@ displaykit_cflags = []
 
 displaykit_inc = [include_directories('include')]
 displaykit_docs_inc_paths = []
-displaykit_deps = [elemental]
+displaykit_deps = [elemental, graphics]
 
 displaykit_compositors = []
 displaykit_clients = []
