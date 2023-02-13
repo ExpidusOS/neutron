@@ -67,6 +67,13 @@ static void nt_pixman_renderer_destroy(NtTypeInstance* inst) {
   free(self->priv);
 }
 
+NtRenderer* nt_pixman_renderer_new(pixman_image_t* image) {
+  return NT_RENDERER(nt_type_instance_new(NT_TYPE_PIXMAN_RENDERER, (NtTypeArgument[]){
+    { NT_TYPE_ARGUMENT_KEY(NtPixmanRenderer, image), NT_VALUE_POINTER(image) },
+    { NULL }
+  }));
+}
+
 pixman_image_t* nt_pixman_renderer_get_image(NtPixmanRenderer* self) {
   assert(NT_IS_PIXMAN_RENDERER(self));
 
