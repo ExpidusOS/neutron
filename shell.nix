@@ -17,7 +17,7 @@ mkShell rec {
     gdb valgrind lcov
   ] ++ pkg.buildInputs ++ pkg.nativeBuildInputs;
 
-  inherit (pkg) mesonFlags;
+  inherit (pkg) mesonFlags PUB_CACHE;
   wasmMesonFlags = wasmPkg.mesonFlags;
 
   shellHook = ''
