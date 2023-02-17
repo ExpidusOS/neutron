@@ -24,5 +24,10 @@ mkShell rec {
     export CC="${clang}/bin/clang"
     export CXX="${clang}/bin/clang++"
     export LD="${clang}/bin/ld.lld"
+
+    export rootOut=$(dirname $out)
+    export baseFlags="--prefix=$out --includedir=$rootOut/dev/include --buildtype=debugoptimized"
+    export mesonFlags="$mesonFlags $baseFlags"
+    export wasmMesonFlags="$wasmMesonFlags $baseFlags"
   '';
 }

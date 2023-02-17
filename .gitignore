@@ -1,5 +1,6 @@
 compile_commands.json
 result*
+outputs
 .cache
 
 .dart_tool/
