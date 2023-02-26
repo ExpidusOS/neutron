@@ -64,6 +64,7 @@ static void nt_wlroots_compositor_construct(NtTypeInstance* instance, NtTypeArgu
 
   int drm_fd = -1;
   if (drm_fd < 0) {
+    nt_backtrace_sync(backtrace);
     if ((drm_fd = wlr_backend_get_drm_fd(self->priv->backend)) < 0) {
       *error = nt_error_new("Failed to open a DRM device", backtrace);
       nt_backtrace_pop(backtrace);
@@ -72,6 +73,7 @@ static void nt_wlroots_compositor_construct(NtTypeInstance* instance, NtTypeArgu
   }
 
 #ifdef NT_GRAPHICS_HAS_PIXMAN
+  nt_backtrace_sync(backtrace);
   if ((self->priv->wl_renderer = wlr_pixman_renderer_create()) == NULL) {
     *error = nt_error_new("Failed to create a Pixman renderer", backtrace);
     nt_backtrace_pop(backtrace);
