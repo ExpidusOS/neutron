@@ -32,7 +32,7 @@ static void nt_string_destroy(NtTypeInstance* instance) {
 }
 
 NtString* nt_string_new(char* value) {
-  return nt_string_new_full(value, strlen(value));
+  return nt_string_new_full(value, value == NULL ? 0 : strlen(value));
 }
 
 NtString* nt_string_new_alloc(size_t length, char c) {
