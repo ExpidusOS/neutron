@@ -90,7 +90,7 @@ void nt_backtrace_push_full(NtBacktrace* self, const char* file, const char* met
 void nt_backtrace_sync_full(NtBacktrace* self, int line) {
   assert(NT_IS_BACKTRACE(self));
 
-  asset(self->entries != NULL);
+  assert(self->entries != NULL);
   self->entries->line = line;
 }
 
