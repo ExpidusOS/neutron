@@ -1,5 +1,6 @@
 #pragma once
 
+#include <neutron/elemental/string.h>
 #include <neutron/elemental/type.h>
 
 NT_BEGIN_DECLS
@@ -107,6 +108,16 @@ void nt_backtrace_push_full(NtBacktrace* self, const char* file, const char* met
  * Pops the last backtrace entry off
  */
 void nt_backtrace_pop(NtBacktrace* self);
+
+/**
+ * nt_backtrace_to_string:
+ * @self: An instance of a backtrace
+ *
+ * Gets a string representation of the backtrace
+ *
+ * Returns: A string
+ */
+NtString* nt_backtrace_to_string(NtBacktrace* self);
 
 #if defined(__GNUC__)
 #pragma GCC visibility pop

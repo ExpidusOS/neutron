@@ -61,3 +61,22 @@ NtError* nt_error_new_full(const char* file, const char* method, int line, const
     { NULL }
   }));
 }
+
+NtString* nt_error_to_string(NtError* self) {
+  assert(NT_IS_ERROR(self));
+
+  NtString* string = nt_string_new(NULL);
+  assert(string != NULL);
+
+  NtString* string_bt = nt_backtrace_to_string(self->priv->backtrace);
+  assert(string_bt != NULL);
+
+  const char* bt = nt_string_get_value(string_bt, NULL);
+  assert(bt != NULL);
+
+  nt_string_dynamic_printf(string, "%s:%d (%s): %s\nBacktrace:\n%s", self->priv->file, self->priv->line, self->priv->method, self->priv->message, bt);
+  free((char*)bt);
+
+  nt_type_instance_unref((NtTypeInstance*)string_bt);
+  return string;
+}

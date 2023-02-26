@@ -128,6 +128,50 @@ void nt_string_fixed_vprintf(NtString* self, const char* fmt, va_list ap) {
   assert(len < self->priv->length);
 }
 
+void nt_string_fixed_append(NtString* self, const char* str) {
+  assert(NT_IS_STRING(self));
+  assert(str != NULL);
+
+  const char* val = nt_string_get_value(self, NULL);
+  if (val == NULL) val = strdup("");
+
+  nt_string_fixed_printf(self, "%s%s", val, str);
+  free(val);
+}
+
+void nt_string_dynamic_append(NtString* self, const char* str) {
+  assert(NT_IS_STRING(self));
+  assert(str != NULL);
+
+  const char* val = nt_string_get_value(self, NULL);
+  if (val == NULL) val = strdup("");
+
+  nt_string_dynamic_printf(self, "%s%s", val, str);
+  free(val);
+}
+
+void nt_string_fixed_prepend(NtString* self, const char* str) {
+  assert(NT_IS_STRING(self));
+  assert(str != NULL);
+
+  const char* val = nt_string_get_value(self, NULL);
+  if (val == NULL) val = strdup("");
+
+  nt_string_fixed_printf(self, "%s%s", str, val);
+  free(val);
+}
+
+void nt_string_dynamic_prepend(NtString* self, const char* str) {
+  assert(NT_IS_STRING(self));
+  assert(str != NULL);
+
+  const char* val = nt_string_get_value(self, NULL);
+  if (val == NULL) val = strdup("");
+
+  nt_string_dynamic_printf(self, "%s%s", str, val);
+  free(val);
+}
+
 const char* nt_string_get_value(NtString* self, size_t* length) {
   assert(NT_IS_STRING(self));
 

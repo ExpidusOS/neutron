@@ -102,3 +102,27 @@ void nt_backtrace_pop(NtBacktrace* self) {
     self->entries = NULL;
   }
 }
+
+NtString* nt_backtrace_to_string(NtBacktrace* self) {
+  assert(NT_IS_BACKTRACE(self));
+
+  NtString* string = nt_string_new(NULL);
+  assert(string != NULL);
+
+  NtString* str = nt_string_new(NULL);
+  assert(str != NULL);
+
+  size_t i = 0;
+  for (NtBacktraceEntry* entry = self->entries; entry != NULL; entry = entry->prev) {
+    nt_string_dynamic_printf(str, "%zu. %s:%d %s:%p\n", i++, entry->file, entry->line, entry->method, entry->address);
+
+    const char* s = nt_string_get_value(str, NULL);
+    assert(s != NULL);
+
+    nt_string_dynamic_append(string, s);
+    free((char*)s);
+  }
+
+  nt_type_instance_unref((NtTypeInstance*)str);
+  return string;
+}

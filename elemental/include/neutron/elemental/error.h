@@ -1,6 +1,7 @@
 #pragma once
 
 #include <neutron/elemental/backtrace.h>
+#include <neutron/elemental/string.h>
 #include <neutron/elemental/type.h>
 
 NT_BEGIN_DECLS
@@ -61,6 +62,16 @@ NtError* nt_error_new_full(const char* file, const char* method, int line, const
  * Returns: A new error
  */
 #define nt_error_new(message, backtrace) nt_error_new_full(__FILE__, __func__, __LINE__, message, backtrace)
+
+/**
+ * nt_error_to_string:
+ * @self: The error instance
+ *
+ * Creates a string which represents this error
+ *
+ * Returns: A string representing this error
+ */
+NtString* nt_error_to_string(NtError* self);
 
 #if defined(__GNUC__)
 #pragma GCC visibility pop

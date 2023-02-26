@@ -140,6 +140,42 @@ void nt_string_dynamic_vprintf(NtString* self, const char* fmt, va_list ap);
 void nt_string_fixed_vprintf(NtString* self, const char* fmt, va_list ap);
 
 /**
+ * nt_string_fixed_append:
+ * @self: The instance of the string type
+ * @str: The string to append
+ *
+ * Appends the string but only if it fits in the allocated space.
+ */
+void nt_string_fixed_append(NtString* self, const char* str);
+
+/**
+ * nt_string_dynamic_append:
+ * @self: The instance of the string type
+ * @str: The string to append
+ *
+ * Appends the string but reallocate the string if there is not enough space.
+ */
+void nt_string_dynamic_append(NtString* self, const char* str);
+
+/**
+ * nt_string_fixed_prepend:
+ * @self: The instance of the string type
+ * @str: The string to append
+ *
+ * Prepends the string but only if it fits in the allocated space.
+ */
+void nt_string_fixed_prepend(NtString* self, const char* str);
+
+/**
+ * nt_string_dynamic_preppend:
+ * @self: The instance of the string type
+ * @str: The string to append
+ *
+ * Prepends the string but reallocate the string if there is not enough space.
+ */
+void nt_string_dynamic_prepend(NtString* self, const char* str);
+
+/**
  * nt_string_get_value:
  * @self: The instance of the string type
  * @length: An optional pointer for storing the length
