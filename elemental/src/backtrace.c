@@ -91,11 +91,13 @@ void nt_backtrace_pop(NtBacktrace* self) {
   assert(NT_IS_BACKTRACE(self));
 
   if (self->entries != NULL) {
+    NtBacktraceEntry* prev = self->entries->prev;
+
     if (self->entries->file != NULL) free((char*)self->entries->file);
     if (self->entries->method != NULL) free((char*)self->entries->method);
     free(self->entries);
 
-    self->entries = self->entries->prev;
+    self->entries = prev;
   } else {
     self->entries = NULL;
   }
