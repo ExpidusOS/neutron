@@ -102,6 +102,25 @@ void nt_backtrace_push_full(NtBacktrace* self, const char* file, const char* met
 #define nt_backtrace_push(self, address) nt_backtrace_push_full(self, __FILE__, __func__, __LINE__, address)
 
 /**
+ * nt_backtrace_sync_full:
+ * @self: An instance of a backtrace
+ * @line: The line in the source file
+ *
+ * Updates the topmost entry on the backtrace to use @line as the current line number.
+ * It is recommended to use @nt_backtrace_sync instead of this function.
+ */
+void nt_backtrace_sync_full(NtBacktrace* self, int line);
+
+/**
+ * nt_backtrace_sync:
+ * @self: An instance of a backtrace
+ *
+ * Updates the topmost entry on the backtrace to use the next line number.
+ * This is to be used before calling any method which proceeds to use the backtrace for error handling.
+ */
+#define nt_backtrace_sync(self) nt_backtrace_sync_full(self, __LINE__ + 1)
+
+/**
  * nt_backtrace_pop:
  * @self: An instance of a backtrace
  *
