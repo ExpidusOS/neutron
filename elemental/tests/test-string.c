@@ -11,7 +11,7 @@ START_TEST(test_printf) {
 
   const char* str = nt_string_get_value(obj, NULL);
   ck_assert_str_eq(str, "ABC:123");
-  free(str);
+  free((char*)str);
 
   nt_type_instance_unref((NtTypeInstance*)obj);
 }
