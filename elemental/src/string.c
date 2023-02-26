@@ -103,19 +103,22 @@ void nt_string_dynamic_vprintf(NtString* self, const char* fmt, va_list ap) {
 
   char tmp[1];
   size_t len = vsnprintf(tmp, sizeof (tmp), fmt, ap);
+  len++;
 
-  char* str = malloc(sizeof (char) * (len + 1));
+  char* str = malloc(sizeof (char) * len);
   assert(str != NULL);
 
   size_t new_len = vsnprintf(str, len, fmt, ap_copy);
+  new_len++;
   assert(len == new_len);
 
-  str[len] = 0;
+  if (self->priv->value != NULL) {
+    self->priv->length = 0;
+    free(self->priv->value);
+  }
 
-  nt_string_set_dynamic(self, str);
-  free(str);
-
-  assert(self->priv->length == new_len);
+  self->priv->value = str;
+  self->priv->length = new_len;
 }
 
 void nt_string_fixed_vprintf(NtString* self, const char* fmt, va_list ap) {
