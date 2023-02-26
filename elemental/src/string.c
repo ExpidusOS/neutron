@@ -2,6 +2,7 @@
 #include <neutron/elemental/value.h>
 #include "string-priv.h"
 #include <assert.h>
+#include <stdio.h>
 #include <string.h>
 
 NT_DEFINE_TYPE(NT, STRING, NtString, nt_string, NT_TYPE_FLAG_STATIC, NT_TYPE_NONE);
@@ -97,14 +98,19 @@ void nt_string_fixed_printf(NtString* self, const char* fmt, ...) {
 void nt_string_dynamic_vprintf(NtString* self, const char* fmt, va_list ap) {
   assert(NT_IS_STRING(self));
 
-  char tmp[1];
-  size_t len = vsnprintf(tmp, sizeof (tmp) / sizeof(tmp[0]), fmt, ap);
+  va_list ap_copy;
+  va_copy(ap_copy, ap);
 
-  char* str = malloc(sizeof (char) * len);
+  char tmp[1];
+  size_t len = vsnprintf(tmp, sizeof (tmp), fmt, ap);
+
+  char* str = malloc(sizeof (char) * (len + 1));
   assert(str != NULL);
 
-  size_t new_len = vsnprintf(str, len, fmt, ap);
+  size_t new_len = vsnprintf(str, len, fmt, ap_copy);
   assert(len == new_len);
+
+  str[len] = 0;
 
   nt_string_set_dynamic(self, str);
   free(str);
