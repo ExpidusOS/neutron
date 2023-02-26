@@ -82,3 +82,9 @@ struct _NtProcess* nt_platform_get_current_process(NtPlatform* self) {
   assert(self->get_current_process != NULL);
   return self->get_current_process(self);
 }
+
+NtPlatformMachine nt_platform_get_machine(NtPlatform* self) {
+  assert(NT_IS_PLATFORM(self));
+  assert(self->get_machine != NULL);
+  return self->get_machine(self);
+}

@@ -53,12 +53,57 @@ typedef enum _NtPlatformArch {
 } NtPlatformArch;
 
 /**
+ * NtPlatformMachineType:
+ * @NT_PLATFORM_MACHINE_UNKNOWN: Machine type could not be identified
+ * @NT_PLATFORM_MACHINE_LAPTOP: A laptop
+ * @NT_PLATFORM_MACHINE_DESKTOP: A desktop
+ * @NT_PLATFORM_MACHINE_TABLET: A tablet
+ * @NT_PLATFORM_MACHINE_PHONE: A cell-phone like device
+ * @NT_PLATFORM_MACHINE_SERVER: A server
+ * @NT_PLATFORM_MACHINE_SPECIAL: A specialized machine like a VM, container, or embedded device
+ *
+ * Enum of different types of machines
+ */
+typedef enum _NtPlatformMachineType {
+  NT_PLATFORM_MACHINE_UNKNOWN = 0,
+  NT_PLATFORM_MACHINE_LAPTOP,
+  NT_PLATFORM_MACHINE_DESKTOP,
+  NT_PLATFORM_MACHINE_TABLET,
+  NT_PLATFORM_MACHINE_PHONE,
+  NT_PLATFORM_MACHINE_SERVER,
+  NT_PLATFORM_MACHINE_SPECIAL
+} NtPlatformMachineType;
+
+/**
+ * NtPlatformMachine:
+ * @type: The type of machine
+ * @firmware_date: The date the firmware was built
+ * @firmware_version: The version of the firmware
+ * @product_family: The family of the product
+ * @product_name: The name of the product
+ * @product_version: The version of the product
+ *
+ * A structure which identifies what kind of machine a platform instance is running on.
+ */
+typedef struct _NtPlatformMachine {
+  NtPlatformMachineType type;
+
+  const char* firmware_date;
+  const char* firmware_version;
+
+  const char* product_family;
+  const char* product_name;
+  const char* product_version;
+} NtPlatformMachine;
+
+/**
  * NtPlatform:
  * @instance: The %NtTypeInstance associated with this
  * @get_os: Method for retrieving the %NtPlatformOS
  * @get_arch: Method for retrieving the %NtPlatformArch
  * @get_device_enum: Method for retrieving the %NtDeviceEnum instance
  * @get_current_process: Method for retrieving the current process
+ * @get_machine: Method for retrieving the machine
  * @priv: Private data
  *
  * An %NtTypeInstance used for platform specific API methods
@@ -70,6 +115,7 @@ typedef struct _NtPlatform {
   NtPlatformArch (*get_arch)(struct _NtPlatform* self);
   NtDeviceEnum* (*get_device_enum)(struct _NtPlatform* self);
   struct _NtProcess* (*get_current_process)(struct _NtPlatform* self);
+  NtPlatformMachine (*get_machine)(struct _NtPlatform* self);
 
   /*< private >*/
   struct _NtPlatformPrivate* priv;
@@ -136,6 +182,16 @@ NtDeviceEnum* nt_platform_get_device_enum(NtPlatform* self);
  * Returns: Instance of the currently running %NtProcess
  */
 struct _NtProcess* nt_platform_get_current_process(NtPlatform* self);
+
+/**
+ * nt_platform_get_machine:
+ * @self: The %NtPlatform instance to use
+ *
+ * Gets the machine the plpatform is on
+ *
+ * Returns: A struct containing strings which identifies the machine
+ */
+NtPlatformMachine nt_platform_get_machine(NtPlatform* self);
 
 #if defined(__GNUC__)
 #pragma GCC visibility pop
