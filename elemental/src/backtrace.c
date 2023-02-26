@@ -67,7 +67,7 @@ NtBacktrace* nt_backtrace_copy(NtBacktrace* self) {
   NtBacktrace* child = nt_backtrace_new();
   assert(child != NULL);
 
-  for (NtBacktraceEntry* entry = self->entries; entry != NULL;) {
+  for (NtBacktraceEntry* entry = self->entries; entry != NULL; entry = entry->prev) {
     nt_backtrace_push_full(child, entry->file, entry->method, entry->line, entry->address);
   }
   return child;
