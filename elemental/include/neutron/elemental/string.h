@@ -1,6 +1,7 @@
 #pragma once
 
 #include <neutron/elemental/type.h>
+#include <stdarg.h>
 
 /**
  * SECTION: string
@@ -97,6 +98,46 @@ void nt_string_set_fixed(NtString* self, const char* value);
  * If the length of @value is greater than the string is allocated for, then it fails.
  */
 void nt_string_set_fixed_strict(NtString* self, const char* value);
+
+/**
+ * nt_string_dynamic_printf:
+ * @self: The instance of the string type
+ * @fmt: printf format string
+ * @ap: Arguments for the printf
+ *
+ * Performs a dynamically reallocated size printf on the string.
+ */
+void nt_string_dynamic_printf(NtString* self, const char* fmt, ...) __attribute__((format(printf, 2, 3)));
+
+/**
+ * nt_string_fixed_printf:
+ * @self: The instance of the string type
+ * @fmt: printf format string
+ * @ap: Arguments for the printf
+ *
+ * Performs a fixed size printf on the string.
+ */
+void nt_string_fixed_printf(NtString* self, const char* fmt, ...) __attribute__((format(printf, 2, 3)));
+
+/**
+ * nt_string_dynamic_vprintf:
+ * @self: The instance of the string type
+ * @fmt: printf format string
+ * @ap: Arguments for the printf
+ *
+ * Performs a dynamically reallocated size printf on the string.
+ */
+void nt_string_dynamic_vprintf(NtString* self, const char* fmt, va_list ap);
+
+/**
+ * nt_string_fixed_vprintf:
+ * @self: The instance of the string type
+ * @fmt: printf format string
+ * @ap: Arguments for the printf
+ *
+ * Performs a fixed size printf on the string.
+ */
+void nt_string_fixed_vprintf(NtString* self, const char* fmt, va_list ap);
 
 /**
  * nt_string_get_value:

@@ -80,6 +80,45 @@ void nt_string_set_fixed_strict(NtString* self, const char* value) {
   strcpy(self->priv->value, value);
 }
 
+void nt_string_dynamic_printf(NtString* self, const char* fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  nt_string_dynamic_vprintf(self, fmt, ap);
+  va_end(ap);
+}
+
+void nt_string_fixed_printf(NtString* self, const char* fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  nt_string_fixed_vprintf(self, fmt, ap);
+  va_end(ap);
+}
+
+void nt_string_dynamic_vprintf(NtString* self, const char* fmt, va_list ap) {
+  assert(NT_IS_STRING(self));
+
+  char tmp[1];
+  size_t len = vsnprintf(tmp, sizeof (tmp) / sizeof(tmp[0]), fmt, ap);
+
+  char* str = malloc(sizeof (char) * len);
+  assert(str != NULL);
+
+  size_t new_len = vsnprintf(str, len, fmt, ap);
+  assert(len == new_len);
+
+  nt_string_set_dynamic(self, str);
+  free(str);
+
+  assert(self->priv->length == new_len);
+}
+
+void nt_string_fixed_vprintf(NtString* self, const char* fmt, va_list ap) {
+  assert(NT_IS_STRING(self));
+
+  size_t len = vsnprintf(self->priv->value, self->priv->length, fmt, ap);
+  assert(len < self->priv->length);
+}
+
 const char* nt_string_get_value(NtString* self, size_t* length) {
   assert(NT_IS_STRING(self));
 
