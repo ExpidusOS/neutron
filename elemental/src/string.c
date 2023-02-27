@@ -136,7 +136,7 @@ void nt_string_fixed_append(NtString* self, const char* str) {
   if (val == NULL) val = strdup("");
 
   nt_string_fixed_printf(self, "%s%s", val, str);
-  free(val);
+  free((char*)val);
 }
 
 void nt_string_dynamic_append(NtString* self, const char* str) {
@@ -147,7 +147,7 @@ void nt_string_dynamic_append(NtString* self, const char* str) {
   if (val == NULL) val = strdup("");
 
   nt_string_dynamic_printf(self, "%s%s", val, str);
-  free(val);
+  free((char*)val);
 }
 
 void nt_string_fixed_prepend(NtString* self, const char* str) {
@@ -158,7 +158,7 @@ void nt_string_fixed_prepend(NtString* self, const char* str) {
   if (val == NULL) val = strdup("");
 
   nt_string_fixed_printf(self, "%s%s", str, val);
-  free(val);
+  free((char*)val);
 }
 
 void nt_string_dynamic_prepend(NtString* self, const char* str) {
@@ -169,7 +169,7 @@ void nt_string_dynamic_prepend(NtString* self, const char* str) {
   if (val == NULL) val = strdup("");
 
   nt_string_dynamic_printf(self, "%s%s", str, val);
-  free(val);
+  free((char*)val);
 }
 
 const char* nt_string_get_value(NtString* self, size_t* length) {
