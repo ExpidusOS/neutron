@@ -1,0 +1,49 @@
+#pragma once
+
+#include <neutron/elemental.h>
+
+NT_BEGIN_DECLS
+
+/**
+ * SECTION: package
+ * @title: Package
+ * @short_description: Type for a package
+ */
+
+/**
+ * NtPackageManager:
+ * @instance: The %NtTypeInstance associated
+ * @priv: Private data
+ *
+ * Type for a package
+ */
+typedef struct _NtPackage {
+  NtTypeInstance instance;
+
+  /*< private >*/
+  struct _NtPackagePrivate* priv;
+} NtPackage;
+
+#if defined(__GNUC__)
+#pragma GCC visibility push(default)
+#elif defined(__clang__)
+#pragma clang visibility push(default)
+#endif
+
+/**
+ * nt_package_new:
+ * @path: The absolute path to the directory which contains the package
+ *
+ * Creates a new instance of the package type for the package which matches the path.
+ *
+ * Returns: A package instance
+ */
+NtPackage* nt_package_new(const char* path);
+
+#if defined(__GNUC__)
+#pragma GCC visibility pop
+#elif defined(__clang__)
+#pragma clang visibility pop
+#endif
+
+NT_END_DECLS

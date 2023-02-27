@@ -34,6 +34,7 @@
       <xi:include href="../elemental/docs/xml/build.xml" />
       <xi:include href="../elemental/docs/xml/common.xml" />
       <xi:include href="../elemental/docs/xml/error.xml" />
+      <xi:include href="../elemental/docs/xml/fs.xml" />
       <xi:include href="../elemental/docs/xml/list.xml" />
       <xi:include href="../elemental/docs/xml/pthread.xml" />
       <xi:include href="../elemental/docs/xml/signal.xml" />
@@ -57,6 +58,12 @@
       <xi:include href="../inputcore/docs/xml/keyboard.xml" />
       <xi:include href="../inputcore/docs/xml/mouse.xml" />
       <xi:include href="../inputcore/docs/xml/touch.xml" />
+    </chapter>
+    <chapter id="packages">
+      <title>Packages</title>
+      <xi:include href="../packages/docs/xml/manager.xml" />
+      <xi:include href="../packages/docs/xml/metadata.xml" />
+      <xi:include href="../packages/docs/xml/package.xml" />
     </chapter>
     <chapter id="platform">
       <title>Platform</title>
@@ -99,6 +106,10 @@
     <chapter id="inputcore">
       <title>InputCore</title>
       <xi:include href="../inputcore/docs/xml/api-index-full.xml" />
+    </chapter>
+    <chapter id="packager">
+      <title>Packages</title>
+      <xi:include href="../packages/docs/xml/api-index-full.xml" />
     </chapter>
     <chapter id="platform">
       <title>Platform</title>

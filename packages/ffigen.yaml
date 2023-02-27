@@ -1,0 +1,29 @@
+name: NeutronPackages
+description: |
+  Bindings for Neutron's Packages
+output:
+  bindings: 'lib/bindings.dart'
+  symbol-file:
+    output: 'package:neutron_packages/bindings.yaml'
+    import-path: 'package:neutron_packages/bindings.dart'
+headers:
+  entry-points:
+    - 'include/neutron/packages/**.h'
+    - 'include/neutron/packages.h'
+  include-directives:
+    - 'include/neutron/packages/**.h'
+    - 'include/neutron/packages.h'
+preamble: |
+  // ingore_for_file: always_specify_types
+  // ignore_for_file: camel_case_types
+  // ignore_for_file: non_constant_identifier_name
+comments:
+  style: any
+  length: full
+compiler-opts:
+  - '-I include -I../elemental/include'
+import:
+  symbol-files:
+    - 'package:neutron_elemental/bindings.yaml'
+library-imports:
+  neutron_elemental: 'package:neutron_elemental/elemental.dart'

@@ -13,6 +13,7 @@ gnome.gtkdoc('neutron',
   ],
   src_dir: [
     join_paths(meson.project_source_root(), 'inputcore', 'include'),
+    join_paths(meson.project_source_root(), 'packages', 'include'),
     join_paths(meson.project_source_root(), 'runtime', 'include'),
     join_paths(meson.project_source_root(), 'shimmy', 'include'),
 

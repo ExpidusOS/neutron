@@ -11,6 +11,8 @@ rec {
         buildType = "release";
         mesonFlags = [ "-Ddart-offline=true" ];
         inherit isWASM;
+      }).overrideAttrs (f: p: {
+        buildInputs = p.buildInputs ++ [ libxml2 ];
       });
     in {
       defaultPackage = f.neutron;

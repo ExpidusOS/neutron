@@ -147,6 +147,8 @@ if not is_bootstrap
   xkbcommon = dependency('xkbcommon', native: false, required: xcb.found() or wlroots.found())
 
   libsystemd = dependency('libsystemd', native: false, required: target_machine.system() == 'linux')
+
+  libxml2 = dependency('libxml-2.0', native: false, required: true)
 else
   ffigen = disabler()
   flutter = disabler()
@@ -167,7 +169,7 @@ subdir('elemental')
 if not is_bootstrap
   subdir('flutter_engine')
 
-  foreach name : [ 'platform', 'shimmy', 'graphics', 'inputcore', 'displaykit', 'runtime' ]
+  foreach name : [ 'platform', 'shimmy', 'graphics', 'inputcore', 'displaykit', 'packages', 'runtime' ]
     subdir(name)
     neutron_inc += [include_directories(name)]
   endforeach
@@ -204,6 +206,7 @@ if not is_bootstrap
     name: 'neutron',
     description: 'API and runtime for ExpidusOS applications and compositors',
     url: 'https://github.com/ExpidusOS/neutron',
+    libraries: neutron_deps,
     version: shortver)
 
   if dart.found()
