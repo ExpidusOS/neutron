@@ -63,22 +63,28 @@ void nt_string_set_dynamic(NtString* self, const char* value) {
 
   self->priv->length = value == NULL ? 0 : strlen(value);
   self->priv->value = value == NULL ? NULL : strdup(value);
+  self->priv->value[self->priv->length] = 0;
 }
 
 void nt_string_set_fixed(NtString* self, const char* value) {
   assert(NT_IS_STRING(self));
   assert(self->priv->value != NULL);
+  assert(value != NULL);
 
   size_t value_length = strlen(value);
   size_t n_over = value_length - self->priv->length;
   strncpy(self->priv->value, value, n_over > 0 ? self->priv->length : value_length);
+  self->priv->value[self->priv->length] = 0;
 }
 
 void nt_string_set_fixed_strict(NtString* self, const char* value) {
   assert(NT_IS_STRING(self));
   assert(self->priv->value != NULL);
-  assert(self->priv->length == strlen(value));
-  strcpy(self->priv->value, value);
+  assert(value != NULL);
+  assert(self->priv->length < strlen(value));
+
+  strncpy(self->priv->value, value, strlen(value));
+  self->priv->value[self->priv->length] = 0;
 }
 
 void nt_string_dynamic_printf(NtString* self, const char* fmt, ...) {
@@ -176,7 +182,13 @@ const char* nt_string_get_value(NtString* self, size_t* length) {
   assert(NT_IS_STRING(self));
 
   if (length != NULL) *length = self->priv->length;
-  if (self->priv->value != NULL) return strdup(self->priv->value);
+  if (self->priv->value != NULL) {
+    char* value = strdup(self->priv->value);
+    assert(value != NULL);
+
+    value[self->priv->length] = 0;
+    return value;
+  }
   return NULL;
 }
 
@@ -187,6 +199,7 @@ size_t nt_string_get_length(NtString* self) {
 
 bool nt_string_has_prefix(NtString* self, const char* prefix) {
   assert(NT_IS_STRING(self));
+  assert(prefix != NULL);
 
   size_t prefix_len = strlen(prefix);
   if (prefix_len > self->priv->length) return false;
@@ -195,6 +208,7 @@ bool nt_string_has_prefix(NtString* self, const char* prefix) {
 
 bool nt_string_has_suffix(NtString* self, const char* suffix) {
   assert(NT_IS_STRING(self));
+  assert(suffix != NULL);
 
   size_t suffix_len = strlen(suffix);
   if (suffix_len > self->priv->length) return false;
