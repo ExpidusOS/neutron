@@ -61,6 +61,7 @@ pkg.generate(libdisplaykit,
   name: 'neutron-displaykit',
   description: 'Display server API for compositors and clients for ExpidusOS\'s Neutron',
   url: 'https://github.com/ExpidusOS/neutron',
+  libraries: displaykit_deps,
   version: shortver)
 
 if dart.found()

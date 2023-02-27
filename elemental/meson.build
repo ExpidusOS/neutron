@@ -56,6 +56,7 @@ pkg.generate(libelemental,
   name: 'neutron-elemental',
   description: 'A minimal resource usage type system for C',
   url: 'https://github.com/ExpidusOS/neutron',
+  libraries: elemental_deps,
   version: shortver)
 
 if dart.found()

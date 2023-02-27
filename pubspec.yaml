@@ -21,5 +21,7 @@ dependencies:
     path: ./graphics
   neutron_displaykit:
     path: ./displaykit
+  neutron_packages:
+    path: ./packages
   neutron_runtime:
     path: ./runtime

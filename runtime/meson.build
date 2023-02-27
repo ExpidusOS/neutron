@@ -35,6 +35,7 @@ pkg.generate(libruntime,
   name: 'neutron-runtime',
   description: 'Runtime API for Neutron',
   url: 'https://github.com/ExpidusOS/neutron',
+  libraries: runtime_deps,
   version: shortver)
 
 if dart.found()

@@ -64,6 +64,7 @@ pkg.generate(libgraphics,
   name: 'neutron-graphics',
   description: 'Graphical API for ExpidusOS\'s Neutron',
   url: 'https://github.com/ExpidusOS/neutron',
+  libraries: graphics_deps,
   version: shortver)
 
 if dart.found()

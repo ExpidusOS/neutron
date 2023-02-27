@@ -38,6 +38,7 @@ pkg.generate(libinputcore,
   name: 'neutron-inputcore',
   description: 'Input device handling for Neutron',
   url: 'https://github.com/ExpidusOS/neutron',
+  libraries: inputcore_deps,
   version: shortver)
 
 if dart.found()

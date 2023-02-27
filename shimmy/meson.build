@@ -42,6 +42,7 @@ pkg.generate(libshimmy,
   name: 'neutron-shimmy',
   description: 'Shims loader for Neutron',
   url: 'https://github.com/ExpidusOS/neutron',
+  libraries: shimmy_deps,
   version: shortver)
 
 if dart.found()

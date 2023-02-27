@@ -56,6 +56,7 @@ pkg.generate(libplatform,
   name: 'neutron-platform',
   description: 'Platform specific API bindings',
   url: 'https://github.com/ExpidusOS/neutron',
+  libraries: platform_deps,
   version: shortver)
 
 if dart.found()
