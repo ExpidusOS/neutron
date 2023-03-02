@@ -31,6 +31,14 @@ typedef struct _NtPackage {
 #endif
 
 /**
+ * NT_TYPE_PACKAGE:
+ *
+ * The %NtType ID of %NtPackage
+ */
+#define NT_TYPE_PACKAGE nt_package_get_type()
+NT_DECLARE_TYPE(NT, PACKAGE, NtPackage, nt_package);
+
+/**
  * nt_package_new:
  * @path: The absolute path to the directory which contains the package
  *

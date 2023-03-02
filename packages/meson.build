@@ -4,7 +4,9 @@ conf_data_packages.merge_from(conf_data)
 build_conf_packages = configure_file(input: 'src/build.h', output: 'neutron-packages-build.h',
   configuration: conf_data_packages)
 
-packages_sources = []
+packages_sources = [
+  'src/manager.c', 'src/metadata.c', 'src/package.c'
+]
 
 packages_cflags = []
 packages_inc = include_directories('include')

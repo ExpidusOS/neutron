@@ -31,6 +31,14 @@ typedef struct _NtPackageManager {
 #pragma clang visibility push(default)
 #endif
 
+/**
+ * NT_TYPE_PACKAGE_MANAGER:
+ *
+ * The %NtType ID of %NtPackageManager
+ */
+#define NT_TYPE_PACKAGE_MANAGER nt_package_manager_get_type()
+NT_DECLARE_TYPE(NT, PACKAGE_MANAGER, NtPackageManager, nt_package_manager);
+
 #if defined(__GNUC__)
 #pragma GCC visibility pop
 #elif defined(__clang__)
