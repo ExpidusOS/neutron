@@ -16,7 +16,8 @@ build_conf_platform = configure_file(input: 'src/build.h', output: 'neutron-plat
   configuration: conf_data_platform)
 
 platform_sources = [
-  'src/device-enum.c', 'src/device.c', 'src/platform.c', 'src/process.c', 'src/thread.c'
+  'src/device-enum.c', 'src/device.c', 'src/platform.c',
+  'src/process.c', 'src/thread.c', 'src/user.c'
 ]
 
 platform_cflags = [
