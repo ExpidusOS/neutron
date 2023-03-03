@@ -11,6 +11,20 @@ NT_BEGIN_DECLS
  */
 
 /**
+ * NtPackageLocation:
+ * @NT_PACKAGE_LOC_UNKNOWN: An unknown location
+ * @NT_PACKAGE_LOC_SYSTEM: System-wide installed packages
+ * @NT_PACKAGE_LOC_USER: User installed packages
+ *
+ * Enum for package locations
+ */
+typedef enum _NtPackageLocation {
+  NT_PACKAGE_LOC_UNKNOWN = 0,
+  NT_PACKAGE_LOC_SYSTEM,
+  NT_PACKAGE_LOC_USER
+} NtPackageLocation;
+
+/**
  * NtPackageManager:
  * @instance: The %NtTypeInstance associated
  * @priv: Private data
