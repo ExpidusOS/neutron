@@ -11,13 +11,19 @@ static void nt_list_construct(NtTypeInstance* instance, NtTypeArgument* argument
 
   NtValue prev = nt_type_argument_get(arguments, NT_TYPE_ARGUMENT_KEY(NtList, prev), NT_VALUE_INSTANCE(NULL));
   assert(prev.type == NT_VALUE_TYPE_INSTANCE);
-  assert(NT_IS_LIST((NtList*)prev.data.instance));
-  self->prev = NT_LIST(prev.data.instance);
+  if (prev.data.instance != NULL) {
+    assert(NT_IS_LIST((NtList*)prev.data.instance));
+    self->prev = NT_LIST(prev.data.instance);
+    self->prev->next = self;
+  }
 
   NtValue next = nt_type_argument_get(arguments, NT_TYPE_ARGUMENT_KEY(NtList, next), NT_VALUE_INSTANCE(NULL));
   assert(next.type == NT_VALUE_TYPE_INSTANCE);
   assert(NT_IS_LIST((NtList*)next.data.instance));
-  self->next = NT_LIST(next.data.instance);
+  if (next.data.instance != NULL) {
+    self->next = NT_LIST(next.data.instance);
+    self->next->prev = self;
+  }
 
   NtValue value = nt_type_argument_get(arguments, NT_TYPE_ARGUMENT_KEY(NtList, value), NT_VALUE_POINTER(NULL));
   self->value = value;
