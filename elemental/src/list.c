@@ -19,8 +19,8 @@ static void nt_list_construct(NtTypeInstance* instance, NtTypeArgument* argument
 
   NtValue next = nt_type_argument_get(arguments, NT_TYPE_ARGUMENT_KEY(NtList, next), NT_VALUE_INSTANCE(NULL));
   assert(next.type == NT_VALUE_TYPE_INSTANCE);
-  assert(NT_IS_LIST((NtList*)next.data.instance));
   if (next.data.instance != NULL) {
+    assert(NT_IS_LIST((NtList*)next.data.instance));
     self->next = NT_LIST(next.data.instance);
     self->next->prev = self;
   }
