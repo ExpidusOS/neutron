@@ -9,7 +9,7 @@
     http2 = false;
   };
 
-  inputs.expidus-sdk.url = github:ExpidusOS/sdk/refactor;
+  inputs.expidus-sdk.url = github:ExpidusOS/sdk;
 
   outputs = { self, expidus-sdk }:
     with expidus-sdk.lib;
