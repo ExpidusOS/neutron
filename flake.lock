@@ -22,7 +22,9 @@
         "flake-utils": "flake-utils",
         "home-manager": "home-manager",
         "mobile-nixos": "mobile-nixos",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": [
+          "nixpkgs"
+        ]
       },
       "locked": {
         "lastModified": 1678164925,
@@ -35,6 +37,22 @@
       "original": {
         "owner": "ExpidusOS",
         "repo": "sdk",
+        "type": "github"
+      }
+    },
+    "flake-compat": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1673956053,
+        "narHash": "sha256-4gtG9iQuiKITOjNQQeQIpoIB6b16fm+504Ch3sNKLd8=",
+        "owner": "edolstra",
+        "repo": "flake-compat",
+        "rev": "35bb57c0c8d8b62bbfd284272c928ceb64ddbde9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "edolstra",
+        "repo": "flake-compat",
         "type": "github"
       }
     },
@@ -87,25 +105,50 @@
       }
     },
     "nixpkgs": {
-      "flake": false,
       "locked": {
-        "lastModified": 1677997145,
-        "narHash": "sha256-yP0Lh1jHg3yNSLK9L+gMCZEsoZ4MH4eKDvvSwDaXOcM=",
+        "lastModified": 1678408919,
+        "narHash": "sha256-Vj5glbjJQW/4GyUKzV6wo+iww8EVy8hLmM1jRqCePQ4=",
         "owner": "ExpidusOS",
         "repo": "nixpkgs",
-        "rev": "a644cccc10f1ab2e29ffddd926dae6f869e4c62a",
+        "rev": "6ddeb3c08fbbdaeb2c664c09ae4a75c8089d4de9",
         "type": "github"
       },
       "original": {
         "owner": "ExpidusOS",
-        "ref": "nixos-22.11",
         "repo": "nixpkgs",
         "type": "github"
       }
     },
     "root": {
       "inputs": {
-        "expidus-sdk": "expidus-sdk"
+        "expidus-sdk": "expidus-sdk",
+        "nixpkgs": "nixpkgs",
+        "zig-overlay": "zig-overlay"
+      }
+    },
+    "zig-overlay": {
+      "inputs": {
+        "flake-compat": "flake-compat",
+        "flake-utils": [
+          "expidus-sdk",
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "expidus-sdk"
+        ]
+      },
+      "locked": {
+        "lastModified": 1678407918,
+        "narHash": "sha256-u20WuqMGcvHayorP7MtsredsENfUP6bOOFiFTsCd19E=",
+        "owner": "mitchellh",
+        "repo": "zig-overlay",
+        "rev": "c67a040dd2cef7fd3e14b3445852e54dd288cecb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "mitchellh",
+        "repo": "zig-overlay",
+        "type": "github"
       }
     }
   },

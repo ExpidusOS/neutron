@@ -5,23 +5,19 @@ homepage: https://github.com/ExpidusOS/neutron
 
 environment:
   sdk: '>=2.18.0 <3.0.0'
+  flutter: '>=2.11.0'
+
+dev_dependencies:
+  ffigen: ^7.2.7
 
 dependencies:
-  neutron_elemental:
-    path: ./elemental
-  flutter_engine:
-    path: ./flutter_engine
-  neutron_platform:
-    path: ./platform
-  neutron_shimmy:
-    path: ./shimmy
-  neutron_inputcore:
-    path: ./inputcore
-  neutron_graphics:
-    path: ./graphics
-  neutron_displaykit:
-    path: ./displaykit
-  neutron_packages:
-    path: ./packages
-  neutron_runtime:
-    path: ./runtime
+  web_ffi: ^0.7.2
+  ffi: ^2.0.1
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        ffiPlugin: true
+      linux:
+        ffiPlugin: true
