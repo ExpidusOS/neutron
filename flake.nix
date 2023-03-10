@@ -92,7 +92,9 @@
 
         devShells.default = pkgs.mkShell {
           inherit (packages.default) pname version name buildFlags;
-          packages = packages.default.buildInputs ++ packages.default.nativeBuildInputs ++ [ pkgs.flutter-engine ];
+          packages = packages.default.buildInputs ++ packages.default.nativeBuildInputs ++ [
+            pkgs.flutter-engine pkgs.gdb
+          ];
 
           FLUTTER_ENGINE = pkgs.stdenv.mkDerivation {
             pname = "flutter-engine";
