@@ -52,6 +52,7 @@
             zig
             pkg-config
             flutter
+            patchelf
           ] ++ optionals (pkgs.wlroots.meta.available) [
             pkgs.buildPackages.wayland-scanner
           ];
@@ -85,6 +86,9 @@
               --prefix-lib-dir $out/lib \
               --prefix-include-dir $dev/include \
               --cache-dir $NIX_BUILD_TOP/cache
+
+            patchelf --set-rpath $out/lib $out/bin/neutron-runner
+            patchelf --set-soname libneutron.so.0 $out/lib/libneutron.so.0 $out/bin/neutron-runner
           '';
         };
 

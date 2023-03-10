@@ -2,6 +2,14 @@ const std = @import("std");
 const Builder = std.build.Builder;
 const Pkg = std.build.Pkg;
 
+fn path(comptime suffix: []const u8) []const u8 {
+  if (suffix[0] != '/') @compileError("path requires an absolute path!");
+  return comptime blk: {
+    const root_dir = std.fs.path.dirname(@src().file) orelse ".";
+    break :blk root_dir ++ suffix;
+  };
+}
+
 pub fn build_lib(lib: *std.build.LibExeObjStep, target: std.zig.CrossTarget, mode: std.builtin.Mode) void {
   lib.setTarget(target);
   lib.setBuildMode(mode);
@@ -27,7 +35,7 @@ pub fn build(b: *Builder) void {
     .name = "neutron",
     .source = .{
       .path = "src/main.zig",
-    },
+    }
   };
 
   const shared_lib = b.addSharedLibrary("neutron", pkg.source.path, b.version(0, 1, 0));
