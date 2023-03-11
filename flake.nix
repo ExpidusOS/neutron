@@ -31,11 +31,18 @@
         pkgs = expidus-sdk.legacyPackages.${system}.appendOverlays [
           zig-overlay.overlays.default
           (final: prev: {
-            zig = prev.zigpkgs."0.10.1";
+            zig = prev.zigpkgs.master;
           })
         ];
 
-        vendor = {};
+        vendor = {
+          "third-party/zig/zig-clap" = pkgs.fetchFromGitHub {
+            owner = "Hejsil";
+            repo = "zig-clap";
+            rev = "cb13519431b916c05c6c783cb0ce3b232be5e400";
+            sha256 = "sha256-ej4r5LGsTqhQkw490yqjiTOGk+jPMJfUH1b/eUmvt20=";
+          };
+        };
       in rec {
         packages.default = pkgs.stdenv.mkDerivation {
           pname = "expidus-neutron";
@@ -52,7 +59,6 @@
             zig
             pkg-config
             flutter
-            patchelf
           ] ++ optionals (pkgs.wlroots.meta.available) [
             pkgs.buildPackages.wayland-scanner
           ];
@@ -71,6 +77,7 @@
 
           postUnpack = ''
             ${concatStrings (attrValues (mapAttrs (path: src: ''
+              mkdir -p $NIX_BUILD_TOP/source/vendor/$(dirname ${path})
               ln -s ${src} $NIX_BUILD_TOP/source/vendor/${path}
             '') vendor))}
           '';
@@ -86,9 +93,6 @@
               --prefix-lib-dir $out/lib \
               --prefix-include-dir $dev/include \
               --cache-dir $NIX_BUILD_TOP/cache
-
-            patchelf --set-rpath $out/lib $out/bin/neutron-runner
-            patchelf --set-soname libneutron.so.0 $out/lib/libneutron.so.0 $out/bin/neutron-runner
           '';
         };
 

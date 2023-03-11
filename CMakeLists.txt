@@ -3,17 +3,17 @@ project(neutron_library VERSION 0.1.0 LANGUAGES NONE)
 
 find_program(ZIG zig REQUIRED)
 
-if(NOT DEFINED FLUTTER_LIBRARY)
-  if(NOT DEFINED $ENV{FLUTTER_LIBRARY})
-    message(FATAL_ERROR "$FLUTTER_LIBRARY environmental variable is not set")
+if(NOT DEFINED LOCAL_ENGINE)
+  if(NOT DEFINED $ENV{LOCAL_ENGINE})
+    message(FATAL_ERROR "$LOCAL_ENGINE environmental variable is not set")
   else()
-    set(FLUTTER_LIBRARY $ENV{FLUTTER_LIBRARY})
+    set(LOCAL_ENGINE $ENV{LOCAL_ENGINE})
   endif()
 endif()
 
-set(ZIG_OPTIONS "-Dflutter-engine=${FLUTTER_LIBRARY}" "--cache-dir" "${CMAKE_CURRENT_BINARY_DIR}/zig-cache")
+set(ZIG_OPTIONS "-Dflutter-engine=${LOCAL_ENGINE}" "--cache-dir" "${CMAKE_CURRENT_BINARY_DIR}/zig-cache")
 add_custom_command(OUTPUT lib/libneutron${CMAKE_SHARED_LIBRARY_SUFFIX}
-  COMMAND ${ZIG} build ${ZIG_OPTIONS} --prefix ${CMAKE_CURRENT_BINARY_DIR}
+  COMMAND ${ZIG} build ${ZIG_OPTIONS} --prefix ${CMAKE_CURRENT_BINARY_DIR} --verbose --verbose-cc
   DEPENDS build.zig)
 add_custom_target(libneutron ALL DEPENDS lib/libneutron${CMAKE_SHARED_LIBRARY_SUFFIX})
 

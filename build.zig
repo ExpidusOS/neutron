@@ -1,8 +1,8 @@
 const std = @import("std");
-const Builder = std.build.Builder;
+const Build = std.Build;
 const Pkg = std.build.Pkg;
 
-fn path(comptime suffix: []const u8) []const u8 {
+fn getPath(comptime suffix: []const u8) []const u8 {
   if (suffix[0] != '/') @compileError("path requires an absolute path!");
   return comptime blk: {
     const root_dir = std.fs.path.dirname(@src().file) orelse ".";
@@ -10,53 +10,169 @@ fn path(comptime suffix: []const u8) []const u8 {
   };
 }
 
-pub fn build_lib(lib: *std.build.LibExeObjStep, target: std.zig.CrossTarget, mode: std.builtin.Mode) void {
-  lib.setTarget(target);
-  lib.setBuildMode(mode);
+fn getVendorPath(comptime suffix: []const u8) []const u8 {
+  return comptime blk: {
+    const root_dir = getPath("/vendor/");
+    break :blk root_dir ++ suffix;
+  };
 }
 
-pub fn build(b: *Builder) void {
-  const target = b.standardTargetOptions(.{});
-  const mode = b.standardReleaseOptions();
+pub const NeutronOptions = struct {
+  builder: *Build,
+  build_runner: bool,
+  flutter_engine: ?[]const u8,
 
-  const is_wasm = target.getCpu().arch.isWasm();
+  static_lib: bool,
+  shared_lib: bool,
+  target: std.zig.CrossTarget,
+  optimize: std.builtin.OptimizeMode,
 
-  const is_runner = b.option(bool, "runner", "Enable the runner") orelse !is_wasm;
-  const flutter_engine = b.option([]const u8, "flutter-engine", "Path to the Flutter Engine library") orelse null;
+  pub fn new(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.OptimizeMode) NeutronOptions {
+    const is_wasm = target.getCpu().arch.isWasm();
 
-  if (!is_wasm) {
-    if (flutter_engine == null) {
-      std.debug.print("error: must set \"flutter-engine\" build option\n", .{});
-      std.process.exit(1);
-    }
+    return .{
+      .builder = b,
+      .build_runner = !is_wasm,
+      .flutter_engine = null,
+      .static_lib = true,
+      .shared_lib = true,
+      .target = target,
+      .optimize = optimize,
+    };
   }
 
-  const pkg = Pkg{
-    .name = "neutron",
-    .source = .{
-      .path = "src/main.zig",
-    }
-  };
-
-  const shared_lib = b.addSharedLibrary("neutron", pkg.source.path, b.version(0, 1, 0));
-  shared_lib.install();
-  build_lib(shared_lib, target, mode);
-
-  const static_lib = b.addStaticLibrary("neutron", pkg.source.path);
-  static_lib.install();
-  build_lib(static_lib, target, mode);
-
-  if (!is_wasm and is_runner) {
-    const runner = b.addExecutable("neutron-runner", "src/main-runner.zig");
-    runner.setTarget(target);
-    runner.setBuildMode(mode);
-    runner.addPackage(pkg);
-    runner.linkLibrary(shared_lib);
-    runner.install();
-
-    b.default_step.dependOn(&runner.step);
+  pub fn new_auto(b: *Build) NeutronOptions {
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
+    return NeutronOptions.new(b, target, optimize);
   }
 
-  b.default_step.dependOn(&shared_lib.step);
-  b.default_step.dependOn(&static_lib.step);
+  pub fn new_auto_with_options(b: *Build) NeutronOptions {
+    var options = NeutronOptions.new_auto(b);
+
+    const build_runner = b.option(bool, "runner", "Enable the runner for Neutron") orelse options.build_runner;
+    const flutter_engine = b.option([]const u8, "flutter-engine", "Path to the Flutter Engine library") orelse options.flutter_engine;
+
+    options.build_runner = build_runner;
+    options.flutter_engine = flutter_engine;
+    return options;
+  }
+};
+
+pub const Neutron = struct {
+  options: NeutronOptions,
+  shared_lib: ?*std.build.CompileStep,
+  static_lib: ?*std.build.CompileStep,
+  runner: ?*std.build.CompileStep,
+  module: *Build.Module,
+  step: *Build.Step,
+
+  pub fn new(options: NeutronOptions) Neutron {
+    var self = Neutron{
+      .options = options,
+      .shared_lib = null,
+      .static_lib = null,
+      .runner = null,
+      .module = options.builder.addModule("neutron", .{
+        .source_file = .{
+          .path = getPath("/src/libs.zig"),
+        },
+        .dependencies = Neutron.getDependencies(),
+      }),
+      .step = options.builder.step("neutron", "Neutron Runtime & API"),
+    };
+
+    const is_wasm = options.target.getCpu().arch.isWasm();
+
+    const source = Build.FileSource{
+      .path = getPath("/src/libs.zig"),
+    };
+
+    const version = std.builtin.Version{
+      .major = 0,
+      .minor = 1,
+      .patch = 0,
+    };
+
+    if (!is_wasm) {
+      if (options.flutter_engine == null) {
+        std.debug.print("error: must set \"flutter-engine\" build option\n", .{});
+        std.process.exit(1);
+      }
+    }
+
+    if (options.shared_lib) {
+      self.shared_lib = options.builder.addSharedLibrary(.{
+        .name = "neutron",
+        .root_source_file = source,
+        .version = version,
+        .target = options.target,
+        .optimize = options.optimize,
+      });
+
+      self.makeCompileStep(self.shared_lib.?);
+    }
+
+    if (options.static_lib) {
+      self.static_lib = options.builder.addStaticLibrary(.{
+        .name = "neutron",
+        .root_source_file = source,
+        .target = options.target,
+        .optimize = options.optimize,
+      });
+
+      self.makeCompileStep(self.static_lib.?);
+    }
+
+    if (options.build_runner) {
+      self.runner = options.builder.addExecutable(.{
+        .name = "neutron-runner",
+        .root_source_file = .{
+          .path = getPath("/src/runner.zig")
+        },
+        .version = version,
+        .target = options.target,
+        .optimize = options.optimize,
+      });
+
+      self.runner.?.addModule("neutron", self.module);
+      self.runner.?.addModule("clap", Neutron.makeModule(options.builder, "clap", "third-party/zig/zig-clap/clap.zig"));
+      self.makeCompileStep(self.runner.?);
+    }
+
+    return self;
+  }
+
+  fn makeModule(b: *Build, name: []const u8, comptime path: []const u8) *Build.Module {
+    return b.addModule(name, .{
+      .source_file = .{
+        .path = getVendorPath(path),
+      },
+    });
+  }
+
+  fn getDependencies() []const Build.ModuleDependency {
+    return &[_]Build.ModuleDependency {};
+  }
+
+  fn makeCompileStep(self: Neutron, comp: *std.build.CompileStep) void {
+    if (self.options.flutter_engine != null) {
+      const is_wasm = comp.target.getCpu().arch.isWasm();
+
+      comp.addIncludePath(self.options.flutter_engine.?);
+
+      if (!is_wasm) {
+        comp.addLibraryPath(self.options.flutter_engine.?);
+        comp.linkSystemLibrary("flutter_engine");
+      }
+    }
+
+    comp.install();
+    self.step.dependOn(&comp.step);
+  }
+};
+
+pub fn build(b: *Build) void {
+  const neutron = Neutron.new(NeutronOptions.new_auto_with_options(b));
+  b.default_step.dependOn(neutron.step);
 }
