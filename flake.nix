@@ -58,7 +58,8 @@
             clang
             zig
             pkg-config
-            flutter
+            flutter-engine
+            patchelf
           ] ++ optionals (pkgs.wlroots.meta.available) [
             pkgs.buildPackages.wayland-scanner
           ];
@@ -93,6 +94,10 @@
               --prefix-lib-dir $out/lib \
               --prefix-include-dir $dev/include \
               --cache-dir $NIX_BUILD_TOP/cache
+
+            patchelf --replace-needed libc.so ${pkgs.stdenv.cc.libc}/lib/libc.so.6 $out/bin/neutron-runner
+            patchelf --replace-needed libneutron.so.0 $out/lib/libneutron.so.0 $out/bin/neutron-runner
+            patchelf --set-interpreter ${pkgs.stdenv.cc.libc}/lib/ld-linux-${pkgs.targetPlatform.parsed.cpu.name}.so.2 $out/bin/neutron-runner
           '';
         };
 
