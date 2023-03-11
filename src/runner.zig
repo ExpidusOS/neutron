@@ -48,12 +48,16 @@ pub fn main() !void {
   defer res.deinit();
 
   if (res.args.help) {
-    try stdout.writeAll(
-      \\Flutter Runner for Neutron - API & Runtime for ExpidusOS
+    try stdout.print(
+      \\Flutter Runner for Neutron (v{}.{}.{}) - API & Runtime for ExpidusOS
       \\
       \\Options:
       \\
-    );
+    , .{
+      neutron.config.version.major,
+      neutron.config.version.minor,
+      neutron.config.version.patch
+    });
     return clap.help(stdout, clap.Help, &params, .{});
   }
 
