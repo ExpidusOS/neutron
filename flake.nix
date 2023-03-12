@@ -77,14 +77,13 @@
             ++ optionals (wlroots.meta.available) [ wlroots ]
             ++ optional (vulkan-loader.meta.available) vulkan-loader;
 
-          postUnpack = ''
+          configurePhase = ''
             ${concatStrings (attrValues (mapAttrs (path: src: ''
               mkdir -p $NIX_BUILD_TOP/source/vendor/$(dirname ${path})
               ln -s ${src} $NIX_BUILD_TOP/source/vendor/${path}
             '') vendor))}
           '';
 
-          dontConfigure = true;
           dontBuild = true;
 
           installPhase = ''
