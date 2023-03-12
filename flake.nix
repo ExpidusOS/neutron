@@ -80,15 +80,9 @@
           configurePhase = ''
             ${concatStrings (attrValues (mapAttrs (path: src: ''
               echo "Linking ${src} -> $NIX_BUILD_TOP/source/vendor/${path}"
-              mkdir -p $NIX_BUILD_TOP/source/vendor/$(dirname ${path})
+              rm -rf $NIX_BUILD_TOP/source/vendor/${path}
               ln -s ${src} $NIX_BUILD_TOP/source/vendor/${path}
             '') vendor))}
-
-            if [[ ! -f $NIX_BUILD_TOP/source/vendor/third-party/zig/zig-clap/clap.zig ]]; then
-              echo "Failed to link"
-              find $NIX_BUILD_TOP/source/vendor
-              exit 1
-            fi
           '';
 
           dontBuild = true;
