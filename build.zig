@@ -24,6 +24,8 @@ pub const NeutronOptions = struct {
 
   static_lib: bool,
   shared_lib: bool,
+  use_wlroots: bool,
+  docs: bool,
   target: std.zig.CrossTarget,
   optimize: std.builtin.OptimizeMode,
 
@@ -36,6 +38,8 @@ pub const NeutronOptions = struct {
       .flutter_engine = null,
       .static_lib = true,
       .shared_lib = true,
+      .use_wlroots = target.isLinux(),
+      .docs = true,
       .target = target,
       .optimize = optimize,
     };
@@ -52,9 +56,13 @@ pub const NeutronOptions = struct {
 
     const build_runner = b.option(bool, "runner", "Enable the runner for Neutron") orelse options.build_runner;
     const flutter_engine = b.option([]const u8, "flutter-engine", "Path to the Flutter Engine library") orelse options.flutter_engine;
+    const use_wlroots = b.option(bool, "use-wlroots", "Whether to enable the wlroots compositor") orelse options.use_wlroots;
+    const docs = b.option(bool, "docs", "Whether to generate the documentation") orelse options.docs;
 
     options.build_runner = build_runner;
     options.flutter_engine = flutter_engine;
+    options.use_wlroots = use_wlroots;
+    options.docs = docs;
     return options;
   }
 };
@@ -63,6 +71,7 @@ pub const Neutron = struct {
   options: NeutronOptions,
   config: *Build.OptionsStep,
   config_module: *Build.Module,
+  docs: ?*std.build.CompileStep,
   shared_lib: ?*std.build.CompileStep,
   static_lib: ?*std.build.CompileStep,
   runner: ?*std.build.CompileStep,
@@ -76,22 +85,19 @@ pub const Neutron = struct {
       .options = options,
       .config = config,
       .config_module = config.createModule(),
+      .docs = null,
       .shared_lib = null,
       .static_lib = null,
       .runner = null,
       .module = options.builder.addModule("neutron", .{
         .source_file = .{
-          .path = getPath("/src/libs.zig"),
+          .path = getPath("/src/neutron.zig"),
         }
       }),
       .step = options.builder.step("build-neutron", "Build and install the Neutron Runtime & API"),
     };
 
     const is_wasm = options.target.getCpu().arch.isWasm();
-
-    const source = Build.FileSource{
-      .path = getPath("/src/libs.zig"),
-    };
 
     const version = std.builtin.Version{
       .major = 0,
@@ -100,6 +106,7 @@ pub const Neutron = struct {
     };
 
     config.addOption(?[]const u8, "flutter_engine", options.flutter_engine);
+    config.addOption(bool, "use_wlroots", options.use_wlroots);
     config.addOption(std.builtin.Version, "version", version);
 
     for (self.getDependencies()) |dep| {
@@ -113,10 +120,30 @@ pub const Neutron = struct {
       }
     }
 
+    if (options.docs) {
+      self.docs = options.builder.addTest(.{
+        .name = "neutron",
+        .root_source_file = self.module.source_file,
+        .target = options.target,
+        .optimize = options.optimize,
+      });
+
+      self.docs.?.step.dependOn(&self.config.step);
+      self.step.dependOn(&self.docs.?.step);
+
+      for (self.getDependencies()) |dep| {
+        self.docs.?.addModule(dep.name, dep.module);
+      }
+
+      self.docs.?.emit_docs = .{
+        .emit_to = self.options.builder.pathJoin(&[_][]const u8 { self.options.builder.install_path, "docs" })
+      };
+    }
+
     if (options.shared_lib) {
       self.shared_lib = options.builder.addSharedLibrary(.{
         .name = "neutron",
-        .root_source_file = source,
+        .root_source_file = self.module.source_file,
         .version = version,
         .target = options.target,
         .optimize = options.optimize,
@@ -132,7 +159,7 @@ pub const Neutron = struct {
     if (options.static_lib) {
       self.static_lib = options.builder.addStaticLibrary(.{
         .name = "neutron",
-        .root_source_file = source,
+        .root_source_file = self.module.source_file,
         .target = options.target,
         .optimize = options.optimize,
       });
@@ -195,9 +222,12 @@ pub const Neutron = struct {
 
       if (!is_wasm) {
         comp.addLibraryPath(self.options.flutter_engine.?);
-        comp.linkLibC();
         comp.linkSystemLibrary("flutter_engine");
       }
+    }
+
+    if (self.options.use_wlroots) {
+      comp.linkSystemLibraryNeededPkgConfigOnly("wlroots");
     }
 
     comp.install();

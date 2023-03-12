@@ -78,5 +78,10 @@ pub fn main() !void {
     path = try std.fs.cwd().realpathAlloc(allocator, path);
   }
 
-  std.debug.print("{s} {}\n", .{path, neutron.graphics.renderers.EGLRenderer});
+  const ctx = try neutron.displaykit.Context.new(.{
+    .vtable = .{},
+  }, null);
+  defer ctx.unref();
+
+  std.debug.print("{s} {}\n", .{path, ctx});
 }

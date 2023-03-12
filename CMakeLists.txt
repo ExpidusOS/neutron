@@ -11,7 +11,7 @@ if(NOT DEFINED LOCAL_ENGINE)
   endif()
 endif()
 
-set(ZIG_OPTIONS "-Dflutter-engine=${LOCAL_ENGINE}" "--cache-dir" "${CMAKE_CURRENT_BINARY_DIR}/zig-cache")
+set(ZIG_OPTIONS "-Dflutter-engine=${LOCAL_ENGINE}" "-Ddocs=false" "--cache-dir" "${CMAKE_CURRENT_BINARY_DIR}/zig-cache")
 add_custom_command(OUTPUT lib/libneutron${CMAKE_SHARED_LIBRARY_SUFFIX}
   COMMAND ${ZIG} build ${ZIG_OPTIONS} --prefix ${CMAKE_CURRENT_BINARY_DIR} --verbose --verbose-cc
   DEPENDS build.zig)

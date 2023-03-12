@@ -50,7 +50,7 @@
 
           src = cleanSource self;
 
-          outputs = [ "out" "dev" ];
+          outputs = [ "out" "devdocs" ];
 
           nativeBuildInputs = with pkgs.buildPackages; [
             cmake
@@ -74,7 +74,8 @@
 
           buildInputs = with pkgs;
             optionals (wayland.meta.available) [ wayland-protocols wayland ]
-            ++ optionals (wlroots.meta.available) [ wlroots ];
+            ++ optionals (wlroots.meta.available) [ wlroots ]
+            ++ optional (vulkan-loader.meta.available) vulkan-loader;
 
           postUnpack = ''
             ${concatStrings (attrValues (mapAttrs (path: src: ''
@@ -89,15 +90,15 @@
           installPhase = ''
             export XDG_CACHE_HOME=$NIX_BUILD_TOP/.cache
 
-            mkdir -p $out/lib $dev/include
+            mkdir -p $out/lib
             zig build $buildFlags --prefix $out \
               --prefix-lib-dir $out/lib \
-              --prefix-include-dir $dev/include \
               --cache-dir $NIX_BUILD_TOP/cache
 
-            patchelf --replace-needed libc.so ${pkgs.stdenv.cc.libc}/lib/libc.so.6 $out/bin/neutron-runner
+            mkdir -p $devdocs/share/docs/
+            mv $out/docs $devdocs/share/docs/neutron
+
             patchelf --replace-needed libneutron.so.0 $out/lib/libneutron.so.0 $out/bin/neutron-runner
-            patchelf --set-interpreter ${pkgs.stdenv.cc.libc}/lib/ld-linux-${pkgs.targetPlatform.parsed.cpu.name}.so.2 $out/bin/neutron-runner
           '';
         };
 
@@ -106,7 +107,7 @@
         devShells.default = pkgs.mkShell {
           inherit (packages.default) pname version name buildFlags;
           packages = packages.default.buildInputs ++ packages.default.nativeBuildInputs ++ [
-            pkgs.flutter-engine pkgs.gdb
+            pkgs.flutter-engine pkgs.flutter pkgs.gdb
           ];
 
           FLUTTER_ENGINE = pkgs.stdenv.mkDerivation {
@@ -128,13 +129,12 @@
 
           shellHook = ''
             export rootOut=$(dirname $out)
-            export dev=$rootOut/dev
             export src=$(dirname $rootOut)
 
             export LOCAL_ENGINE=$FLUTTER_ENGINE/out/host_debug
 
             alias flutter="flutter --local-engine $LOCAL_ENGINE"
-            alias buildPhase="mkdir -p $out/lib $dev/include && zig build $buildFlags --prefix $out --prefix-lib-dir $out/lib --prefix-include-dir $dev/include"
+            alias buildPhase="mkdir -p $out/lib && zig build $buildFlags --prefix $out --prefix-lib-dir $out/lib"
           '';
         };
 
