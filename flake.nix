@@ -86,6 +86,7 @@
 
             if [[ ! -f $NIX_BUILD_TOP/source/vendor/third-party/zig/zig-clap/clap.zig ]]; then
               echo "Failed to link"
+              find $NIX_BUILD_TOP/source/vendor
               exit 1
             fi
           '';
