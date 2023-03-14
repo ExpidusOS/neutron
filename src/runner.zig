@@ -78,5 +78,8 @@ pub fn main() !void {
     path = try std.fs.cwd().realpathAlloc(allocator, path);
   }
 
+  const compositor = try neutron.displaykit.Wlroots.Compositor.new(.{}, null);
+  defer compositor.unref();
+
   std.debug.print("{s}\n", .{path});
 }

@@ -3,7 +3,14 @@ const elemental = @import("../elemental.zig");
 const Output = @import("output.zig").Output;
 const View = @import("view.zig").View;
 
-fn construct(self: *Context, params: Context.Params) void {
+fn impl_init(params: Context.Params, allocator: std.mem.Allocator) !Context {
+  _ = allocator;
+  return .{
+    .vtable = params.vtable,
+  };
+}
+
+fn construct(self: *Context, params: Context.Params) !void {
   self.vtable = params.vtable;
 }
 
@@ -11,7 +18,7 @@ fn destroy(self: *Context) void {
   _ = self;
 }
 
-fn dupe(self: *Context, dest: *Context) void {
+fn impl_dupe(self: *Context, dest: *Context) !void {
   dest.vtable = self.vtable;
 }
 
@@ -21,8 +28,8 @@ pub const Context = struct {
 
   /// Implementation specific functions
   pub const VTable = struct {
-    list_outputs: *const fn (self: *Self) elemental.TypedList(Output, Output.Params, Output.TypeInfo),
-    list_views: *const fn (self: *Self) elemental.TypedList(View, View.Params, View.TypeInfo)
+    list_outputs: *const fn (self: *Self) anyerror!*elemental.TypedList(Output, Output.Params, Output.TypeInfo),
+    list_views: *const fn (self: *Self) anyerror!*elemental.TypedList(View, View.Params, View.TypeInfo)
   };
 
   /// Instance creation parameters
@@ -32,9 +39,10 @@ pub const Context = struct {
 
   /// Neutron's Elemental type information
   pub const TypeInfo = elemental.TypeInfo(Context, Params) {
+    .init = impl_init,
     .construct = construct,
     .destroy = destroy,
-    .dupe = dupe,
+    .dupe = impl_dupe,
   };
 
   /// Neutron's Elemental type definition
@@ -46,6 +54,10 @@ pub const Context = struct {
   /// Creates a new instance of the DisplayKit context
   pub fn new(params: Params, allocator: ?std.mem.Allocator) !*Context {
     return &(try Type.new(params, allocator)).instance;
+  }
+
+  pub fn init(params: Params, allocator: ?std.mem.Allocator) !Type {
+    return try Type.init(params, allocator);
   }
 
   /// Gets the Elemental type definition instance for this instance
@@ -63,13 +75,17 @@ pub const Context = struct {
     return self.getType().unref();
   }
 
+  pub fn dupe(self: *Context) !*Context {
+    return &(try self.getType().dupe()).instance;
+  }
+
   /// Gets an array list of outputs
-  pub fn listOutputs(self: *Context) elemental.TypedList(Output, Output.Params, Output.TypeInfo) {
-    return self.vtable.list_outputs(self);
+  pub fn listOutputs(self: *Context) !*elemental.TypedList(Output, Output.Params, Output.TypeInfo) {
+    return try self.vtable.list_outputs(self);
   }
 
   /// Gets an array list of views
-  pub fn listViews(self: *Context) elemental.TypedList(View, View.Params, View.TypeInfo) {
-    return self.vtable.list_views(self);
+  pub fn listViews(self: *Context) !*elemental.TypedList(View, View.Params, View.TypeInfo) {
+    return try self.vtable.list_views(self);
   }
 };

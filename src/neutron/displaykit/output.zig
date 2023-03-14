@@ -2,7 +2,15 @@ const std = @import("std");
 const Context = @import("context.zig").Context;
 const elemental = @import("../elemental.zig");
 
-fn construct(self: *Output, params: Output.Params) void {
+fn impl_init(params: Output.Params, allocator: std.mem.Allocator) !Output {
+  _ = allocator;
+  return .{
+    .vtable = params.vtable,
+    .context = params.context.ref(),
+  };
+}
+
+fn construct(self: *Output, params: Output.Params) !void {
   self.vtable = params.vtable;
   self.context = params.context.ref();
 }
@@ -11,7 +19,7 @@ fn destroy(self: *Output) void {
   self.context.unref();
 }
 
-fn dupe(self: *Output, dest: *Output) void {
+fn dupe(self: *Output, dest: *Output) !void {
   dest.vtable = self.vtable;
   dest.context = self.context.ref();
 }
@@ -29,6 +37,7 @@ pub const Output = struct {
 
   /// Neutron's Elemental type information
   pub const TypeInfo = elemental.TypeInfo(Output, Params) {
+    .init = impl_init,
     .construct = construct,
     .destroy = destroy,
     .dupe = dupe,
@@ -44,6 +53,10 @@ pub const Output = struct {
   /// Creates a new instance of the DisplayKit context
   pub fn new(params: Params, allocator: ?std.mem.Allocator) !*Output {
     return &(try Type.new(params, allocator)).instance;
+  }
+
+  pub fn init(params: Params, allocator: ?std.mem.Allocator) !Type {
+    return try Type.init(params, allocator);
   }
 
   /// Gets the Elemental type definition instance for this instance

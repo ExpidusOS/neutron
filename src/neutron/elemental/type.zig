@@ -10,14 +10,17 @@ pub fn TypeInfo(
   comptime P: type
 ) type {
   return struct {
+    /// Initialize method for type
+    init: fn (params: P, allocator: Allocator) anyerror!T,
+
     /// Constructor method
-    construct: fn (self: *T, params: P) void,
+    construct: fn (self: *T, params: P) anyerror!void,
 
     /// Destroy method
     destroy: fn (self: *T) void,
 
     /// Duplication method
-    dupe: fn (self: *T, dest: *T) void,
+    dupe: fn (self: *T, dest: *T) anyerror!void,
   };
 }
 
@@ -35,6 +38,8 @@ pub fn Type(
 
     /// Type information used to create this type
     pub const type_info = info;
+
+    allocated: bool,
 
     /// Memory allocator used for the instance
     allocator: Allocator,
@@ -65,18 +70,41 @@ pub fn Type(
       const self = try allocator.?.create(Self);
       self.allocator = allocator.?;
       self.type_info = info;
+      self.allocated = true;
 
-      info.construct(&self.instance, params);
+      try info.construct(&self.instance, params);
       return self;
+    }
+
+    // Initializes a new type instance rather than allocates one
+    pub fn init(
+      //// Parameters to pass for creating the instance.
+      params: P,
+      /// An optional memory allocator to use, defaults to `std.heap.page_allocator` if `null`.
+      allocator: ?Allocator
+    ) !Self {
+      if (allocator == null) {
+        return Self.init(params, std.heap.page_allocator);
+      }
+
+      return Self {
+        .allocated = false,
+        .allocator = allocator.?,
+        .type_info = info,
+        .ref_count = 0,
+        .ref_lock = .{},
+        .instance = try info.init(params, allocator.?),
+      };
     }
 
     /// Duplicate the instance
     pub fn dupe(self: *Self) !*Self {
       const dest = try self.allocator.create(Self);
       dest.allocator = self.allocator;
-      dest.type_info = self.info;
+      dest.type_info = self.type_info;
+      dest.allocated = true;
 
-      info.dupe(&self.instance, &dest.instance);
+      try info.dupe(&self.instance, &dest.instance);
       return dest;
     }
 
@@ -96,7 +124,7 @@ pub fn Type(
       if (self.ref_count == 0) {
         defer {
           info.destroy(&self.instance);
-          self.allocator.destroy(self);
+          if (self.allocated) self.allocator.destroy(self);
         }
       } else {
         self.ref_count -= 1;

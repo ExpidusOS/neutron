@@ -22,9 +22,10 @@ pub fn AlignedTypedList(comptime T: type, comptime P: type, comptime info: _type
 
     /// Neutron's Elemental type information
     pub const TypeInfo = _type.TypeInfo(Self, Params) {
+      .init = impl_init,
       .construct = construct,
       .destroy = destroy,
-      .dupe = dupe,
+      .dupe = impl_dupe,
     };
 
     /// Neutron's Elemental type definition
@@ -37,6 +38,10 @@ pub fn AlignedTypedList(comptime T: type, comptime P: type, comptime info: _type
     /// Creates a new instance of a typed list
     pub fn new(params: Params, allocator: ?std.mem.Allocator) !*Self {
       return &(try Type.new(params, allocator)).instance;
+    }
+
+    pub fn init(params: Params, allocator: ?std.mem.Allocator) !Type {
+      return try Type.init(params, allocator);
     }
 
     /// Gets the Elemental type definition instance for this instance
@@ -54,6 +59,10 @@ pub fn AlignedTypedList(comptime T: type, comptime P: type, comptime info: _type
       return self.getType().unref();
     }
 
+    pub fn dupe(self: *Self) !*Self {
+      return &(try self.getType().dupe()).instance;
+    }
+
     pub fn first(self: *Self) ?*ItemType {
       return self.item(0);
     }
@@ -67,21 +76,27 @@ pub fn AlignedTypedList(comptime T: type, comptime P: type, comptime info: _type
       return self.list.items[index].ref();
     }
 
-    fn construct(self: *Self, params: Params) void {
+    fn impl_init(params: Params, allocator: std.mem.Allocator) !Self {
+      return .{
+        .list = if (params.list != null) params.list.? else ArrayList.init(allocator),
+      };
+    }
+
+    fn construct(self: *Self, params: Params) !void {
       self.list = if (params.list != null) params.list.? else ArrayList.init(self.getType().allocator);
     }
 
     fn destroy(self: *Self) void {
       var _item = self.list.popOrNull();
       while (_item != null) {
-        _item.unref();
+        _item.?.unref();
         _item = self.list.popOrNull();
       }
 
       self.list.deinit();
     }
 
-    fn dupe(self: *Self, dest: *Self) !void {
+    fn impl_dupe(self: *Self, dest: *Self) !void {
       dest.list = ArrayList.init(dest.getType().allocator);
       for (self.list.items) |_item| {
         try dest.list.append(_item.ref());
