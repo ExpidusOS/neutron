@@ -1,5 +1,7 @@
 const std = @import("std");
 const elemental = @import("../elemental.zig");
+const Output = @import("output.zig").Output;
+const View = @import("view.zig").View;
 
 fn construct(self: *Context, params: Context.Params) void {
   self.vtable = params.vtable;
@@ -15,8 +17,13 @@ fn dupe(self: *Context, dest: *Context) void {
 
 /// Base type for compositors and clients
 pub const Context = struct {
+  const Self = @This();
+
   /// Implementation specific functions
-  pub const VTable = struct {};
+  pub const VTable = struct {
+    list_outputs: *const fn (self: *Self) elemental.TypedList(Output, Output.Params, Output.TypeInfo),
+    list_views: *const fn (self: *Self) elemental.TypedList(View, View.Params, View.TypeInfo)
+  };
 
   /// Instance creation parameters
   pub const Params = struct {
@@ -54,5 +61,15 @@ pub const Context = struct {
   /// Decreases the reference count and free it if the counter is 0
   pub fn unref(self: *Context) void {
     return self.getType().unref();
+  }
+
+  /// Gets an array list of outputs
+  pub fn listOutputs(self: *Context) elemental.TypedList(Output, Output.Params, Output.TypeInfo) {
+    return self.vtable.list_outputs(self);
+  }
+
+  /// Gets an array list of views
+  pub fn listViews(self: *Context) elemental.TypedList(View, View.Params, View.TypeInfo) {
+    return self.vtable.list_views(self);
   }
 };
