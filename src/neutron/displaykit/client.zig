@@ -2,9 +2,11 @@ const std = @import("std");
 const elemental = @import("../elemental.zig");
 const Context = @import("context.zig").Context;
 
-fn construct(self: *Client, params: Client.Params) !void {
-  self.vtable = params.vtable;
-  self.context = try Context.new(params.vtable.context, self.getType().allocator);
+fn impl_init(params: Client.Params, allocator: std.mem.Allocator) !Context {
+  return .{
+    .vtable = params.vtable,
+    .context = try Context.init(params.vtable.context, allocator),
+  };
 }
 
 fn destroy(self: *Client) void {
@@ -13,7 +15,7 @@ fn destroy(self: *Client) void {
 
 fn dupe(self: *Client, dest: *Client) void {
   dest.vtable = self.vtable;
-  dest.context = self.context.dupe();
+  dest.context = try Context.init(dest.vtable.context, dest.getType().allocator);
 }
 
 /// Base type for clients
@@ -23,17 +25,18 @@ pub const Client = struct {
   /// Implementation specific functions
   pub const VTable = struct {
     /// Implementation specific functions for the context
-    context: Context.VTable,
+    context: *const Context.VTable,
   };
 
   /// Instance creation parameters
   pub const Params = struct {
-    vtable: VTable
+    vtable: *const VTable
   };
 
   /// Neutron's Elemental type information
   pub const TypeInfo = elemental.TypeInfo(Client, Params) {
-    .construct = construct,
+    .init = impl_init,
+    .construct = null,
     .destroy = destroy,
     .dupe = dupe,
   };
@@ -41,8 +44,8 @@ pub const Client = struct {
   /// Neutron's Elemental type definition
   pub const Type = elemental.Type(Client, Params, TypeInfo);
 
-  vtable: VTable,
-  context: *Context,
+  vtable: *const VTable,
+  context: Context.Type,
 
   /// Creates a new instance of the DisplayKit client
   pub fn new(params: Params, allocator: ?std.mem.Allocator) !*Context {
