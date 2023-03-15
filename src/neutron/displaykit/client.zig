@@ -1,6 +1,6 @@
 const std = @import("std");
 const elemental = @import("../elemental.zig");
-const Context = @import("context.zig").Context;
+const Context = @import("context.zig");
 
 fn impl_init(params: Client.Params, allocator: std.mem.Allocator) !Context {
   return .{

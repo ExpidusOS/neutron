@@ -1,7 +1,7 @@
 const std = @import("std");
 const config = @import("neutron-config");
 const elemental = @import("../../elemental.zig");
-const Context = @import("../context.zig").Context;
+const Context = @import("../context.zig");
 const Compositor = @import("../compositor.zig").Compositor;
 const Output = @import("../output.zig").Output;
 const View = @import("../view.zig").View;
@@ -19,14 +19,14 @@ const vtable = Compositor.VTable {
   .context = &context_vtable,
 };
 
-fn list_outputs(ctx: *Context) !*elemental.TypedList(Output, Output.Params, Output.TypeInfo) {
-  const compositor = @fieldParentPtr(Compositor, "context", ctx.getType());
+fn list_outputs(ctx: *anyopaque) !*elemental.TypedList(Output, Output.Params, Output.TypeInfo) {
+  const compositor = @fieldParentPtr(Compositor, "context", @ptrCast(*Context, @alignCast(@alignOf(Context), ctx)).getType());
   const self = @fieldParentPtr(WlrootsCompositor, "compositor", compositor.getType());
   return self.outputs.dupe();
 }
 
-fn list_views(ctx: *Context) !*elemental.TypedList(View, View.Params, View.TypeInfo) {
-  const compositor = @fieldParentPtr(Compositor, "context", ctx.getType());
+fn list_views(ctx: *anyopaque) !*elemental.TypedList(View, View.Params, View.TypeInfo) {
+  const compositor = @fieldParentPtr(Compositor, "context", @ptrCast(*Context, @alignCast(@alignOf(Context), ctx)).getType());
   const self = @fieldParentPtr(WlrootsCompositor, "compositor", compositor.getType());
   return self.views.dupe();
 }

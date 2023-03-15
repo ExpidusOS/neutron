@@ -1,5 +1,5 @@
 const std = @import("std");
-const Context = @import("context.zig").Context;
+const Context = @import("context.zig");
 const elemental = @import("../elemental.zig");
 
 fn impl_init(params: View.Params, allocator: std.mem.Allocator) !View {
