@@ -1,7 +1,7 @@
 const std = @import("std");
 const elemental = @import("../elemental.zig");
-const Output = @import("output.zig").Output;
-const View = @import("view.zig").View;
+const Output = @import("output.zig");
+const View = @import("view.zig");
 const Context = @This();
 
 /// Implementation specific functions
