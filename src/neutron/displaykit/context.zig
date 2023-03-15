@@ -6,8 +6,8 @@ const Context = @This();
 
 /// Implementation specific functions
 pub const VTable = struct {
-  list_outputs: *const fn (self: *anyopaque) anyerror!*elemental.TypedList(Output, Output.Params, Output.TypeInfo),
-  list_views: *const fn (self: *anyopaque) anyerror!*elemental.TypedList(View, View.Params, View.TypeInfo)
+  list_outputs: *const fn (self: *anyopaque) anyerror![]*Output,
+  list_views: *const fn (self: *anyopaque) anyerror![]*View,
 };
 
 /// Instance creation parameters
@@ -73,11 +73,11 @@ pub fn dupe(self: *Context) !*Context {
 }
 
 /// Gets an array list of outputs
-pub fn listOutputs(self: *Context) !*elemental.TypedList(Output, Output.Params, Output.TypeInfo) {
+pub fn listOutputs(self: *Context) ![]*Output {
   return try self.vtable.list_outputs(self);
 }
 
 /// Gets an array list of views
-pub fn listViews(self: *Context) !*elemental.TypedList(View, View.Params, View.TypeInfo) {
+pub fn listViews(self: *Context) ![]*View {
   return try self.vtable.list_views(self);
 }

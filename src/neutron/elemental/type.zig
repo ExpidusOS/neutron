@@ -6,16 +6,16 @@ const Mutex = std.Thread.Mutex;
 pub fn TypeInfo(comptime T: type) type {
   return struct {
     /// Initialize method for type
-    init: fn (params: *anyopaque, allocator: Allocator) anyerror!T,
+    init: *const fn (params: *anyopaque, allocator: Allocator) anyerror!T,
 
     /// Constructor method
-    construct: ?fn (self: *anyopaque, params: *anyopaque) anyerror!void,
+    construct: ?*const fn (self: *anyopaque, params: *anyopaque) anyerror!void,
 
     /// Destroy method
-    destroy: ?fn (self: *anyopaque) void,
+    destroy: ?*const fn (self: *anyopaque) void,
 
     /// Duplication method
-    dupe: fn (self: *anyopaque, dest: *anyopaque) anyerror!void,
+    dupe: *const fn (self: *anyopaque, dest: *anyopaque) anyerror!void,
   };
 }
 
@@ -31,7 +31,11 @@ pub fn Type(
   return struct {
     const Self = @This();
 
+    pub const Info = info;
+
     allocated: bool,
+
+    type_info: TypeInfo(T),
 
     /// Memory allocator used for the instance
     allocator: Allocator,
@@ -59,6 +63,7 @@ pub fn Type(
       const self = try allocator.?.create(Self);
       self.allocator = allocator.?;
       self.allocated = true;
+      self.type_info = info;
       self.instance = try info.init(@ptrCast(*anyopaque, @alignCast(@alignOf(*P), @constCast(&params))), self.allocator);
 
       if (info.construct != null) {
@@ -83,6 +88,7 @@ pub fn Type(
         .allocator = allocator.?,
         .ref_count = 0,
         .ref_lock = .{},
+        .type_info = info,
         .instance = try info.init(@ptrCast(*anyopaque, @alignCast(@alignOf(*P), @constCast(&params))), allocator.?),
       };
 

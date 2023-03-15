@@ -37,16 +37,32 @@ const vtable = Compositor.VTable {
   },
 };
 
-fn impl_list_outputs(ctx: *anyopaque) !*elemental.TypedList(Output, Output.Params, Output.TypeInfo) {
+fn impl_list_outputs(ctx: *anyopaque) ![]*Output {
   const compositor = @fieldParentPtr(Compositor, "context", @ptrCast(*Context, @alignCast(@alignOf(Context), ctx)).getType());
   const self = @fieldParentPtr(WlrootsCompositor, "compositor", compositor.getType());
-  return self.outputs.dupe();
+
+  const values = try self.getType().allocator.alloc(*Output, self.outputs.list.items.len);
+
+  var i: u32 = 0;
+  for (self.outputs.list.items) |value| {
+    values[i] = &(value.ref()).instance;
+    i += 1;
+  }
+  return values;
 }
 
-fn impl_list_views(ctx: *anyopaque) !*elemental.TypedList(View, View.Params, View.TypeInfo) {
+fn impl_list_views(ctx: *anyopaque) ![]*View {
   const compositor = @fieldParentPtr(Compositor, "context", @ptrCast(*Context, @alignCast(@alignOf(Context), ctx)).getType());
   const self = @fieldParentPtr(WlrootsCompositor, "compositor", compositor.getType());
-  return self.views.dupe();
+
+  const values = try self.getType().allocator.alloc(*View, self.views.list.items.len);
+
+  var i: u32 = 0;
+  for (self.views.list.items) |value| {
+    values[i] = &(value.ref()).instance;
+    i += 1;
+  }
+  return values;
 }
 
 fn impl_init(params: *const anyopaque, allocator: std.mem.Allocator) !WlrootsCompositor {
