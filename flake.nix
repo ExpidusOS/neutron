@@ -36,6 +36,19 @@
         ];
 
         vendor = {
+          "os-specific/linux/zig/zig-wayland" = pkgs.fetchFromGitHub {
+            owner = "ExpidusOS";
+            repo = "zig-wayland";
+            rev = "1e45c6cce14836a1ceeee11cb3f4da6c5b02cf93";
+            sha256 = "sha256-Hz2GkH0MBDnYPdyox6BQ9bUvSfjL+MzeCszNylWcbug=";
+          };
+          "os-specific/linux/zig/zig-wlroots" = pkgs.fetchFromGitHub {
+            owner = "ExpidusOS";
+            repo = "zig-wlroots";
+            rev = "c4cdb08505de19f6bfbf8e1825349b80c7696475";
+            fetchSubmodules = true;
+            sha256 = "sha256-U8uZGz+pyVF7zRp1vL5neUD9Of82DmcVevGm7ktdPok=";
+          };
           "third-party/zig/zig-clap" = pkgs.fetchFromGitHub {
             owner = "Hejsil";
             repo = "zig-clap";
@@ -89,6 +102,9 @@
 
           installPhase = ''
             export XDG_CACHE_HOME=$NIX_BUILD_TOP/.cache
+            ${optionalString (pkgs.wayland.meta.available) ''
+              export PKG_CONFIG_PATH_FOR_BUILD=${pkgs.wayland.dev}/lib/pkgconfig:$PKG_CONFIG_PATH_FOR_BUILD
+            ''}
 
             mkdir -p $out/lib
             zig build $buildFlags --prefix $out \

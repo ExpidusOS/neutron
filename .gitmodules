@@ -1,3 +1,9 @@
 [submodule "vendor/third-party/zig/zig-clap"]
 	path = vendor/third-party/zig/zig-clap
 	url = https://github.com/Hejsil/zig-clap
+[submodule "vendor/os-specific/linux/zig/zig-wlroots"]
+	path = vendor/os-specific/linux/zig/zig-wlroots
+	url = https://github.com/ExpidusOS/zig-wlroots
+[submodule "vendor/os-specific/linux/zig/zig-wayland"]
+	path = vendor/os-specific/linux/zig/zig-wayland
+	url = https://github.com/ExpidusOS/zig-wayland

@@ -70,7 +70,6 @@ pub const NeutronOptions = struct {
 pub const Neutron = struct {
   options: NeutronOptions,
   config: *Build.OptionsStep,
-  config_module: *Build.Module,
   docs: ?*std.build.CompileStep,
   shared_lib: ?*std.build.CompileStep,
   static_lib: ?*std.build.CompileStep,
@@ -84,7 +83,6 @@ pub const Neutron = struct {
     var self = Neutron{
       .options = options,
       .config = config,
-      .config_module = config.createModule(),
       .docs = null,
       .shared_lib = null,
       .static_lib = null,
@@ -109,7 +107,7 @@ pub const Neutron = struct {
     config.addOption(bool, "use_wlroots", options.use_wlroots);
     config.addOption(std.builtin.Version, "version", version);
 
-    for (self.getDependencies()) |dep| {
+    for (try self.getDependencies(null)) |dep| {
       try self.module.dependencies.put(dep.name, dep.module);
     }
 
@@ -131,7 +129,7 @@ pub const Neutron = struct {
       self.docs.?.step.dependOn(&self.config.step);
       self.step.dependOn(&self.docs.?.step);
 
-      for (self.getDependencies()) |dep| {
+      for (try self.getDependencies(self.docs.?)) |dep| {
         self.docs.?.addModule(dep.name, dep.module);
       }
 
@@ -151,7 +149,7 @@ pub const Neutron = struct {
 
       self.makeCompileStep(self.shared_lib.?);
 
-      for (self.getDependencies()) |dep| {
+      for (try self.getDependencies(self.shared_lib.?)) |dep| {
         self.shared_lib.?.addModule(dep.name, dep.module);
       }
     }
@@ -166,7 +164,7 @@ pub const Neutron = struct {
 
       self.makeCompileStep(self.static_lib.?);
 
-      for (self.getDependencies()) |dep| {
+      for (try self.getDependencies(self.static_lib.?)) |dep| {
         self.static_lib.?.addModule(dep.name, dep.module);
       }
     }
@@ -205,13 +203,74 @@ pub const Neutron = struct {
     });
   }
 
-  fn getDependencies(self: Neutron) []const Build.ModuleDependency {
-    return &[_]Build.ModuleDependency {
-      .{
-        .name = "neutron-config",
-        .module = self.config_module,
-      }
+  fn getDependencies(self: Neutron, comp: ?*std.build.CompileStep) ![]const Build.ModuleDependency {
+    var len: u32 = 1;
+
+    if (self.options.use_wlroots) {
+      len += 1;
+    }
+
+    var deps = try self.options.builder.allocator.alloc(Build.ModuleDependency, len);
+
+    var i: u32 = 0;
+    deps[i] = .{
+      .name = "neutron-config",
+      .module = self.config.createModule(),
     };
+    i += 1;
+
+    if (self.options.use_wlroots) {
+      const ScanProtocolsStep = @import("vendor/os-specific/linux/zig/zig-wayland/build.zig").ScanProtocolsStep;
+
+      const scanner = ScanProtocolsStep.create(self.options.builder);
+      scanner.addSystemProtocol("stable/xdg-shell/xdg-shell.xml");
+
+      deps[i] = .{
+        .name = "wlroots",
+        .module = self.options.builder.addModule("wlroots", .{
+          .source_file = .{
+            .path = getVendorPath("os-specific/linux/zig/zig-wlroots/src/wlroots.zig"),
+          },
+          .dependencies = &[_] Build.ModuleDependency{
+            .{
+              .name = "wayland",
+              .module = self.options.builder.addModule("wayland", .{
+                .source_file = .{
+                  .generated = &scanner.result,
+                },
+              }),
+            },
+            .{
+              .name = "xkbcommon",
+              .module = self.options.builder.addModule("xkbcommon", .{
+                .source_file = .{
+                  .path = getVendorPath("os-specific/linux/zig/zig-wlroots/tinywl/deps/zig-xkbcommon/src/xkbcommon.zig"),
+                },
+              }),
+            },
+            .{
+              .name = "pixman",
+              .module = self.options.builder.addModule("pixman", .{
+                .source_file = .{
+                  .path = getVendorPath("os-specific/linux/zig/zig-wlroots/tinywl/deps/zig-pixman/pixman.zig"),
+                },
+              })
+            },
+          },
+        }),
+      };
+      i += 1;
+
+      if (comp != null) {
+        comp.?.linkLibC();
+        comp.?.linkSystemLibraryNeededPkgConfigOnly("wayland-server");
+        comp.?.linkSystemLibraryNeededPkgConfigOnly("wlroots");
+        comp.?.step.dependOn(&scanner.step);
+        scanner.addCSource(comp.?);
+      }
+    }
+
+    return deps;
   }
 
   fn makeCompileStep(self: Neutron, comp: *std.build.CompileStep) void {
@@ -224,10 +283,6 @@ pub const Neutron = struct {
         comp.addLibraryPath(self.options.flutter_engine.?);
         comp.linkSystemLibrary("flutter_engine");
       }
-    }
-
-    if (self.options.use_wlroots) {
-      comp.linkSystemLibraryNeededPkgConfigOnly("wlroots");
     }
 
     comp.install();
