@@ -1,12 +1,12 @@
 const std = @import("std");
 const _type = @import("type.zig");
 
-pub fn TypedList(comptime T: type, comptime P: type, comptime info: _type.TypeInfo(T, P)) type {
+pub fn TypedList(comptime T: type, comptime P: type, comptime info: _type.TypeInfo(T)) type {
   return AlignedTypedList(T, P, info, null);
 }
 
 /// Define a new typed list
-pub fn AlignedTypedList(comptime T: type, comptime P: type, comptime info: _type.TypeInfo(T, P), comptime alignment: ?u29) type {
+pub fn AlignedTypedList(comptime T: type, comptime P: type, comptime info: _type.TypeInfo(T), comptime alignment: ?u29) type {
   return struct {
     const Self = @This();
 
@@ -21,9 +21,9 @@ pub fn AlignedTypedList(comptime T: type, comptime P: type, comptime info: _type
     pub const ItemType = _type.Type(T, P, info);
 
     /// Neutron's Elemental type information
-    pub const TypeInfo = _type.TypeInfo(Self, Params) {
+    pub const TypeInfo = _type.TypeInfo(Self) {
       .init = impl_init,
-      .construct = construct,
+      .construct = null,
       .destroy = destroy,
       .dupe = impl_dupe,
     };
@@ -76,17 +76,16 @@ pub fn AlignedTypedList(comptime T: type, comptime P: type, comptime info: _type
       return self.list.items[index].ref();
     }
 
-    fn impl_init(params: Params, allocator: std.mem.Allocator) !Self {
+    fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Self {
+      const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
       return .{
         .list = if (params.list != null) params.list.? else ArrayList.init(allocator),
       };
     }
 
-    fn construct(self: *Self, params: Params) !void {
-      self.list = if (params.list != null) params.list.? else ArrayList.init(self.getType().allocator);
-    }
+    fn destroy(_self: *anyopaque) void {
+      const self = @ptrCast(*Self, @alignCast(@alignOf(Self), _self));
 
-    fn destroy(self: *Self) void {
       var _item = self.list.popOrNull();
       while (_item != null) {
         _item.?.unref();
@@ -96,7 +95,10 @@ pub fn AlignedTypedList(comptime T: type, comptime P: type, comptime info: _type
       self.list.deinit();
     }
 
-    fn impl_dupe(self: *Self, dest: *Self) !void {
+    fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
+      const self = @ptrCast(*Self, @alignCast(@alignOf(Self), _self));
+      const dest = @ptrCast(*Self, @alignCast(@alignOf(Self), _dest));
+
       dest.list = ArrayList.init(dest.getType().allocator);
       for (self.list.items) |_item| {
         try dest.list.append(_item.ref());

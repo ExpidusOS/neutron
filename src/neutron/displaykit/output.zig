@@ -13,7 +13,7 @@ pub const Params = struct {
 };
 
 /// Neutron's Elemental type information
-pub const TypeInfo = elemental.TypeInfo(Output, Params) {
+pub const TypeInfo = elemental.TypeInfo(Output) {
   .init = impl_init,
   .construct = null,
   .destroy = impl_destroy,
@@ -21,13 +21,14 @@ pub const TypeInfo = elemental.TypeInfo(Output, Params) {
 };
 
 /// Neutron's Elemental type definition
-pub const Type = elemental.Type(Output, Params, TypeInfo);
+pub const Type = elemental.Type(Output, TypeInfo);
 
 /// Implementation specific functions
 vtable: *const VTable,
 context: *Context,
 
-fn impl_init(params: Output.Params, allocator: std.mem.Allocator) !Output {
+fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Output {
+  const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
   _ = allocator;
   return .{
     .vtable = params.vtable,
@@ -35,11 +36,15 @@ fn impl_init(params: Output.Params, allocator: std.mem.Allocator) !Output {
   };
 }
 
-fn impl_destroy(self: *Output) void {
+fn impl_destroy(_self: *anyopaque) void {
+  const self = @ptrCast(*Output, @alignCast(@alignOf(Output), _self));
   self.context.unref();
 }
 
-fn impl_dupe(self: *Output, dest: *Output) !void {
+fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
+  const self = @ptrCast(*Output, @alignCast(@alignOf(Output), _self));
+  const dest = @ptrCast(*Output, @alignCast(@alignOf(Output), _dest));
+
   dest.vtable = self.vtable;
   dest.context = self.context.ref();
 }

@@ -15,7 +15,7 @@ pub const Params = struct {
 };
 
 /// Neutron's Elemental type information
-pub const TypeInfo = elemental.TypeInfo(Compositor, Params) {
+pub const TypeInfo = elemental.TypeInfo(Compositor) {
   .init = impl_init,
   .construct = null,
   .destroy = impl_destroy,
@@ -28,8 +28,9 @@ pub const Type = elemental.Type(Compositor, Params, TypeInfo);
 vtable: *const VTable,
 context: Context.Type,
 
-fn impl_init(params: Compositor.Params, allocator: std.mem.Allocator) !Compositor {
-  return .{
+fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Compositor {
+  const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
+  return Compositor {
     .vtable = params.vtable,
     .context = try Context.init(.{
       .vtable = params.vtable.context,
@@ -37,11 +38,16 @@ fn impl_init(params: Compositor.Params, allocator: std.mem.Allocator) !Composito
   };
 }
 
-fn impl_destroy(self: *Compositor) void {
+fn impl_destroy(_self: *anyopaque) void {
+  const self = @ptrCast(*Compositor, @alignCast(@alignOf(Compositor), _self));
+
   self.context.unref();
 }
 
-fn impl_dupe(self: *Compositor, dest: *Compositor) !void {
+fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
+  const self = @ptrCast(*Compositor, @alignCast(@alignOf(Compositor), _self));
+  const dest = @ptrCast(*Compositor, @alignCast(@alignOf(Compositor), _dest));
+
   dest.vtable = self.vtable;
   dest.context = try Context.init(.{
     .vtable = self.vtable.context,

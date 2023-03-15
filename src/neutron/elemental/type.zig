@@ -3,24 +3,19 @@ const Allocator = std.mem.Allocator;
 const Mutex = std.Thread.Mutex;
 
 /// Define type information
-pub fn TypeInfo(
-  /// Instance type
-  comptime T: type,
-  /// Parameter type
-  comptime P: type
-) type {
+pub fn TypeInfo(comptime T: type) type {
   return struct {
     /// Initialize method for type
-    init: fn (params: P, allocator: Allocator) anyerror!T,
+    init: fn (params: *anyopaque, allocator: Allocator) anyerror!T,
 
     /// Constructor method
-    construct: ?fn (self: *T, params: P) anyerror!void,
+    construct: ?fn (self: *anyopaque, params: *anyopaque) anyerror!void,
 
     /// Destroy method
-    destroy: ?fn (self: *T) void,
+    destroy: ?fn (self: *anyopaque) void,
 
     /// Duplication method
-    dupe: fn (self: *T, dest: *T) anyerror!void,
+    dupe: fn (self: *anyopaque, dest: *anyopaque) anyerror!void,
   };
 }
 
@@ -31,7 +26,7 @@ pub fn Type(
   /// Parameter type
   comptime P: type,
   /// Type information
-  comptime info: TypeInfo(T, P)
+  comptime info: TypeInfo(T)
 ) type {
   return struct {
     const Self = @This();
@@ -64,10 +59,10 @@ pub fn Type(
       const self = try allocator.?.create(Self);
       self.allocator = allocator.?;
       self.allocated = true;
-      self.instance = try info.init(params, self.allocator);
+      self.instance = try info.init(@ptrCast(*anyopaque, @alignCast(@alignOf(*P), @constCast(&params))), self.allocator);
 
       if (info.construct != null) {
-        try info.construct.?(&self.instance, params);
+        try info.construct.?(&self.instance, &params);
       }
       return self;
     }
@@ -88,11 +83,11 @@ pub fn Type(
         .allocator = allocator.?,
         .ref_count = 0,
         .ref_lock = .{},
-        .instance = try info.init(params, allocator.?),
+        .instance = try info.init(@ptrCast(*anyopaque, @alignCast(@alignOf(*P), @constCast(&params))), allocator.?),
       };
 
       if (info.construct != null) {
-        try info.construct.?(&self.instance, params);
+        try info.construct.?(&self.instance, &params);
       }
       return self;
     }

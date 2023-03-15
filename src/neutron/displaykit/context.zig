@@ -16,7 +16,7 @@ pub const Params = struct {
 };
 
 /// Neutron's Elemental type information
-pub const TypeInfo = elemental.TypeInfo(Context, Params) {
+pub const TypeInfo = elemental.TypeInfo(Context) {
   .init = impl_init,
   .construct = null,
   .destroy = null,
@@ -28,14 +28,19 @@ pub const Type = elemental.Type(Context, Params, TypeInfo);
 
 vtable: *const VTable,
 
-fn impl_init(params: Context.Params, allocator: std.mem.Allocator) !Context {
+fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Context {
+  const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
   _ = allocator;
+
   return .{
     .vtable = params.vtable,
   };
 }
 
-fn impl_dupe(self: *Context, dest: *Context) !void {
+fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
+  const self = @ptrCast(*Context, @alignCast(@alignOf(Context), _self));
+  const dest = @ptrCast(*Context, @alignCast(@alignOf(Context), _dest));
+
   dest.vtable = self.vtable;
 }
 

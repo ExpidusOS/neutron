@@ -15,7 +15,7 @@ comptime {
 pub const Params = struct {};
 
 /// Neutron's Elemental type information
-pub const TypeInfo = elemental.TypeInfo(WlrootsCompositor, Params) {
+pub const TypeInfo = elemental.TypeInfo(WlrootsCompositor) {
   .init = impl_init,
   .construct = null,
   .destroy = impl_destroy,
@@ -49,7 +49,7 @@ fn impl_list_views(ctx: *anyopaque) !*elemental.TypedList(View, View.Params, Vie
   return self.views.dupe();
 }
 
-fn impl_init(params: WlrootsCompositor.Params, allocator: std.mem.Allocator) !WlrootsCompositor {
+fn impl_init(params: *const anyopaque, allocator: std.mem.Allocator) !WlrootsCompositor {
   _ = params;
   return .{
     .outputs = try elemental.TypedList(Output, Output.Params, Output.TypeInfo).new(.{
@@ -64,11 +64,16 @@ fn impl_init(params: WlrootsCompositor.Params, allocator: std.mem.Allocator) !Wl
   };
 }
 
-fn impl_destroy(self: *WlrootsCompositor) void {
+fn impl_destroy(_self: *anyopaque) void {
+  const self = @ptrCast(*WlrootsCompositor, @alignCast(@alignOf(WlrootsCompositor), _self));
+
   self.compositor.unref();
 }
 
-fn impl_dupe(self: *WlrootsCompositor, dest: *WlrootsCompositor) !void {
+fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
+  const self = @ptrCast(*WlrootsCompositor, @alignCast(@alignOf(WlrootsCompositor), _self));
+  const dest = @ptrCast(*WlrootsCompositor, @alignCast(@alignOf(WlrootsCompositor), _dest));
+
   dest.compositor = try Compositor.init(.{
     .vtable = self.compositor.instance.vtable,
   }, self.getType().allocator);
