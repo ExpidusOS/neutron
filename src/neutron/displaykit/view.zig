@@ -10,11 +10,6 @@ fn impl_init(params: View.Params, allocator: std.mem.Allocator) !View {
   };
 }
 
-fn construct(self: *View, params: View.Params) !void {
-  self.vtable = params.vtable;
-  self.context = params.context.ref();
-}
-
 fn destroy(self: *View) void {
   self.context.unref();
 }
@@ -37,7 +32,7 @@ pub const View = struct {
   /// Neutron's Elemental type information
   pub const TypeInfo = elemental.TypeInfo(View, Params) {
     .init = impl_init,
-    .construct = construct,
+    .construct = null,
     .destroy = destroy,
     .dupe = dupe,
   };

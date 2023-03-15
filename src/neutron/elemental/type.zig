@@ -14,10 +14,10 @@ pub fn TypeInfo(
     init: fn (params: P, allocator: Allocator) anyerror!T,
 
     /// Constructor method
-    construct: fn (self: *T, params: P) anyerror!void,
+    construct: ?fn (self: *T, params: P) anyerror!void,
 
     /// Destroy method
-    destroy: fn (self: *T) void,
+    destroy: ?fn (self: *T) void,
 
     /// Duplication method
     dupe: fn (self: *T, dest: *T) anyerror!void,
@@ -71,8 +71,11 @@ pub fn Type(
       self.allocator = allocator.?;
       self.type_info = info;
       self.allocated = true;
+      self.instance = try info.init(params, self.allocator);
 
-      try info.construct(&self.instance, params);
+      if (info.construct != null) {
+        try info.construct.?(&self.instance, params);
+      }
       return self;
     }
 
@@ -87,7 +90,7 @@ pub fn Type(
         return Self.init(params, std.heap.page_allocator);
       }
 
-      return Self {
+      const self = Self {
         .allocated = false,
         .allocator = allocator.?,
         .type_info = info,
@@ -95,6 +98,11 @@ pub fn Type(
         .ref_lock = .{},
         .instance = try info.init(params, allocator.?),
       };
+
+      if (info.construct != null) {
+        try info.construct.?(&self.instance, params);
+      }
+      return self;
     }
 
     /// Duplicate the instance
@@ -122,8 +130,11 @@ pub fn Type(
       Mutex.lock(&self.ref_lock);
 
       if (self.ref_count == 0) {
+        if (info.destroy != null) {
+          info.destroy.?(&self.instance);
+        }
+
         defer {
-          info.destroy(&self.instance);
           if (self.allocated) self.allocator.destroy(self);
         }
       } else {

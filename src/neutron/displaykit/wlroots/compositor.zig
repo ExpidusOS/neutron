@@ -10,11 +10,13 @@ comptime {
   if (!config.use_wlroots) @compileError("Wlroots is not enabled, failed to import");
 }
 
+const context_vtable = Context.VTable {
+  .list_outputs = list_outputs,
+  .list_views = list_views,
+};
+
 const vtable = Compositor.VTable {
-  .context = .{
-    .list_outputs = list_outputs,
-    .list_views = list_views,
-  },
+  .context = &context_vtable,
 };
 
 fn list_outputs(ctx: *Context) !*elemental.TypedList(Output, Output.Params, Output.TypeInfo) {
@@ -29,7 +31,7 @@ fn list_views(ctx: *Context) !*elemental.TypedList(View, View.Params, View.TypeI
   return self.views.dupe();
 }
 
-fn init(params: WlrootsCompositor.Params, allocator: std.mem.Allocator) !WlrootsCompositor {
+fn impl_init(params: WlrootsCompositor.Params, allocator: std.mem.Allocator) !WlrootsCompositor {
   _ = params;
   return .{
     .outputs = try elemental.TypedList(Output, Output.Params, Output.TypeInfo).new(.{
@@ -39,28 +41,12 @@ fn init(params: WlrootsCompositor.Params, allocator: std.mem.Allocator) !Wlroots
       .list = null,
     }, allocator),
     .compositor = try Compositor.init(.{
-      .vtable = vtable,
+      .vtable = &vtable,
     }, allocator),
   };
 }
 
-fn construct(self: *WlrootsCompositor, params: WlrootsCompositor.Params) !void {
-  _ = params;
-
-  self.outputs = try elemental.TypedList(Output, Output.Params, Output.TypeInfo).new(.{
-    .list = null,
-  }, self.getType().allocator);
-
-  self.views = try elemental.TypedList(View, View.Params, View.TypeInfo).new(.{
-    .list = null,
-  }, self.getType().allocator);
-
-  self.compositor = try Compositor.init(.{
-    .vtable = vtable,
-  }, self.getType().allocator);
-}
-
-fn destroy(self: *WlrootsCompositor) void {
+fn impl_destroy(self: *WlrootsCompositor) void {
   self.compositor.unref();
 }
 
@@ -77,9 +63,9 @@ pub const WlrootsCompositor = struct {
 
   /// Neutron's Elemental type information
   pub const TypeInfo = elemental.TypeInfo(WlrootsCompositor, Params) {
-    .init = init,
-    .construct = construct,
-    .destroy = destroy,
+    .init = impl_init,
+    .construct = null,
+    .destroy = impl_destroy,
     .dupe = impl_dupe,
   };
 

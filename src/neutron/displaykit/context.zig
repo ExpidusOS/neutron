@@ -10,14 +10,6 @@ fn impl_init(params: Context.Params, allocator: std.mem.Allocator) !Context {
   };
 }
 
-fn construct(self: *Context, params: Context.Params) !void {
-  self.vtable = params.vtable;
-}
-
-fn destroy(self: *Context) void {
-  _ = self;
-}
-
 fn impl_dupe(self: *Context, dest: *Context) !void {
   dest.vtable = self.vtable;
 }
@@ -34,14 +26,14 @@ pub const Context = struct {
 
   /// Instance creation parameters
   pub const Params = struct {
-    vtable: VTable
+    vtable: *const VTable
   };
 
   /// Neutron's Elemental type information
   pub const TypeInfo = elemental.TypeInfo(Context, Params) {
     .init = impl_init,
-    .construct = construct,
-    .destroy = destroy,
+    .construct = null,
+    .destroy = null,
     .dupe = impl_dupe,
   };
 
@@ -49,7 +41,7 @@ pub const Context = struct {
   pub const Type = elemental.Type(Context, Params, TypeInfo);
 
   /// Implementation specific functions
-  vtable: VTable,
+  vtable: *const VTable,
 
   /// Creates a new instance of the DisplayKit context
   pub fn new(params: Params, allocator: ?std.mem.Allocator) !*Context {

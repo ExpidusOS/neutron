@@ -11,14 +11,7 @@ fn impl_init(params: Compositor.Params, allocator: std.mem.Allocator) !Composito
   };
 }
 
-fn construct(self: *Compositor, params: Compositor.Params) !void {
-  self.vtable = params.vtable;
-  self.context = try Context.init(.{
-    .vtable = params.vtable.context,
-  }, self.getType().allocator);
-}
-
-fn destroy(self: *Compositor) void {
+fn impl_destroy(self: *Compositor) void {
   self.context.unref();
 }
 
@@ -36,26 +29,26 @@ pub const Compositor = struct {
   /// Implementation specific functions
   pub const VTable = struct {
     /// Implementation specific functions for the context
-    context: Context.VTable,
+    context: *const Context.VTable,
   };
 
   /// Instance creation parameters
   pub const Params = struct {
-    vtable: VTable
+    vtable: *const VTable
   };
 
   /// Neutron's Elemental type information
   pub const TypeInfo = elemental.TypeInfo(Compositor, Params) {
     .init = impl_init,
-    .construct = construct,
-    .destroy = destroy,
+    .construct = null,
+    .destroy = impl_destroy,
     .dupe = impl_dupe,
   };
 
   /// Neutron's Elemental type definition
   pub const Type = elemental.Type(Compositor, Params, TypeInfo);
 
-  vtable: VTable,
+  vtable: *const VTable,
   context: Context.Type,
 
   /// Creates a new instance of the DisplayKit compositor
