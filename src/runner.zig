@@ -81,5 +81,5 @@ pub fn main() !void {
   const compositor = try neutron.displaykit.Wlroots.Compositor.new(.{}, null);
   defer compositor.unref();
 
-  std.debug.print("{s}\n", .{path});
+  std.debug.print("{s} {}\n", .{path, compositor});
 }

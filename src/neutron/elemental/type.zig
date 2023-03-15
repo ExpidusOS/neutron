@@ -36,16 +36,10 @@ pub fn Type(
   return struct {
     const Self = @This();
 
-    /// Type information used to create this type
-    pub const type_info = info;
-
     allocated: bool,
 
     /// Memory allocator used for the instance
     allocator: Allocator,
-
-    /// Type information used to create this type
-    comptime type_info: TypeInfo(T, P) = type_info,
 
     /// Number of references which have been created
     ref_count: i32,
@@ -69,7 +63,6 @@ pub fn Type(
 
       const self = try allocator.?.create(Self);
       self.allocator = allocator.?;
-      self.type_info = info;
       self.allocated = true;
       self.instance = try info.init(params, self.allocator);
 
@@ -93,7 +86,6 @@ pub fn Type(
       const self = Self {
         .allocated = false,
         .allocator = allocator.?,
-        .type_info = info,
         .ref_count = 0,
         .ref_lock = .{},
         .instance = try info.init(params, allocator.?),
@@ -109,7 +101,6 @@ pub fn Type(
     pub fn dupe(self: *Self) !*Self {
       const dest = try self.allocator.create(Self);
       dest.allocator = self.allocator;
-      dest.type_info = self.type_info;
       dest.allocated = true;
 
       try info.dupe(&self.instance, &dest.instance);
