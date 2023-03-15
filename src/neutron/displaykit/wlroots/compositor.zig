@@ -11,6 +11,8 @@ comptime {
   if (!config.use_wlroots) @compileError("Wlroots is not enabled, failed to import");
 }
 
+const wlroots = @import("wlroots");
+
 /// Instance creation parameters
 pub const Params = struct {};
 

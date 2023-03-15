@@ -39,8 +39,8 @@
           "os-specific/linux/zig/zig-wayland" = pkgs.fetchFromGitHub {
             owner = "ExpidusOS";
             repo = "zig-wayland";
-            rev = "1e45c6cce14836a1ceeee11cb3f4da6c5b02cf93";
-            sha256 = "sha256-Hz2GkH0MBDnYPdyox6BQ9bUvSfjL+MzeCszNylWcbug=";
+            rev = "662e0e5555fb52d9d6b01152f2cbe167763e783c";
+            sha256 = "sha256-V9YF1NRl0KM6EYwP0wjH3qIpJhnCrNAWwfLD9I8EPHE=";
           };
           "os-specific/linux/zig/zig-wlroots" = pkgs.fetchFromGitHub {
             owner = "ExpidusOS";
@@ -56,14 +56,42 @@
             sha256 = "sha256-ej4r5LGsTqhQkw490yqjiTOGk+jPMJfUH1b/eUmvt20=";
           };
         };
+
+        version = "git+${self.shortRev or "dirty"}";
+
+        buildFlags = [
+          "-Dflutter-engine=${pkgs.flutter-engine}/lib/flutter/out/release"
+          "-Dtarget=${pkgs.targetPlatform.system}"
+        ];
+
+        buildPhase = pkgs.writeShellScriptBin "expidus-neutron-${version}-build.sh" ''
+          ${optionalString (pkgs.wayland.meta.available) ''
+            export PKG_CONFIG_PATH_FOR_BUILD=${pkgs.wayland.dev}/lib/pkgconfig:$PKG_CONFIG_PATH_FOR_BUILD
+          ''}
+
+          mkdir -p $out/lib
+          zig build $buildFlags --prefix $out \
+            --prefix-lib-dir $out/lib \
+
+          mkdir -p $devdocs/share/docs/
+          mv $out/docs $devdocs/share/docs/neutron
+
+          patchelf --replace-needed libneutron.so.0 $out/lib/libneutron.so.0 $out/bin/neutron-runner
+          patchelf --replace-needed libc.so ${pkgs.stdenv.cc.libc}/lib/libc.so.6 $out/bin/neutron-runner
+          patchelf --set-interpreter ${pkgs.stdenv.cc.libc}/lib/ld-linux-${replaceStrings ["_"] ["-"] pkgs.targetPlatform.parsed.cpu.name}.so.2 $out/bin/neutron-runner
+        '';
       in rec {
         packages.default = pkgs.stdenv.mkDerivation {
           pname = "expidus-neutron";
-          version = "git+${self.shortRev or "dirty"}";
+          inherit version;
 
           src = cleanSource self;
 
           outputs = [ "out" "devdocs" ];
+
+          buildFlags = buildFlags ++ [
+            "--cache-dir $NIX_BUILD_TOP/cache"
+          ];
 
           nativeBuildInputs = with pkgs.buildPackages; [
             cmake
@@ -79,11 +107,6 @@
 
           strictDeps = true;
           depsBuildBuild = [ pkgs.buildPackages.pkg-config ];
-
-          buildFlags = [
-            "-Dflutter-engine=${pkgs.flutter-engine}/lib/flutter/out/release"
-            "-Dtarget=${pkgs.targetPlatform.system}"
-          ];
 
           buildInputs = with pkgs;
             optionals (wayland.meta.available) [ wayland-protocols wayland ]
@@ -102,26 +125,16 @@
 
           installPhase = ''
             export XDG_CACHE_HOME=$NIX_BUILD_TOP/.cache
-            ${optionalString (pkgs.wayland.meta.available) ''
-              export PKG_CONFIG_PATH_FOR_BUILD=${pkgs.wayland.dev}/lib/pkgconfig:$PKG_CONFIG_PATH_FOR_BUILD
-            ''}
-
-            mkdir -p $out/lib
-            zig build $buildFlags --prefix $out \
-              --prefix-lib-dir $out/lib \
-              --cache-dir $NIX_BUILD_TOP/cache
-
-            mkdir -p $devdocs/share/docs/
-            mv $out/docs $devdocs/share/docs/neutron
-
-            patchelf --replace-needed libneutron.so.0 $out/lib/libneutron.so.0 $out/bin/neutron-runner
+            sh ${buildPhase}/bin/expidus-neutron-${version}-build.sh
           '';
         };
 
         legacyPackages = pkgs;
 
         devShells.default = pkgs.mkShell {
-          inherit (packages.default) pname version name buildFlags;
+          inherit (packages.default) pname version name;
+          inherit buildFlags;
+
           packages = packages.default.buildInputs ++ packages.default.nativeBuildInputs ++ [
             pkgs.flutter-engine pkgs.flutter pkgs.gdb
           ];
@@ -145,12 +158,13 @@
 
           shellHook = ''
             export rootOut=$(dirname $out)
+            export devdocs=$rootOut/devdocs
             export src=$(dirname $rootOut)
 
             export LOCAL_ENGINE=$FLUTTER_ENGINE/out/host_debug
 
             alias flutter="flutter --local-engine $LOCAL_ENGINE"
-            alias buildPhase="mkdir -p $out/lib && zig build $buildFlags --prefix $out --prefix-lib-dir $out/lib"
+            alias buildPhase="sh ${buildPhase}/bin/expidus-neutron-${version}-build.sh"
           '';
         };
 
