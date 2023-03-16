@@ -124,11 +124,11 @@ pub const Neutron = struct {
 
     compile.linkLibC();
 
-    var it = vendor.iterator();
-    while (it.next()) |item| {
-      compile.linkLibrary(item.value_ptr.lib);
-      compile.addModule(item.key_ptr.*, item.value_ptr.module);
-      item.value_ptr.lib.install();
+    if (vendor.wayland != null) {
+      compile.linkLibrary(vendor.wayland.?.libserver);
+      compile.addModule("wayland", vendor.wayland.?.module);
+
+      vendor.wayland.?.libserver.install();
     }
   }
 };

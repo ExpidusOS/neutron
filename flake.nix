@@ -36,6 +36,12 @@
         ];
 
         vendor = {
+          "libs/expat" = pkgs.fetchFromGitHub {
+            owner = "libexpat";
+            repo = "libexpat";
+            rev = "654d2de0da85662fcc7644a7acd7c2dd2cfb21f0";
+            sha256 = "sha256-nX8VSlqpX/SVE4fpPLOzj3s/D3zmTC9pObIYfkQq9RA=";
+          };
           "os-specific/linux/zig/zig-wayland" = pkgs.fetchFromGitHub {
             owner = "ExpidusOS";
             repo = "zig-wayland";
@@ -71,7 +77,7 @@
 
           mkdir -p $out/lib
           zig build $buildFlags --prefix $out \
-            --prefix-lib-dir $out/lib \
+            --prefix-lib-dir $out/lib $@
 
           mkdir -p $devdocs/share/docs/
           mv $out/docs $devdocs/share/docs/neutron
@@ -104,10 +110,7 @@
           strictDeps = true;
           depsBuildBuild = [ pkgs.buildPackages.pkg-config ];
 
-          buildInputs = with pkgs;
-            optionals (wayland.meta.available) [ wayland-protocols wayland ]
-            ++ optionals (wlroots.meta.available) [ wlroots ]
-            ++ optional (vulkan-loader.meta.available) vulkan-loader;
+          buildInputs = with pkgs; optionals (wayland.meta.available) [ wayland-protocols wayland ];
 
           configurePhase = ''
             ${concatStrings (attrValues (mapAttrs (path: src: ''
@@ -160,7 +163,10 @@
             export LOCAL_ENGINE=$FLUTTER_ENGINE/out/host_debug
 
             alias flutter="flutter --local-engine $LOCAL_ENGINE"
-            alias buildPhase="sh ${buildPhase}/bin/expidus-neutron-${version}-build.sh"
+
+            function buildPhase {
+              ${buildPhase}/bin/expidus-neutron-${version}-build.sh $@
+            }
           '';
         };
 

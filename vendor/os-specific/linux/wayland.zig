@@ -1,13 +1,20 @@
-const VendorEntry = @import("../../../vendor.zig").VendorEntry;
 const std = @import("std");
 const Build = std.Build;
 const ScanProtocolsStep = @import("zig/zig-wayland/build.zig").ScanProtocolsStep;
+const Expat = @import("../../expat.zig");
+const Wayland = @This();
 
 const version = std.builtin.Version {
   .major = 1,
   .minor = 21,
   .patch = 0,
 };
+
+scanner: *ScanProtocolsStep,
+module: *Build.Module,
+scanner_exec: *Build.CompileStep,
+libclient: *Build.CompileStep,
+libserver: *Build.CompileStep,
 
 fn getPath(comptime suffix: []const u8) []const u8 {
   if (suffix[0] != '/') @compileError("path requires an absolute path!");
@@ -17,8 +24,45 @@ fn getPath(comptime suffix: []const u8) []const u8 {
   };
 }
 
-fn initScanner(b: *Build) *ScanProtocolsStep {
-  const scanner = ScanProtocolsStep.create(b);
+fn getWaylandScanner(b: *Build) ![]const u8 {
+  return std.mem.trim(u8, try b.exec(&[_][]const u8 {
+    "pkg-config", "--variable=wayland_scanner", "wayland-scanner"
+  }), &std.ascii.whitespace);
+}
+
+fn getDir(b: *Build) ![]const u8 {
+  const subpath = [_][]const u8 {
+    "neutron", "vendor", "os-specific", "linux", "wayland",
+  };
+
+  const path = try b.cache_root.join(b.allocator, &subpath);
+  try b.cache_root.handle.makePath("neutron/vendor/os-specific/linux/wayland");
+  return path;
+}
+
+pub const WaylandOptions = struct {
+  builder: *Build,
+  target: std.zig.CrossTarget,
+  optimize: std.builtin.Mode
+};
+
+pub fn init(options: WaylandOptions) !Wayland {
+  const scanner_exec = options.builder.addExecutable(.{
+    .name = "wayland-scanner",
+    .root_source_file = null,
+    .version = null,
+    .target = std.zig.CrossTarget.fromTarget(@import("builtin").target),
+    .optimize = @import("builtin").mode,
+  });
+
+  initCS(scanner_exec);
+  Expat.init(scanner_exec.builder, scanner_exec.target, scanner_exec.optimize).link(scanner_exec);
+
+  scanner_exec.addCSourceFiles(&[_][]const u8 {
+    getPath("/src/scanner.c"),
+  }, &[_][]const u8{});
+
+  const scanner = ScanProtocolsStep.create(options.builder);
   scanner.addSystemProtocol("stable/xdg-shell/xdg-shell.xml");
 
   scanner.generate("wl_compositor", 4);
@@ -28,13 +72,66 @@ fn initScanner(b: *Build) *ScanProtocolsStep {
   scanner.generate("wl_seat", 7);
   scanner.generate("wl_data_device_manager", 3);
   scanner.generate("xdg_wm_base", 2);
-  return scanner;
+
+  const module = options.builder.addModule("wayland", .{
+    .source_file = .{
+      .generated = &scanner.result,
+    }
+  });
+
+  const client = options.builder.addSharedLibrary(.{
+    .name = "wayland-client",
+    .root_source_file = .{
+      .generated = &scanner.result
+    },
+    .version = version,
+    .target = options.target,
+    .optimize = options.optimize,
+  });
+
+  try initLib(scanner, scanner_exec, client, false);
+
+  client.addCSourceFiles(&[_][]const u8 {
+    getPath("/src/wayland-client.c")
+  }, &[_][]const u8{});
+
+  const server = options.builder.addSharedLibrary(.{
+    .name = "wayland-server",
+    .root_source_file = .{
+      .generated = &scanner.result
+    },
+    .version = version,
+    .target = options.target,
+    .optimize = options.optimize,
+  });
+
+  server.addCSourceFiles(&[_][]const u8 {
+    getPath("/src/event-loop.c"),
+    getPath("/src/wayland-shm.c"),
+    getPath("/src/wayland-server.c")
+  }, &[_][]const u8{});
+
+  try initLib(scanner, scanner_exec, server, true);
+
+  return .{
+    .scanner = scanner,
+    .scanner_exec = scanner_exec,
+    .module = module,
+    .libclient = client,
+    .libserver = server,
+  };
 }
 
-fn init(lib: *Build.CompileStep) void {
-  lib.addIncludePath(getPath("/src"));
+fn initCS(cs: *Build.CompileStep) void {
+  cs.linkLibC();
 
-  lib.addConfigHeader(lib.builder.addConfigHeader(.{
+  cs.addConfigHeader(cs.builder.addConfigHeader(.{
+    .style = .blank,
+  }, .{}));
+
+  cs.addIncludePath(getPath("/src"));
+
+  cs.addConfigHeader(cs.builder.addConfigHeader(.{
     .style = .blank,
     .include_path = "wayland-version.h",
   }, .{
@@ -44,73 +141,67 @@ fn init(lib: *Build.CompileStep) void {
     .WAYLAND_VERSION = "1.21.0",
   }));
 
-  lib.addConfigHeader(lib.builder.addConfigHeader(.{
-    .style = .blank,
-  }, .{}));
+  cs.addCSourceFiles(&[_][]const u8 {
+    getPath("/src/wayland-util.c"),
+  }, &[_][]const u8{});
 }
 
-pub fn initClient(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) VendorEntry {
-  var scanner = initScanner(b);
+fn initLib(scanner: *ScanProtocolsStep, scanner_exec: *Build.CompileStep, lib: *Build.CompileStep, comptime server: bool) !void {
+  initCS(lib);
 
-  const lib = b.addSharedLibrary(.{
-    .name = "wayland-client",
-    .root_source_file = .{
-      .generated = &scanner.result
-    },
-    .version = version,
-    .target = target,
-    .optimize = optimize,
-  });
-  init(lib);
+  const dir = try getDir(lib.builder);
 
-  lib.linkLibC();
-  lib.step.dependOn(&scanner.step);
-  scanner.addCSource(lib);
-
-  const module = b.addModule("wayland-client", .{
-    .source_file = .{
-      .generated = &scanner.result,
-    }
+  const protocol = lib.builder.addRunArtifact(scanner_exec);
+  protocol.addArgs(&[_][]const u8 {
+     "-s", "public-code",
+    getPath("/protocol/wayland.xml"),
   });
 
-  return .{
-    .lib = lib,
-    .module = module,
+  lib.addCSourceFileSource(.{
+    .source = protocol.addOutputFileArg("wayland-protocol.c"),
+    .args = &[_][]const u8 {},
+  });
+
+  const core_header = lib.builder.addRunArtifact(scanner_exec);
+  const core_header_out = Build.FileSource {
+    .path = lib.builder.pathJoin(&[_][]const u8 {
+      dir,
+      (if (server) "wayland-server-protocol-core.h" else "wayland-client-protocol-core.h")
+    })
   };
-}
 
-pub fn initServer(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) VendorEntry {
-  var scanner = initScanner(b);
-
-  const lib = b.addSharedLibrary(.{
-    .name = "wayland-server",
-    .root_source_file = .{
-      .generated = &scanner.result
-    },
-    .version = version,
-    .target = target,
-    .optimize = optimize,
+  core_header.addArgs(&[_][]const u8 {
+    "-s", (if (server) "server-header" else "client-header"), "-c",
+    getPath("/protocol/wayland.xml"),
+    core_header_out.path
   });
-  init(lib);
+
+  lib.addIncludePath(dir);
+
+  const header = lib.builder.addRunArtifact(scanner_exec);
+
+  const header_out = Build.FileSource {
+    .path = lib.builder.pathJoin(&[_][]const u8 {
+      dir,
+      (if (server) "wayland-server-protocol.h" else "wayland-client-protocol.h")
+    })
+  };
+
+  header.addArgs(&[_][]const u8 {
+    "-s", (if (server) "server-header" else "client-header"),
+    getPath("/protocol/wayland.xml"),
+    header_out.path
+  });
 
   lib.addCSourceFiles(&[_][]const u8 {
-    getPath("/src/event-loop.c"),
-    getPath("/src/wayland-shm.c"),
-    getPath("/src/wayland-server.c")
+    getPath("/src/connection.c"),
+    getPath("/src/wayland-os.c"),
   }, &[_][]const u8{});
 
-  lib.linkLibC();
+  scanner.step.dependOn(&scanner_exec.step);
+  lib.step.dependOn(&scanner_exec.step);
   lib.step.dependOn(&scanner.step);
-  scanner.addCSource(lib);
 
-  const module = b.addModule("wayland-server", .{
-    .source_file = .{
-      .generated = &scanner.result,
-    }
-  });
-
-  return .{
-    .lib = lib,
-    .module = module,
-  };
+  lib.step.dependOn(&core_header.step);
+  lib.step.dependOn(&header.step);
 }
