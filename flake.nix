@@ -75,10 +75,6 @@
 
           mkdir -p $devdocs/share/docs/
           mv $out/docs $devdocs/share/docs/neutron
-
-          patchelf --replace-needed libneutron.so.0 $out/lib/libneutron.so.0 $out/bin/neutron-runner
-          patchelf --replace-needed libc.so ${pkgs.stdenv.cc.libc}/lib/libc.so.6 $out/bin/neutron-runner
-          patchelf --set-interpreter ${pkgs.stdenv.cc.libc}/lib/ld-linux-${replaceStrings ["_"] ["-"] pkgs.targetPlatform.parsed.cpu.name}.so.2 $out/bin/neutron-runner
         '';
       in rec {
         packages.default = pkgs.stdenv.mkDerivation {

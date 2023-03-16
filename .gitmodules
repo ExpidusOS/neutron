@@ -7,3 +7,6 @@
 [submodule "vendor/os-specific/linux/zig/zig-wayland"]
 	path = vendor/os-specific/linux/zig/zig-wayland
 	url = https://github.com/ExpidusOS/zig-wayland
+[submodule "vendor/os-specific/linux/libs/wayland"]
+	path = vendor/os-specific/linux/libs/wayland
+	url = https://gitlab.freedesktop.org/wayland/wayland

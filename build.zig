@@ -22,8 +22,6 @@ pub const NeutronOptions = struct {
   build_runner: bool,
   flutter_engine: ?[]const u8,
 
-  static_lib: bool,
-  shared_lib: bool,
   use_wlroots: bool,
   docs: bool,
   target: std.zig.CrossTarget,
@@ -36,8 +34,6 @@ pub const NeutronOptions = struct {
       .builder = b,
       .build_runner = !is_wasm,
       .flutter_engine = null,
-      .static_lib = true,
-      .shared_lib = true,
       .use_wlroots = target.isLinux(),
       .docs = true,
       .target = target,
@@ -69,225 +65,71 @@ pub const NeutronOptions = struct {
 
 pub const Neutron = struct {
   options: NeutronOptions,
-  config: *Build.OptionsStep,
-  docs: ?*std.build.CompileStep,
-  shared_lib: ?*std.build.CompileStep,
-  static_lib: ?*std.build.CompileStep,
-  runner: ?*std.build.CompileStep,
-  module: *Build.Module,
+  lib: *Build.CompileStep,
+  docs: ?*Build.CompileStep,
   step: *Build.Step,
 
   pub fn new(options: NeutronOptions) !Neutron {
-    const config = options.builder.addOptions();
+    const b = options.builder;
 
-    var self = Neutron{
+    var self = Neutron {
       .options = options,
-      .config = config,
-      .docs = null,
-      .shared_lib = null,
-      .static_lib = null,
-      .runner = null,
-      .module = options.builder.addModule("neutron", .{
-        .source_file = .{
-          .path = getPath("/src/neutron.zig"),
-        }
-      }),
-      .step = options.builder.step("build-neutron", "Build and install the Neutron Runtime & API"),
-    };
-
-    const is_wasm = options.target.getCpu().arch.isWasm();
-
-    const version = std.builtin.Version{
-      .major = 0,
-      .minor = 1,
-      .patch = 0,
-    };
-
-    config.addOption(?[]const u8, "flutter_engine", options.flutter_engine);
-    config.addOption(bool, "use_wlroots", options.use_wlroots);
-    config.addOption(std.builtin.Version, "version", version);
-
-    for (try self.getDependencies(null)) |dep| {
-      try self.module.dependencies.put(dep.name, dep.module);
-    }
-
-    if (!is_wasm) {
-      if (options.flutter_engine == null) {
-        std.debug.print("error: must set \"flutter-engine\" build option\n", .{});
-        std.process.exit(1);
-      }
-    }
-
-    if (options.docs) {
-      self.docs = options.builder.addTest(.{
+      .lib = b.addSharedLibrary(.{
         .name = "neutron",
-        .root_source_file = self.module.source_file,
-        .target = options.target,
-        .optimize = options.optimize,
-      });
-
-      self.docs.?.step.dependOn(&self.config.step);
-      self.step.dependOn(&self.docs.?.step);
-
-      for (try self.getDependencies(self.docs.?)) |dep| {
-        self.docs.?.addModule(dep.name, dep.module);
-      }
-
-      self.docs.?.emit_docs = .{
-        .emit_to = self.options.builder.pathJoin(&[_][]const u8 { self.options.builder.install_path, "docs" })
-      };
-    }
-
-    if (options.shared_lib) {
-      self.shared_lib = options.builder.addSharedLibrary(.{
-        .name = "neutron",
-        .root_source_file = self.module.source_file,
-        .version = version,
-        .target = options.target,
-        .optimize = options.optimize,
-      });
-
-      self.makeCompileStep(self.shared_lib.?);
-
-      for (try self.getDependencies(self.shared_lib.?)) |dep| {
-        self.shared_lib.?.addModule(dep.name, dep.module);
-      }
-    }
-
-    if (options.static_lib) {
-      self.static_lib = options.builder.addStaticLibrary(.{
-        .name = "neutron",
-        .root_source_file = self.module.source_file,
-        .target = options.target,
-        .optimize = options.optimize,
-      });
-
-      self.makeCompileStep(self.static_lib.?);
-
-      for (try self.getDependencies(self.static_lib.?)) |dep| {
-        self.static_lib.?.addModule(dep.name, dep.module);
-      }
-    }
-
-    if (options.build_runner) {
-      self.runner = options.builder.addExecutable(.{
-        .name = "neutron-runner",
         .root_source_file = .{
-          .path = getPath("/src/runner.zig")
+          .path = getPath("/src/neutron.zig"),
         },
-        .version = version,
+        .version = .{
+          .major = 0,
+          .minor = 1,
+          .patch = 0
+        },
+        .target = options.target,
+        .optimize = options.optimize,
+      }),
+      .docs = null,
+      .step = b.step("neutron", "Build and install all of Neutron"),
+    };
+
+    try self.includeDependencies(self.lib);
+    self.lib.install();
+    self.step.dependOn(&self.lib.step);
+
+    if (self.options.docs) {
+      const docs = b.addTest(.{
+        .name = "neutron-docs",
+        .root_source_file = self.lib.root_src.?,
+        .version = self.lib.version,
         .target = options.target,
         .optimize = options.optimize,
       });
 
-      self.runner.?.addModule("neutron", self.module);
+      try self.includeDependencies(docs);
 
-      if (options.shared_lib) {
-        self.runner.?.linkLibrary(self.shared_lib.?);
-      } else if (options.static_lib) {
-        self.runner.?.linkLibrary(self.static_lib.?);
-      }
+      docs.emit_docs = .{
+        .emit_to = b.pathJoin(&[_][]const u8 { b.install_path, "docs" })
+      };
 
-      self.runner.?.addModule("clap", Neutron.makeModule(options.builder, "clap", "third-party/zig/zig-clap/clap.zig"));
-      self.makeCompileStep(self.runner.?);
+      self.docs = docs;
+      self.step.dependOn(&docs.step);
     }
-
     return self;
   }
 
-  fn makeModule(b: *Build, name: []const u8, comptime path: []const u8) *Build.Module {
-    return b.addModule(name, .{
-      .source_file = .{
-        .path = getVendorPath(path),
-      },
-    });
-  }
+  fn includeDependencies(self: Neutron, compile: *Build.CompileStep) !void {
+    const vendor = try @import("vendor.zig").init(self.options.builder, .{
+      .use_wlroots = self.options.use_wlroots,
+      .flutter_engine = self.options.flutter_engine.?,
+    }, self.options.target, self.options.optimize);
 
-  fn getDependencies(self: Neutron, comp: ?*std.build.CompileStep) ![]const Build.ModuleDependency {
-    var len: u32 = 1;
+    compile.linkLibC();
 
-    if (self.options.use_wlroots) {
-      len += 1;
+    var it = vendor.iterator();
+    while (it.next()) |item| {
+      compile.linkLibrary(item.value_ptr.lib);
+      compile.addModule(item.key_ptr.*, item.value_ptr.module);
+      item.value_ptr.lib.install();
     }
-
-    var deps = try self.options.builder.allocator.alloc(Build.ModuleDependency, len);
-
-    var i: u32 = 0;
-    deps[i] = .{
-      .name = "neutron-config",
-      .module = self.config.createModule(),
-    };
-    i += 1;
-
-    if (self.options.use_wlroots) {
-      const ScanProtocolsStep = @import("vendor/os-specific/linux/zig/zig-wayland/build.zig").ScanProtocolsStep;
-
-      const scanner = ScanProtocolsStep.create(self.options.builder);
-      scanner.addSystemProtocol("stable/xdg-shell/xdg-shell.xml");
-
-      deps[i] = .{
-        .name = "wlroots",
-        .module = self.options.builder.addModule("wlroots", .{
-          .source_file = .{
-            .path = getVendorPath("os-specific/linux/zig/zig-wlroots/src/wlroots.zig"),
-          },
-          .dependencies = &[_] Build.ModuleDependency{
-            .{
-              .name = "wayland",
-              .module = self.options.builder.addModule("wayland", .{
-                .source_file = .{
-                  .generated = &scanner.result,
-                },
-              }),
-            },
-            .{
-              .name = "xkbcommon",
-              .module = self.options.builder.addModule("xkbcommon", .{
-                .source_file = .{
-                  .path = getVendorPath("os-specific/linux/zig/zig-wlroots/tinywl/deps/zig-xkbcommon/src/xkbcommon.zig"),
-                },
-              }),
-            },
-            .{
-              .name = "pixman",
-              .module = self.options.builder.addModule("pixman", .{
-                .source_file = .{
-                  .path = getVendorPath("os-specific/linux/zig/zig-wlroots/tinywl/deps/zig-pixman/pixman.zig"),
-                },
-              })
-            },
-          },
-        }),
-      };
-      i += 1;
-
-      if (comp != null) {
-        comp.?.linkLibC();
-        comp.?.linkSystemLibraryNeededPkgConfigOnly("wayland-server");
-        comp.?.linkSystemLibraryNeededPkgConfigOnly("wlroots");
-        comp.?.step.dependOn(&scanner.step);
-        scanner.addCSource(comp.?);
-      }
-    }
-
-    return deps;
-  }
-
-  fn makeCompileStep(self: Neutron, comp: *std.build.CompileStep) void {
-    if (self.options.flutter_engine != null) {
-      const is_wasm = comp.target.getCpu().arch.isWasm();
-
-      comp.addIncludePath(self.options.flutter_engine.?);
-
-      if (!is_wasm) {
-        comp.addLibraryPath(self.options.flutter_engine.?);
-        comp.linkSystemLibrary("flutter_engine");
-      }
-    }
-
-    comp.install();
-    comp.step.dependOn(&self.config.step);
-    self.step.dependOn(&comp.step);
   }
 };
 
