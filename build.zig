@@ -124,6 +124,8 @@ pub const Neutron = struct {
 
     compile.linkLibC();
 
+    vendor.libffi.install();
+
     if (vendor.wayland != null) {
       compile.linkLibrary(vendor.wayland.?.libserver);
       compile.addModule("wayland", vendor.wayland.?.module);

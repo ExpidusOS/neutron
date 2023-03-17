@@ -67,7 +67,7 @@
 
         buildFlags = [
           "-Dflutter-engine=${pkgs.flutter-engine}/lib/flutter/out/release"
-          "-Dtarget=${pkgs.targetPlatform.system}"
+          "-Dtarget=${pkgs.targetPlatform.system}-gnu"
         ];
 
         buildPhase = pkgs.writeShellScriptBin "expidus-neutron-${version}-build.sh" ''

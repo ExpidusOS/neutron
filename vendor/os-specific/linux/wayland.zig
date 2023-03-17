@@ -2,6 +2,7 @@ const std = @import("std");
 const Build = std.Build;
 const ScanProtocolsStep = @import("zig/zig-wayland/build.zig").ScanProtocolsStep;
 const Expat = @import("../../expat.zig");
+const Libffi = @import("../../libffi.zig");
 const Wayland = @This();
 
 const version = std.builtin.Version {
@@ -41,6 +42,7 @@ fn getDir(b: *Build) ![]const u8 {
 }
 
 pub const WaylandOptions = struct {
+  libffi: *Libffi,
   builder: *Build,
   target: std.zig.CrossTarget,
   optimize: std.builtin.Mode
@@ -89,6 +91,8 @@ pub fn init(options: WaylandOptions) !Wayland {
     .optimize = options.optimize,
   });
 
+  options.libffi.link(client);
+
   try initLib(scanner, scanner_exec, client, false);
 
   client.addCSourceFiles(&[_][]const u8 {
@@ -104,6 +108,8 @@ pub fn init(options: WaylandOptions) !Wayland {
     .target = options.target,
     .optimize = options.optimize,
   });
+
+  options.libffi.link(server);
 
   server.addCSourceFiles(&[_][]const u8 {
     getPath("/src/event-loop.c"),
