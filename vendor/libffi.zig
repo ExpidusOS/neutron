@@ -136,7 +136,7 @@ pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) 
       b.fmt("-I{s}", .{ getPath("/../ffi") }),
       b.fmt("-I{s}", .{ dir }),
       b.fmt("-I{s}", .{ target_dir }),
-      "-c", "-emit-llvm",
+      "-c", "-emit-llvm-bc",
     });
 
     const llvm_clang_path = if (target.getOsTag() == .windows) getPath("/src/x86/win64.S") else getPath("/src/x86/unix64.S");

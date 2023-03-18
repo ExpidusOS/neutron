@@ -35,6 +35,11 @@
           })
         ];
 
+        stdenv = pkgs.clang15Stdenv;
+        mkShell = pkgs.mkShell.override {
+          inherit stdenv;
+        };
+
         vendor = {
           "libs/expat" = pkgs.fetchFromGitHub {
             owner = "libexpat";
@@ -83,7 +88,7 @@
           mv $out/docs $devdocs/share/docs/neutron
         '';
       in rec {
-        packages.default = pkgs.stdenv.mkDerivation {
+        packages.default = stdenv.mkDerivation {
           pname = "expidus-neutron";
           inherit version;
 
@@ -98,11 +103,11 @@
           nativeBuildInputs = with pkgs.buildPackages; [
             cmake
             ninja
-            clang
             zig
             pkg-config
             flutter-engine
             patchelf
+            llvmPackages_15.clang
           ] ++ optionals (pkgs.wlroots.meta.available) [
             pkgs.buildPackages.wayland-scanner
           ];
@@ -130,15 +135,16 @@
 
         legacyPackages = pkgs;
 
-        devShells.default = pkgs.mkShell {
+        devShells.default = mkShell {
           inherit (packages.default) pname version name;
           inherit buildFlags;
 
-          packages = packages.default.buildInputs ++ packages.default.nativeBuildInputs ++ [
-            pkgs.flutter-engine pkgs.flutter pkgs.gdb
-          ];
+          packages = packages.default.buildInputs ++ packages.default.nativeBuildInputs ++ (with pkgs; [
+            flutter-engine flutter gdb
+            llvmPackages_15.libllvm
+          ]);
 
-          FLUTTER_ENGINE = pkgs.stdenv.mkDerivation {
+          FLUTTER_ENGINE = stdenv.mkDerivation {
             pname = "flutter-engine";
             inherit (pkgs.flutter-engine.debug) src version;
 
