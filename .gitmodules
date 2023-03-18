@@ -16,3 +16,6 @@
 [submodule "vendor/libs/libffi"]
 	path = vendor/libs/libffi
 	url = https://github.com/libffi/libffi
+[submodule "vendor/os-specific/linux/libs/wayland-protocols"]
+	path = vendor/os-specific/linux/libs/wayland-protocols
+	url = https://gitlab.freedesktop.org/wayland/wayland-protocols.git

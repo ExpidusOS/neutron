@@ -47,11 +47,31 @@
             rev = "654d2de0da85662fcc7644a7acd7c2dd2cfb21f0";
             sha256 = "sha256-nX8VSlqpX/SVE4fpPLOzj3s/D3zmTC9pObIYfkQq9RA=";
           };
+          "libs/libffi" = pkgs.fetchFromGitHub {
+            owner = "libffi";
+            repo = "libffi";
+            rev = "f08493d249d2067c8b3207ba46693dd858f95db3";
+            sha256 = "sha256-98WtmJLAdI6cpQAOBTCz7OyZl7um9XAzkRVL12NZ1mc=";
+          };
+          "os-specific/linux/libs/wayland" = pkgs.fetchFromGitLab {
+            domain = "gitlab.freedesktop.org";
+            owner = "wayland";
+            repo = "wayland";
+            rev = "8135e856ebd79872f886466e9cee39affb7d9ee8";
+            sha256 = "sha256-nvNDONDdpoYNDD5q29IisvUY2lHsEcgJYGJUWbhpijs=";
+          };
+          "os-specific/linux/libs/wayland-protocols" = pkgs.fetchFromGitLab {
+            domain = "gitlab.freedesktop.org";
+            owner = "wayland";
+            repo = "wayland-protocols";
+            rev = "e631010ab7b96988e7c64c24b7d90f64717eaeee";
+            sha256 = "sha256-eS7nurCjYetDNQORYIVITE93JW4KUqJv/GBEoe/HUkw=";
+          };
           "os-specific/linux/zig/zig-wayland" = pkgs.fetchFromGitHub {
             owner = "ExpidusOS";
             repo = "zig-wayland";
-            rev = "3b9fa2152d040511995260c7f3346efb45661f41";
-            sha256 = "sha256-iqHp1dy8foDiD2eNICU4Vhmmrv90gw83kgf2kuC6830=";
+            rev = "ba8cee50a8f761f0aef7922a2f0747c37ca428b1";
+            sha256 = "sha256-Cotkqv5v1hJh3NBbi4I2dOFKZjG7kCdLttGf0L1f6Ew=";
           };
           "os-specific/linux/zig/zig-wlroots" = pkgs.fetchFromGitHub {
             owner = "ExpidusOS";
@@ -90,15 +110,11 @@
       in rec {
         packages.default = stdenv.mkDerivation {
           pname = "expidus-neutron";
-          inherit version;
+          inherit version buildFlags;
 
           src = cleanSource self;
 
           outputs = [ "out" "devdocs" ];
-
-          buildFlags = buildFlags ++ [
-            "--cache-dir $NIX_BUILD_TOP/cache"
-          ];
 
           nativeBuildInputs = with pkgs.buildPackages; [
             cmake
@@ -129,7 +145,8 @@
 
           installPhase = ''
             export XDG_CACHE_HOME=$NIX_BUILD_TOP/.cache
-            sh ${buildPhase}/bin/expidus-neutron-${version}-build.sh
+            sh ${buildPhase}/bin/expidus-neutron-${version}-build.sh \
+              --cache-dir $NIX_BUILD_TOP/cache
           '';
         };
 

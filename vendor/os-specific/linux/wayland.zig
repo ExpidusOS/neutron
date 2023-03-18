@@ -54,8 +54,10 @@ pub fn init(options: WaylandOptions) !Wayland {
     .root_source_file = null,
     .version = null,
     .target = std.zig.CrossTarget.fromTarget(@import("builtin").target),
-    .optimize = @import("builtin").mode,
+    .optimize = options.optimize,
   });
+
+  scanner_exec.strip = true;
 
   initCS(options.builder, scanner_exec);
   Expat.init(options.builder, scanner_exec.target, scanner_exec.optimize).link(scanner_exec);
@@ -64,7 +66,12 @@ pub fn init(options: WaylandOptions) !Wayland {
     getPath("/src/scanner.c"),
   }, &[_][]const u8{});
 
-  const scanner = ScanProtocolsStep.create(options.builder);
+  const scanner = ScanProtocolsStep.create(.{
+    .builder = options.builder,
+    .exe = scanner_exec,
+    .wayland_dir = getPath("/protocol"),
+    .protocols_dir = getPath("/../wayland-protocols/")
+  });
   scanner.addSystemProtocol("stable/xdg-shell/xdg-shell.xml");
 
   scanner.generate("wl_compositor", 4);
