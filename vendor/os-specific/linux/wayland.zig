@@ -57,8 +57,8 @@ pub fn init(options: WaylandOptions) !Wayland {
     .optimize = @import("builtin").mode,
   });
 
-  initCS(scanner_exec);
-  Expat.init(scanner_exec.builder, scanner_exec.target, scanner_exec.optimize).link(scanner_exec);
+  initCS(options.builder, scanner_exec);
+  Expat.init(options.builder, scanner_exec.target, scanner_exec.optimize).link(scanner_exec);
 
   scanner_exec.addCSourceFiles(&[_][]const u8 {
     getPath("/src/scanner.c"),
@@ -93,7 +93,7 @@ pub fn init(options: WaylandOptions) !Wayland {
 
   options.libffi.link(client);
 
-  try initLib(scanner, scanner_exec, client, false);
+  try initLib(options.builder, scanner, scanner_exec, client, false);
 
   client.addCSourceFiles(&[_][]const u8 {
     getPath("/src/wayland-client.c")
@@ -117,7 +117,7 @@ pub fn init(options: WaylandOptions) !Wayland {
     getPath("/src/wayland-server.c")
   }, &[_][]const u8{});
 
-  try initLib(scanner, scanner_exec, server, true);
+  try initLib(options.builder, scanner, scanner_exec, server, true);
 
   return .{
     .scanner = scanner,
@@ -128,16 +128,16 @@ pub fn init(options: WaylandOptions) !Wayland {
   };
 }
 
-fn initCS(cs: *Build.CompileStep) void {
+fn initCS(b: *Build, cs: *Build.CompileStep) void {
   cs.linkLibC();
 
-  cs.addConfigHeader(cs.builder.addConfigHeader(.{
+  cs.addConfigHeader(b.addConfigHeader(.{
     .style = .blank,
   }, .{}));
 
   cs.addIncludePath(getPath("/src"));
 
-  cs.addConfigHeader(cs.builder.addConfigHeader(.{
+  cs.addConfigHeader(b.addConfigHeader(.{
     .style = .blank,
     .include_path = "wayland-version.h",
   }, .{
@@ -152,12 +152,12 @@ fn initCS(cs: *Build.CompileStep) void {
   }, &[_][]const u8{});
 }
 
-fn initLib(scanner: *ScanProtocolsStep, scanner_exec: *Build.CompileStep, lib: *Build.CompileStep, comptime server: bool) !void {
-  initCS(lib);
+fn initLib(b: *Build, scanner: *ScanProtocolsStep, scanner_exec: *Build.CompileStep, lib: *Build.CompileStep, comptime server: bool) !void {
+  initCS(b, lib);
 
-  const dir = try getDir(lib.builder);
+  const dir = try getDir(b);
 
-  const protocol = lib.builder.addRunArtifact(scanner_exec);
+  const protocol = b.addRunArtifact(scanner_exec);
   protocol.addArgs(&[_][]const u8 {
      "-s", "public-code",
     getPath("/protocol/wayland.xml"),
@@ -168,9 +168,9 @@ fn initLib(scanner: *ScanProtocolsStep, scanner_exec: *Build.CompileStep, lib: *
     .args = &[_][]const u8 {},
   });
 
-  const core_header = lib.builder.addRunArtifact(scanner_exec);
+  const core_header = b.addRunArtifact(scanner_exec);
   const core_header_out = Build.FileSource {
-    .path = lib.builder.pathJoin(&[_][]const u8 {
+    .path = b.pathJoin(&[_][]const u8 {
       dir,
       (if (server) "wayland-server-protocol-core.h" else "wayland-client-protocol-core.h")
     })
@@ -184,10 +184,10 @@ fn initLib(scanner: *ScanProtocolsStep, scanner_exec: *Build.CompileStep, lib: *
 
   lib.addIncludePath(dir);
 
-  const header = lib.builder.addRunArtifact(scanner_exec);
+  const header = b.addRunArtifact(scanner_exec);
 
   const header_out = Build.FileSource {
-    .path = lib.builder.pathJoin(&[_][]const u8 {
+    .path = b.pathJoin(&[_][]const u8 {
       dir,
       (if (server) "wayland-server-protocol.h" else "wayland-client-protocol.h")
     })

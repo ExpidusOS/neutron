@@ -50,8 +50,8 @@
           "os-specific/linux/zig/zig-wayland" = pkgs.fetchFromGitHub {
             owner = "ExpidusOS";
             repo = "zig-wayland";
-            rev = "662e0e5555fb52d9d6b01152f2cbe167763e783c";
-            sha256 = "sha256-V9YF1NRl0KM6EYwP0wjH3qIpJhnCrNAWwfLD9I8EPHE=";
+            rev = "3b9fa2152d040511995260c7f3346efb45661f41";
+            sha256 = "sha256-iqHp1dy8foDiD2eNICU4Vhmmrv90gw83kgf2kuC6830=";
           };
           "os-specific/linux/zig/zig-wlroots" = pkgs.fetchFromGitHub {
             owner = "ExpidusOS";

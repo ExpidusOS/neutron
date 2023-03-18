@@ -31,7 +31,7 @@ pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) 
 
   lib.addIncludePath(getPath("/lib"));
 
-  lib.addConfigHeader(lib.builder.addConfigHeader(.{
+  lib.addConfigHeader(b.addConfigHeader(.{
     .style = .blank,
     .include_path = "expat_config.h",
   }, .{
