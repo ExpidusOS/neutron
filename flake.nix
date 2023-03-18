@@ -124,14 +124,10 @@
             flutter-engine
             patchelf
             llvmPackages_15.clang
-          ] ++ optionals (pkgs.wlroots.meta.available) [
-            pkgs.buildPackages.wayland-scanner
           ];
 
           strictDeps = true;
           depsBuildBuild = [ pkgs.buildPackages.pkg-config ];
-
-          buildInputs = with pkgs; optionals (wayland.meta.available) [ wayland-protocols wayland ];
 
           configurePhase = ''
             ${concatStrings (attrValues (mapAttrs (path: src: ''

@@ -49,11 +49,14 @@ pub const WaylandOptions = struct {
 };
 
 pub fn init(options: WaylandOptions) !Wayland {
+  var host_target = std.zig.CrossTarget.fromTarget(options.builder.host.target);
+  host_target.dynamic_linker = options.builder.host.dynamic_linker;
+
   const scanner_exec = options.builder.addExecutable(.{
     .name = "wayland-scanner",
     .root_source_file = null,
     .version = null,
-    .target = std.zig.CrossTarget.fromTarget(@import("builtin").target),
+    .target = host_target,
     .optimize = options.optimize,
   });
 
