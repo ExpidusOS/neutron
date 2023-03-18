@@ -123,28 +123,52 @@ pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) 
   lib.addIncludePath(target_dir);
 
   if (target.getCpuArch() == .x86_64) {
-    const asmobj = b.addAssembly(.{
-      .name = "ffi",
-      .source_file = .{
-        .path = if (target.getOsTag() == .windows) getPath("/src/x86/win64.S") else getPath("/src/x86/unix64.S"),
-      },
-      .target = target,
-      .optimize = optimize,
+    // FIXME: why is this emitting assembly, not llvm?
+    const llvm_clang = b.addSystemCommand(&[_][]const u8 {
+      "clang",
+      "-fno-caret-diagnostics",
+      "-target", try target.zigTriple(b.allocator),
+      "-DGENERATE_LIBFFI_MAP=1",
+      "-DHAVE_CONFIG_H=1",
+      "-DFFI_BUILDING=1",
+      "-DFFI_ASM=1",
+      b.fmt("-I{s}", .{ getPath("/include") }),
+      b.fmt("-I{s}", .{ getPath("/../ffi") }),
+      b.fmt("-I{s}", .{ dir }),
+      b.fmt("-I{s}", .{ target_dir }),
+      "-c", "-emit-llvm",
     });
 
-    asmobj.emit_llvm_ir = .emit;
+    const llvm_clang_path = if (target.getOsTag() == .windows) getPath("/src/x86/win64.S") else getPath("/src/x86/unix64.S");
 
-    asmobj.defineCMacroRaw("GENERATE_LIBFFI_MAP=1");
-    asmobj.defineCMacroRaw("HAVE_CONFIG_H=1");
-    asmobj.defineCMacroRaw("FFI_BUILDING=1");
-    asmobj.defineCMacroRaw("FFI_ASM=1");
+    llvm_clang.addFileSourceArg(.{
+      .path = llvm_clang_path,
+    });
 
-    asmobj.addIncludePath(getPath("/include"));
-    asmobj.addIncludePath(getPath("/../ffi"));
-    asmobj.addIncludePath(dir);
-    asmobj.addIncludePath(target_dir);
+    llvm_clang.addArg("-o");
+    const llvm_clang_out = llvm_clang.addOutputFileArg(b.fmt("{s}.bc", .{ std.fs.path.basename(llvm_clang_path) }));
 
-    lib.addObject(asmobj);
+    const clang_asm = b.addSystemCommand(&[_][]const u8 {
+      "clang",
+      "-fno-caret-diagnostics",
+      "-target", try target.zigTriple(b.allocator),
+      "-DGENERATE_LIBFFI_MAP=1",
+      "-DHAVE_CONFIG_H=1",
+      "-DFFI_BUILDING=1",
+      "-DFFI_ASM=1",
+      b.fmt("-I{s}", .{ getPath("/include") }),
+      b.fmt("-I{s}", .{ getPath("/../ffi") }),
+      b.fmt("-I{s}", .{ dir }),
+      b.fmt("-I{s}", .{ target_dir }),
+    });
+
+    clang_asm.addFileSourceArg(llvm_clang_out);
+    clang_asm.addArg("-o");
+    const clang_asm_out = clang_asm.addOutputFileArg(b.fmt("{s}.o", .{ std.fs.path.basename(llvm_clang_path) }));
+
+    clang_asm.step.dependOn(&llvm_clang.step);
+    lib.step.dependOn(&clang_asm.step);
+    lib.addObjectFileSource(clang_asm_out);
   }
 
   const target_src = switch (target.getCpuArch()) {
