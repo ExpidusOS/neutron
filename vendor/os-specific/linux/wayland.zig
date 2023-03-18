@@ -201,7 +201,7 @@ fn initLib(scanner: *ScanProtocolsStep, scanner_exec: *Build.CompileStep, lib: *
 
   lib.addCSourceFiles(&[_][]const u8 {
     getPath("/src/connection.c"),
-    getPath("/src/wayland-os.c"),
+    getPath("/../wayland-os.c"),
   }, &[_][]const u8{});
 
   scanner.step.dependOn(&scanner_exec.step);

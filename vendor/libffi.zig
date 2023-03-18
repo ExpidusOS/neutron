@@ -20,6 +20,7 @@ const HeaderConfig = struct {
 };
 
 header_dir: []const u8,
+target_dir: []const u8,
 lib: *Build.CompileStep,
 
 fn getPath(comptime suffix: []const u8) []const u8 {
@@ -93,9 +94,67 @@ pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) 
 
   try header_dest_dir.writeFile("ffi.h", header_source_txt);
 
+  lib.addConfigHeader(b.addConfigHeader(.{
+    .style = .{
+      .autoconf = .{
+        .path = getPath("/../fficonfig.h.in"),
+      },
+    },
+    .include_path = "fficonfig.h",
+  }, .{
+    .EH_FRAME_FLAGS = "a",
+    .FFI_NO_RAW_API = false,
+    .FFI_MMAP_EXEC_EMUTRAMP_PAX = false,
+    .FFI_EXEC_TRAMPOLINE_TABLE = target.isDarwin(),
+    .FFI_MMAP_EXEC_WRIT = target.isDarwin() or target.isFreeBSD() or target.isOpenBSD(),
+    .FFI_DEBUG = optimize == .Debug,
+    .FFI_EXEC_STATIC_TRAMP = true,
+    .FFI_NO_STRUCTS = false,
+    .HAVE_AS_CFI_PSEUDO_OP = true,
+    .HAVE_AS_REGISTER_PSEUDO_OP = target.getCpuArch() == .sparc,
+    .HAVE_AS_S390_ZARCH = false,
+    .HAVE_AS_SPARC_UA_PCREL = target.getCpuArch() == .sparc,
+    .HAVE_AS_X86_64_UNWIND_SECTION_TYPE = target.getCpuArch() == .x86_64,
+    .HAVE_AS_X86_PCREL = target.getCpuArch() == .x86 or target.getCpuArch() == .x86_64,
+    .HAVE_ALLOCA_H = target.getAbi().isGnu(),
+    .HAVE_DLFCN_H = true,
+    .HAVE_INTTYPES_H = true,
+    .HAVE_STDINT_H = true,
+    .HAVE_STDIO_H = true,
+    .HAVE_STDLIB_H = true,
+    .HAVE_STRINGS_H = true,
+    .HAVE_STRING_H = true,
+    .HAVE_SYS_MEMFD_H = !target.isWindows(),
+    .HAVE_SYS_STAT_H = !target.isWindows(),
+    .HAVE_SYS_TYPES_H = !target.isWindows(),
+    .HAVE_UNISTD_H = true,
+    .HAVE_HIDDEN_VISIBILITY_ATTRIBUTE = true,
+    .HAVE_PTRAUTH = false,
+    .HAVE_LONG_DOUBLE = true,
+    .HAVE_LONG_DOUBLE_VARIANT = false,
+    .HAVE_RO_EH_FRAME = true,
+    .HAVE_MEMFD_CREATE = true,
+    .HAVE_MEMCPY = true,
+    .SIZEOF_DOUBLE = @sizeOf(f64),
+    .SIZEOF_LONG_DOUBLE = @sizeOf(c_longdouble),
+    .SIZEOF_SIZE_T = @sizeOf(usize),
+    .LIBFFI_GNU_SYMBOL_VERSIONING = true,
+    .SYMBOL_UNDERSCORE = target.isDarwin(),
+    .LT_OBJDIR = "",
+    .PACKAGE = "libffi",
+    .PACKAGE_BUGREPORT = "http://github.com/libffi/libffi/issues",
+    .PACKAGE_NAME = "libffi",
+    .PACKAGE_STRING = b.fmt("libffi {}.{}.{}", .{ version.major, version.minor, version.patch }),
+    .PACKAGE_TARNAME = "libffi",
+    .PACKAGE_URL = "",
+    .PACKAGE_VERSION = b.fmt("{}.{}.{}", .{ version.major, version.minor, version.patch }),
+    .STDC_HEADERS = true,
+    .USING_PURIFY = false,
+    .VERSION = b.fmt("{}.{}.{}", .{ version.major, version.minor, version.patch }),
+  }));
+
   lib.linkLibC();
   lib.addIncludePath(getPath("/include"));
-  lib.addIncludePath(getPath("/../ffi"));
   lib.addIncludePath(dir);
 
   lib.addCSourceFiles(&[_][]const u8 {
@@ -123,52 +182,8 @@ pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) 
   lib.addIncludePath(target_dir);
 
   if (target.getCpuArch() == .x86_64) {
-    // FIXME: why is this emitting assembly, not llvm?
-    const llvm_clang = b.addSystemCommand(&[_][]const u8 {
-      "clang",
-      "-fno-caret-diagnostics",
-      "-target", try target.zigTriple(b.allocator),
-      "-DGENERATE_LIBFFI_MAP=1",
-      "-DHAVE_CONFIG_H=1",
-      "-DFFI_BUILDING=1",
-      "-DFFI_ASM=1",
-      b.fmt("-I{s}", .{ getPath("/include") }),
-      b.fmt("-I{s}", .{ getPath("/../ffi") }),
-      b.fmt("-I{s}", .{ dir }),
-      b.fmt("-I{s}", .{ target_dir }),
-      "-c", "-emit-llvm-bc",
-    });
-
-    const llvm_clang_path = if (target.getOsTag() == .windows) getPath("/src/x86/win64.S") else getPath("/src/x86/unix64.S");
-
-    llvm_clang.addFileSourceArg(.{
-      .path = llvm_clang_path,
-    });
-
-    llvm_clang.addArg("-o");
-    const llvm_clang_out = llvm_clang.addOutputFileArg(b.fmt("{s}.bc", .{ std.fs.path.basename(llvm_clang_path) }));
-
-    const clang_asm = b.addSystemCommand(&[_][]const u8 {
-      "clang",
-      "-fno-caret-diagnostics",
-      "-target", try target.zigTriple(b.allocator),
-      "-DGENERATE_LIBFFI_MAP=1",
-      "-DHAVE_CONFIG_H=1",
-      "-DFFI_BUILDING=1",
-      "-DFFI_ASM=1",
-      b.fmt("-I{s}", .{ getPath("/include") }),
-      b.fmt("-I{s}", .{ getPath("/../ffi") }),
-      b.fmt("-I{s}", .{ dir }),
-      b.fmt("-I{s}", .{ target_dir }),
-    });
-
-    clang_asm.addFileSourceArg(llvm_clang_out);
-    clang_asm.addArg("-o");
-    const clang_asm_out = clang_asm.addOutputFileArg(b.fmt("{s}.o", .{ std.fs.path.basename(llvm_clang_path) }));
-
-    clang_asm.step.dependOn(&llvm_clang.step);
-    lib.step.dependOn(&clang_asm.step);
-    lib.addObjectFileSource(clang_asm_out);
+    lib.addAssemblyFile(getPath("/src/x86/win64.S"));
+    lib.addAssemblyFile(getPath("/src/x86/unix64.S"));
   }
 
   const target_src = switch (target.getCpuArch()) {
@@ -188,6 +203,7 @@ pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) 
 
   return .{
     .header_dir = dir,
+    .target_dir = target_dir,
     .lib = lib,
   };
 }
@@ -195,7 +211,7 @@ pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) 
 pub fn link(self: Libffi, cs: *Build.CompileStep) void {
   cs.linkLibrary(self.lib);
   cs.addIncludePath(self.header_dir);
-  // TODO: add headers
+  cs.addIncludePath(self.target_dir);
 }
 
 pub fn install(self: Libffi) void {
