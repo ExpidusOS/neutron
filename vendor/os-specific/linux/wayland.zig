@@ -45,12 +45,26 @@ pub const WaylandOptions = struct {
   libffi: *Libffi,
   builder: *Build,
   target: std.zig.CrossTarget,
-  optimize: std.builtin.Mode
+  optimize: std.builtin.Mode,
+  host_target: ?std.zig.CrossTarget = null
 };
 
+fn createHostTarget(b: *Build) std.zig.CrossTarget {
+  var v = std.zig.CrossTarget.fromTarget(b.host.target);
+  v.dynamic_linker = b.host.dynamic_linker;
+  v.abi = .gnu;
+  v.glibc_version = .{
+    .major = 2,
+    .minor = 35,
+    .patch = 0,
+  };
+  return v;
+}
+
 pub fn init(options: WaylandOptions) !Wayland {
-  var host_target = std.zig.CrossTarget.fromTarget(options.builder.host.target);
-  host_target.dynamic_linker = options.builder.host.dynamic_linker;
+  var host_target = if (options.host_target == null)
+    createHostTarget(options.builder)
+  else options.host_target.?;
 
   const scanner_exec = options.builder.addExecutable(.{
     .name = "wayland-scanner",
@@ -91,15 +105,26 @@ pub fn init(options: WaylandOptions) !Wayland {
     }
   });
 
-  const client = options.builder.addSharedLibrary(.{
-    .name = "wayland-client",
-    .root_source_file = .{
-      .generated = &scanner.result
-    },
-    .version = version,
-    .target = options.target,
-    .optimize = options.optimize,
-  });
+  const client = if (options.target.getObjectFormat() == .wasm)
+    options.builder.addStaticLibrary(.{
+      .name = "wayland-client",
+      .root_source_file = .{
+        .generated = &scanner.result
+      },
+      .version = version,
+      .target = options.target,
+      .optimize = options.optimize,
+    })
+  else
+    options.builder.addSharedLibrary(.{
+      .name = "wayland-client",
+      .root_source_file = .{
+        .generated = &scanner.result
+      },
+      .version = version,
+      .target = options.target,
+      .optimize = options.optimize,
+    });
 
   options.libffi.link(client);
 
@@ -109,15 +134,26 @@ pub fn init(options: WaylandOptions) !Wayland {
     getPath("/src/wayland-client.c")
   }, &[_][]const u8{});
 
-  const server = options.builder.addSharedLibrary(.{
-    .name = "wayland-server",
-    .root_source_file = .{
-      .generated = &scanner.result
-    },
-    .version = version,
-    .target = options.target,
-    .optimize = options.optimize,
-  });
+  const server = if (options.target.getObjectFormat() == .wasm)
+    options.builder.addStaticLibrary(.{
+      .name = "wayland-server",
+      .root_source_file = .{
+        .generated = &scanner.result
+      },
+      .version = version,
+      .target = options.target,
+      .optimize = options.optimize,
+    })
+  else
+    options.builder.addSharedLibrary(.{
+      .name = "wayland-server",
+      .root_source_file = .{
+        .generated = &scanner.result
+      },
+      .version = version,
+      .target = options.target,
+      .optimize = options.optimize,
+    });
 
   options.libffi.link(server);
 

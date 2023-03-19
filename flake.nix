@@ -93,9 +93,11 @@
         buildFlags = [
           "-Dflutter-engine=${pkgs.flutter-engine}/lib/flutter/out/release"
           "-Dtarget=${pkgs.targetPlatform.system}-gnu"
+          "-Dhost-dynamic-linker=${pkgs.buildPackages.stdenv.cc.libc}/lib/ld-linux-${replaceStrings ["_"] ["-"] pkgs.buildPlatform.parsed.cpu.name}.so.2"
         ];
 
         buildPhase = pkgs.writeShellScriptBin "expidus-neutron-${version}-build.sh" ''
+          set -e
           ${optionalString (pkgs.wayland.meta.available) ''
             export PKG_CONFIG_PATH_FOR_BUILD=${pkgs.wayland.dev}/lib/pkgconfig:$PKG_CONFIG_PATH_FOR_BUILD
           ''}
@@ -142,7 +144,7 @@
           installPhase = ''
             export XDG_CACHE_HOME=$NIX_BUILD_TOP/.cache
             sh ${buildPhase}/bin/expidus-neutron-${version}-build.sh \
-              --cache-dir $NIX_BUILD_TOP/cache
+              --cache-dir $NIX_BUILD_TOP/source/zig-cache
           '';
         };
 

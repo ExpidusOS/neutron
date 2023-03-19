@@ -1,6 +1,7 @@
-const VendorEntry = @import("../../../vendor.zig").VendorEntry;
 const std = @import("std");
 const Build = std.Build;
+const Wayland = @import("wayland.zig");
+const Wlroots = @This();
 
 fn getPath(comptime suffix: []const u8) []const u8 {
   if (suffix[0] != '/') @compileError("path requires an absolute path!");
@@ -10,7 +11,14 @@ fn getPath(comptime suffix: []const u8) []const u8 {
   };
 }
 
-pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) VendorEntry {
-  const lib = b.addSharedLibrary(.{
-  });
+pub const WlrootsOptions = struct {
+  wayland: *Wayland,
+  builder: *Build,
+  target: std.zig.CrossTarget,
+  optimize: std.builtin.Mode,
+};
+
+pub fn init(options: WlrootsOptions) !Wlroots {
+  _ = options;
+  return .{};
 }

@@ -2,6 +2,12 @@ const std = @import("std");
 const Build = std.Build;
 const Pkg = std.build.Pkg;
 
+const version = std.builtin.Version {
+  .major = 0,
+  .minor = 1,
+  .patch = 0,
+};
+
 fn getPath(comptime suffix: []const u8) []const u8 {
   if (suffix[0] != '/') @compileError("path requires an absolute path!");
   return comptime blk: {
@@ -65,8 +71,10 @@ pub const NeutronOptions = struct {
 
 pub const Neutron = struct {
   options: NeutronOptions,
+  config: *Build.OptionsStep,
   lib: *Build.CompileStep,
   docs: ?*Build.CompileStep,
+  runner: ?*Build.CompileStep,
   step: *Build.Step,
 
   pub fn new(options: NeutronOptions) !Neutron {
@@ -74,22 +82,23 @@ pub const Neutron = struct {
 
     var self = Neutron {
       .options = options,
+      .config = b.addOptions(),
       .lib = b.addSharedLibrary(.{
         .name = "neutron",
         .root_source_file = .{
           .path = getPath("/src/neutron.zig"),
         },
-        .version = .{
-          .major = 0,
-          .minor = 1,
-          .patch = 0
-        },
+        .version = version,
         .target = options.target,
         .optimize = options.optimize,
       }),
+      .runner = null,
       .docs = null,
       .step = b.step("neutron", "Build and install all of Neutron"),
     };
+
+    self.config.addOption(std.builtin.Version, "version", version);
+    self.config.addOption(bool, "use_wlroots", self.options.use_wlroots);
 
     try self.includeDependencies(self.lib);
     self.lib.install();
@@ -113,7 +122,45 @@ pub const Neutron = struct {
       self.docs = docs;
       self.step.dependOn(&docs.step);
     }
+
+    if (self.options.build_runner) {
+      const runner = b.addExecutable(.{
+        .name = "neutron-runner",
+        .root_source_file = .{
+          .path = getPath("/src/runner.zig"),
+        },
+        .version = self.lib.version,
+        .target = options.target,
+        .optimize = options.optimize,
+      });
+
+      try self.includeDependencies(runner);
+
+      runner.addAnonymousModule("clap", .{
+        .source_file = .{
+          .path = getPath("/vendor/third-party/zig/zig-clap/clap.zig"),
+        },
+      });
+
+      runner.addModule("neutron", self.createModule());
+
+      runner.install();
+      self.runner = runner;
+      self.step.dependOn(&runner.step);
+    }
     return self;
+  }
+
+  pub fn createModule(self: Neutron) *Build.Module {
+    return self.options.builder.addModule("neutron", .{
+      .source_file = self.lib.root_src.?,
+      .dependencies = &[_]Build.ModuleDependency {
+        .{
+          .name = "neutron-config",
+          .module = self.config.createModule(),
+        },
+      }
+    });
   }
 
   fn includeDependencies(self: Neutron, compile: *Build.CompileStep) !void {
@@ -136,6 +183,12 @@ pub const Neutron = struct {
 };
 
 pub fn build(b: *Build) !void {
+  const host_dynamic_linker = b.option([]const u8, "host-dynamic-linker", "Set the dynamic linker for the host") orelse null;
+
+  if (host_dynamic_linker != null) {
+    b.host.dynamic_linker = std.zig.CrossTarget.DynamicLinker.init(host_dynamic_linker);
+  }
+
   const neutron = try Neutron.new(NeutronOptions.new_auto_with_options(b));
   b.default_step.dependOn(neutron.step);
 }

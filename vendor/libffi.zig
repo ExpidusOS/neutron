@@ -58,13 +58,22 @@ fn simpleCopy(source: []const u8, dest: []const u8) !void {
 }
 
 pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) !Libffi {
-  const lib = b.addSharedLibrary(.{
-    .name = "ffi",
-    .root_source_file = null,
-    .version = version,
-    .target = target,
-    .optimize = optimize,
-  });
+  const lib = if (target.getObjectFormat() == .wasm)
+    b.addStaticLibrary(.{
+      .name = "ffi",
+      .root_source_file = null,
+      .version = version,
+      .target = target,
+      .optimize = optimize,
+    })
+  else
+    b.addSharedLibrary(.{
+      .name = "ffi",
+      .root_source_file = null,
+      .version = version,
+      .target = target,
+      .optimize = optimize,
+    });
 
   const dir = try getDir(b);
   const header_source = getPath("/include/ffi.h.in");
@@ -159,6 +168,7 @@ pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) 
 
   lib.addCSourceFiles(&[_][]const u8 {
     getPath("/src/closures.c"),
+    getPath("/src/debug.c"),
     getPath("/src/dlmalloc.c"),
     getPath("/src/java_raw_api.c"),
     getPath("/src/prep_cif.c"),
