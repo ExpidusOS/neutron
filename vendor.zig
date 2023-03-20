@@ -3,20 +3,23 @@ const Libffi = @import("vendor/libffi.zig");
 const Wayland = @import("vendor/os-specific/linux/wayland.zig");
 const Wlroots = @import("vendor/os-specific/linux/wlroots.zig");
 const std = @import("std");
+const Build = std.Build;
 
 const Vendor = @This();
 
+builder: *std.Build,
 libffi: Libffi,
 wayland: ?Wayland,
 wlroots: ?Wlroots,
 
 pub const VendorOptions = struct {
   use_wlroots: bool,
-  flutter_engine: []const u8,
+  flutter_engine: ?[]const u8,
 };
 
-pub fn init(b: *std.Build, options: VendorOptions, target: std.zig.CrossTarget, optimize: std.builtin.Mode) !Vendor {
+pub fn init(b: *Build, options: VendorOptions, target: std.zig.CrossTarget, optimize: std.builtin.Mode) !Vendor {
   var self = Vendor {
+    .builder = b,
     .libffi = try Libffi.init(b, target, optimize),
     .wayland = null,
     .wlroots = null,
@@ -38,4 +41,31 @@ pub fn init(b: *std.Build, options: VendorOptions, target: std.zig.CrossTarget, 
     });
   }
   return self;
+}
+
+pub fn getDependencies(self: Vendor) ![]const Build.ModuleDependency {
+  var len: u32 = 0;
+  if (self.wayland != null) len += 1;
+  if (self.wlroots != null) len += 1;
+
+  const arr = try self.builder.allocator.alloc(Build.ModuleDependency, len);
+
+  var i: u32 = 0;
+
+  if (self.wayland != null) {
+    arr[i] = .{
+      .name = "wayland",
+      .module = self.wayland.?.createModule(),
+    };
+    i += 1;
+  }
+
+  if (self.wlroots != null) {
+    arr[i] = .{
+      .name = "wlroots",
+      .module = self.wlroots.?.createModule(),
+    };
+    i += 1;
+  }
+  return arr;
 }

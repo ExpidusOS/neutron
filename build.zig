@@ -1,6 +1,7 @@
 const std = @import("std");
 const Build = std.Build;
 const Pkg = std.build.Pkg;
+const Vendor = @import("vendor.zig");
 
 const version = std.builtin.Version {
   .major = 0,
@@ -60,6 +61,11 @@ pub const NeutronOptions = struct {
     const flutter_engine = b.option([]const u8, "flutter-engine", "Path to the Flutter Engine library") orelse options.flutter_engine;
     const use_wlroots = b.option(bool, "use-wlroots", "Whether to enable the wlroots compositor") orelse options.use_wlroots;
     const docs = b.option(bool, "docs", "Whether to generate the documentation") orelse options.docs;
+    const target_dynamic_linker = b.option([]const u8, "target-dynamic-linker", "Set the dynamic linker for the target") orelse null;
+
+    if (target_dynamic_linker != null) {
+      options.target.dynamic_linker = std.zig.CrossTarget.DynamicLinker.init(target_dynamic_linker);
+    }
 
     options.build_runner = build_runner;
     options.flutter_engine = flutter_engine;
@@ -76,6 +82,7 @@ pub const Neutron = struct {
   docs: ?*Build.CompileStep,
   runner: ?*Build.CompileStep,
   step: *Build.Step,
+  vendor: Vendor,
 
   pub fn new(options: NeutronOptions) !Neutron {
     const b = options.builder;
@@ -95,6 +102,10 @@ pub const Neutron = struct {
       .runner = null,
       .docs = null,
       .step = b.step("neutron", "Build and install all of Neutron"),
+      .vendor = try Vendor.init(b, .{
+        .use_wlroots = options.use_wlroots,
+        .flutter_engine = options.flutter_engine,
+      }, options.target, options.optimize),
     };
 
     self.config.addOption(std.builtin.Version, "version", version);
@@ -142,7 +153,7 @@ pub const Neutron = struct {
         },
       });
 
-      runner.addModule("neutron", self.createModule());
+      runner.addModule("neutron", try self.createModule());
 
       runner.install();
       self.runner = runner;
@@ -151,33 +162,53 @@ pub const Neutron = struct {
     return self;
   }
 
-  pub fn createModule(self: Neutron) *Build.Module {
+  pub fn getDependencies(self: Neutron) ![]const Build.ModuleDependency {
+    const from_vendor = try self.vendor.getDependencies();
+    defer self.options.builder.allocator.free(from_vendor);
+
+    const to_add = &[_]Build.ModuleDependency {
+      .{
+        .name = "neutron-config",
+        .module = self.config.createModule(),
+      },
+    };
+
+    const len = from_vendor.len + to_add.len;
+    const val = try self.options.builder.allocator.alloc(Build.ModuleDependency, len);
+
+    var i: u32 = 0;
+    for (from_vendor) |item| {
+      val[i] = item;
+      i += 1;
+    }
+    for (to_add) |item| {
+      val[i] = item;
+      i += 1;
+    }
+
+    return val;
+  }
+
+  pub fn createModule(self: Neutron) !*Build.Module {
     return self.options.builder.addModule("neutron", .{
       .source_file = self.lib.root_src.?,
-      .dependencies = &[_]Build.ModuleDependency {
-        .{
-          .name = "neutron-config",
-          .module = self.config.createModule(),
-        },
-      }
+      .dependencies = try self.getDependencies()
     });
   }
 
   fn includeDependencies(self: Neutron, compile: *Build.CompileStep) !void {
-    const vendor = try @import("vendor.zig").init(self.options.builder, .{
-      .use_wlroots = self.options.use_wlroots,
-      .flutter_engine = self.options.flutter_engine.?,
-    }, self.options.target, self.options.optimize);
-
     compile.linkLibC();
 
-    vendor.libffi.install();
+    self.vendor.libffi.install();
 
-    if (vendor.wayland != null) {
-      compile.linkLibrary(vendor.wayland.?.libserver);
-      compile.addModule("wayland", vendor.wayland.?.module);
+    if (self.vendor.wayland != null) {
+      compile.linkLibrary(self.vendor.wayland.?.libserver);
+      self.vendor.wayland.?.libserver.install();
+    }
 
-      vendor.wayland.?.libserver.install();
+    if (self.vendor.wlroots != null) {
+      self.vendor.wlroots.?.link(compile);
+      self.vendor.wlroots.?.install();
     }
   }
 };

@@ -67,6 +67,13 @@
             rev = "e631010ab7b96988e7c64c24b7d90f64717eaeee";
             sha256 = "sha256-eS7nurCjYetDNQORYIVITE93JW4KUqJv/GBEoe/HUkw=";
           };
+          "os-specific/linux/libs/wlroots" = pkgs.fetchFromGitLab {
+            domain = "gitlab.freedesktop.org";
+            owner = "wlroots";
+            repo = "wlroots";
+            rev = "0a32b5a74db06a27bee55a47205951bb277a9657";
+            sha256 = "sha256-JeDDYinio14BOl6CbzAPnJDOnrk4vgGNMN++rcy2ItQ=";
+          };
           "os-specific/linux/zig/zig-wayland" = pkgs.fetchFromGitHub {
             owner = "ExpidusOS";
             repo = "zig-wayland";
@@ -94,6 +101,7 @@
           "-Dflutter-engine=${pkgs.flutter-engine}/lib/flutter/out/release"
           "-Dtarget=${pkgs.targetPlatform.system}-gnu"
           "-Dhost-dynamic-linker=${pkgs.buildPackages.stdenv.cc.libc}/lib/ld-linux-${replaceStrings ["_"] ["-"] pkgs.buildPlatform.parsed.cpu.name}.so.2"
+          "-Dtarget-dynamic-linker=${pkgs.stdenv.cc.libc}/lib/ld-linux-${replaceStrings ["_"] ["-"] pkgs.targetPlatform.parsed.cpu.name}.so.2"
         ];
 
         buildPhase = pkgs.writeShellScriptBin "expidus-neutron-${version}-build.sh" ''
@@ -144,7 +152,7 @@
           installPhase = ''
             export XDG_CACHE_HOME=$NIX_BUILD_TOP/.cache
             sh ${buildPhase}/bin/expidus-neutron-${version}-build.sh \
-              --cache-dir $NIX_BUILD_TOP/source/zig-cache
+              --cache-dir $NIX_BUILD_TOP/source/zig-cache -freference-trace -fno-summary
           '';
         };
 

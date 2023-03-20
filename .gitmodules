@@ -19,3 +19,6 @@
 [submodule "vendor/os-specific/linux/libs/wayland-protocols"]
 	path = vendor/os-specific/linux/libs/wayland-protocols
 	url = https://gitlab.freedesktop.org/wayland/wayland-protocols.git
+[submodule "vendor/os-specific/linux/libs/wlroots"]
+	path = vendor/os-specific/linux/libs/wlroots
+	url = https://gitlab.freedesktop.org/wlroots/wlroots/

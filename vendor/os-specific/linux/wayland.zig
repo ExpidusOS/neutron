@@ -12,7 +12,6 @@ const version = std.builtin.Version {
 };
 
 scanner: *ScanProtocolsStep,
-module: *Build.Module,
 scanner_exec: *Build.CompileStep,
 libclient: *Build.CompileStep,
 libserver: *Build.CompileStep,
@@ -99,12 +98,6 @@ pub fn init(options: WaylandOptions) !Wayland {
   scanner.generate("wl_data_device_manager", 3);
   scanner.generate("xdg_wm_base", 2);
 
-  const module = options.builder.addModule("wayland", .{
-    .source_file = .{
-      .generated = &scanner.result,
-    }
-  });
-
   const client = if (options.target.getObjectFormat() == .wasm)
     options.builder.addStaticLibrary(.{
       .name = "wayland-client",
@@ -168,7 +161,6 @@ pub fn init(options: WaylandOptions) !Wayland {
   return .{
     .scanner = scanner,
     .scanner_exec = scanner_exec,
-    .module = module,
     .libclient = client,
     .libserver = server,
   };
@@ -256,4 +248,12 @@ fn initLib(b: *Build, scanner: *ScanProtocolsStep, scanner_exec: *Build.CompileS
 
   lib.step.dependOn(&core_header.step);
   lib.step.dependOn(&header.step);
+}
+
+pub fn createModule(self: Wayland) *Build.Module {
+  return self.scanner.builder.addModule("wayland", .{
+    .source_file = .{
+      .generated = &self.scanner.result,
+    }
+  });
 }
