@@ -29,7 +29,7 @@ pub const NeutronOptions = struct {
   build_runner: bool,
   flutter_engine: ?[]const u8,
 
-  use_wlroots: bool,
+  use_wayland: bool,
   docs: bool,
   target: std.zig.CrossTarget,
   optimize: std.builtin.OptimizeMode,
@@ -41,7 +41,7 @@ pub const NeutronOptions = struct {
       .builder = b,
       .build_runner = !is_wasm,
       .flutter_engine = null,
-      .use_wlroots = target.isLinux(),
+      .use_wayland = target.isLinux(),
       .docs = true,
       .target = target,
       .optimize = optimize,
@@ -59,7 +59,7 @@ pub const NeutronOptions = struct {
 
     const build_runner = b.option(bool, "runner", "Enable the runner for Neutron") orelse options.build_runner;
     const flutter_engine = b.option([]const u8, "flutter-engine", "Path to the Flutter Engine library") orelse options.flutter_engine;
-    const use_wlroots = b.option(bool, "use-wlroots", "Whether to enable the wlroots compositor") orelse options.use_wlroots;
+    const use_wayland = b.option(bool, "use-wayland", "Whether to enable the Wayland backend") orelse options.use_wayland;
     const docs = b.option(bool, "docs", "Whether to generate the documentation") orelse options.docs;
     const target_dynamic_linker = b.option([]const u8, "target-dynamic-linker", "Set the dynamic linker for the target") orelse null;
 
@@ -69,7 +69,7 @@ pub const NeutronOptions = struct {
 
     options.build_runner = build_runner;
     options.flutter_engine = flutter_engine;
-    options.use_wlroots = use_wlroots;
+    options.use_wayland = use_wayland;
     options.docs = docs;
     return options;
   }
@@ -103,13 +103,13 @@ pub const Neutron = struct {
       .docs = null,
       .step = b.step("neutron", "Build and install all of Neutron"),
       .vendor = try Vendor.init(b, .{
-        .use_wlroots = options.use_wlroots,
+        .use_wayland = options.use_wayland,
         .flutter_engine = options.flutter_engine,
       }, options.target, options.optimize),
     };
 
     self.config.addOption(std.builtin.Version, "version", version);
-    self.config.addOption(bool, "use_wlroots", self.options.use_wlroots);
+    self.config.addOption(bool, "use_wayland", self.options.use_wayland);
 
     try self.includeDependencies(self.lib);
     self.lib.install();
@@ -202,13 +202,13 @@ pub const Neutron = struct {
     self.vendor.libffi.install();
 
     if (self.vendor.wayland != null) {
-      compile.linkLibrary(self.vendor.wayland.?.libserver);
-      self.vendor.wayland.?.libserver.install();
+      self.vendor.wayland.?.link(compile);
+      self.vendor.wayland.?.install();
     }
 
-    if (self.vendor.wlroots != null) {
-      self.vendor.wlroots.?.link(compile);
-      self.vendor.wlroots.?.install();
+    if (self.vendor.libdrm != null) {
+      self.vendor.libdrm.?.link(compile);
+      self.vendor.libdrm.?.install();
     }
   }
 };

@@ -1,7 +1,7 @@
-const Expat = @import("vendor/expat.zig");
-const Libffi = @import("vendor/libffi.zig");
+const Expat = @import("vendor/third-party/expat.zig");
+const Libffi = @import("vendor/third-party/libffi.zig");
+const Drm = @import("vendor/os-specific/linux/drm.zig");
 const Wayland = @import("vendor/os-specific/linux/wayland.zig");
-const Wlroots = @import("vendor/os-specific/linux/wlroots.zig");
 const std = @import("std");
 const Build = std.Build;
 
@@ -9,11 +9,11 @@ const Vendor = @This();
 
 builder: *std.Build,
 libffi: Libffi,
+libdrm: ?*Drm,
 wayland: ?Wayland,
-wlroots: ?Wlroots,
 
 pub const VendorOptions = struct {
-  use_wlroots: bool,
+  use_wayland: bool,
   flutter_engine: ?[]const u8,
 };
 
@@ -21,20 +21,21 @@ pub fn init(b: *Build, options: VendorOptions, target: std.zig.CrossTarget, opti
   var self = Vendor {
     .builder = b,
     .libffi = try Libffi.init(b, target, optimize),
+    .libdrm = null,
     .wayland = null,
-    .wlroots = null,
   };
 
-  if (options.use_wlroots) {
-    self.wayland = try Wayland.init(.{
-      .libffi = &self.libffi,
+  if (target.isLinux()) {
+    self.libdrm = try Drm.init(.{
       .builder = b,
       .target = target,
       .optimize = optimize,
     });
+  }
 
-    self.wlroots = try Wlroots.init(.{
-      .wayland = &self.wayland.?,
+  if (options.use_wayland) {
+    self.wayland = try Wayland.init(.{
+      .libffi = &self.libffi,
       .builder = b,
       .target = target,
       .optimize = optimize,
@@ -46,7 +47,6 @@ pub fn init(b: *Build, options: VendorOptions, target: std.zig.CrossTarget, opti
 pub fn getDependencies(self: Vendor) ![]const Build.ModuleDependency {
   var len: u32 = 0;
   if (self.wayland != null) len += 1;
-  if (self.wlroots != null) len += 1;
 
   const arr = try self.builder.allocator.alloc(Build.ModuleDependency, len);
 
@@ -56,14 +56,6 @@ pub fn getDependencies(self: Vendor) ![]const Build.ModuleDependency {
     arr[i] = .{
       .name = "wayland",
       .module = self.wayland.?.createModule(),
-    };
-    i += 1;
-  }
-
-  if (self.wlroots != null) {
-    arr[i] = .{
-      .name = "wlroots",
-      .module = self.wlroots.?.createModule(),
     };
     i += 1;
   }

@@ -1,8 +1,8 @@
 const std = @import("std");
 const Build = std.Build;
 const ScanProtocolsStep = @import("zig/zig-wayland/build.zig").ScanProtocolsStep;
-const Expat = @import("../../expat.zig");
-const Libffi = @import("../../libffi.zig");
+const Expat = @import("../../third-party/expat.zig");
+const Libffi = @import("../../third-party/libffi.zig");
 const Wayland = @This();
 
 const version = std.builtin.Version {
@@ -22,12 +22,6 @@ fn getPath(comptime suffix: []const u8) []const u8 {
     const root_dir = std.fs.path.dirname(@src().file) orelse ".";
     break :blk root_dir ++ "/libs/wayland" ++ suffix;
   };
-}
-
-fn getWaylandScanner(b: *Build) ![]const u8 {
-  return std.mem.trim(u8, try b.exec(&[_][]const u8 {
-    "pkg-config", "--variable=wayland_scanner", "wayland-scanner"
-  }), &std.ascii.whitespace);
 }
 
 fn getDir(b: *Build) ![]const u8 {
@@ -256,4 +250,14 @@ pub fn createModule(self: Wayland) *Build.Module {
       .generated = &self.scanner.result,
     }
   });
+}
+
+pub fn link(self: Wayland, cs: *Build.CompileStep) void {
+  cs.linkLibrary(self.libclient);
+  cs.linkLibrary(self.libserver);
+}
+
+pub fn install(self: Wayland) void {
+  self.libclient.install();
+  self.libserver.install();
 }

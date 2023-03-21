@@ -41,17 +41,12 @@
         };
 
         vendor = {
-          "libs/expat" = pkgs.fetchFromGitHub {
-            owner = "libexpat";
-            repo = "libexpat";
-            rev = "654d2de0da85662fcc7644a7acd7c2dd2cfb21f0";
-            sha256 = "sha256-nX8VSlqpX/SVE4fpPLOzj3s/D3zmTC9pObIYfkQq9RA=";
-          };
-          "libs/libffi" = pkgs.fetchFromGitHub {
-            owner = "libffi";
-            repo = "libffi";
-            rev = "f08493d249d2067c8b3207ba46693dd858f95db3";
-            sha256 = "sha256-98WtmJLAdI6cpQAOBTCz7OyZl7um9XAzkRVL12NZ1mc=";
+          "os-specific/linux/libs/drm" = pkgs.fetchFromGitLab {
+            domain = "gitlab.freedesktop.org";
+            owner = "mesa";
+            repo = "drm";
+            rev = "ee558cea20d1f9d822fe1a28e97beaf365bf9d38";
+            sha256 = "sha256-Ju9QbbsjDW4f9lFfClqlWcqodNMvfD4hjDkSOy6kb7k=";
           };
           "os-specific/linux/libs/wayland" = pkgs.fetchFromGitLab {
             domain = "gitlab.freedesktop.org";
@@ -67,25 +62,23 @@
             rev = "e631010ab7b96988e7c64c24b7d90f64717eaeee";
             sha256 = "sha256-eS7nurCjYetDNQORYIVITE93JW4KUqJv/GBEoe/HUkw=";
           };
-          "os-specific/linux/libs/wlroots" = pkgs.fetchFromGitLab {
-            domain = "gitlab.freedesktop.org";
-            owner = "wlroots";
-            repo = "wlroots";
-            rev = "0a32b5a74db06a27bee55a47205951bb277a9657";
-            sha256 = "sha256-JeDDYinio14BOl6CbzAPnJDOnrk4vgGNMN++rcy2ItQ=";
-          };
           "os-specific/linux/zig/zig-wayland" = pkgs.fetchFromGitHub {
             owner = "ExpidusOS";
             repo = "zig-wayland";
             rev = "ba8cee50a8f761f0aef7922a2f0747c37ca428b1";
             sha256 = "sha256-Cotkqv5v1hJh3NBbi4I2dOFKZjG7kCdLttGf0L1f6Ew=";
           };
-          "os-specific/linux/zig/zig-wlroots" = pkgs.fetchFromGitHub {
-            owner = "ExpidusOS";
-            repo = "zig-wlroots";
-            rev = "c4cdb08505de19f6bfbf8e1825349b80c7696475";
-            fetchSubmodules = true;
-            sha256 = "sha256-U8uZGz+pyVF7zRp1vL5neUD9Of82DmcVevGm7ktdPok=";
+          "third-party/libs/expat" = pkgs.fetchFromGitHub {
+            owner = "libexpat";
+            repo = "libexpat";
+            rev = "654d2de0da85662fcc7644a7acd7c2dd2cfb21f0";
+            sha256 = "sha256-nX8VSlqpX/SVE4fpPLOzj3s/D3zmTC9pObIYfkQq9RA=";
+          };
+          "third-party/libs/libffi" = pkgs.fetchFromGitHub {
+            owner = "libffi";
+            repo = "libffi";
+            rev = "f08493d249d2067c8b3207ba46693dd858f95db3";
+            sha256 = "sha256-98WtmJLAdI6cpQAOBTCz7OyZl7um9XAzkRVL12NZ1mc=";
           };
           "third-party/zig/zig-clap" = pkgs.fetchFromGitHub {
             owner = "Hejsil";
