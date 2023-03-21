@@ -78,8 +78,10 @@ pub fn main() !void {
     path = try std.fs.cwd().realpathAlloc(allocator, path);
   }
 
-  const compositor = try (try neutron.displaykit.Backends.get(.auto)).Compositor.new(.{}, allocator);
-  defer compositor.unref();
+  try neutron.drmTest(allocator);
 
-  std.debug.print("{s} {}\n", .{path, compositor});
+  //const compositor = try (try neutron.displaykit.Backends.get(.auto)).Compositor.new(.{}, allocator);
+  //defer compositor.unref();
+
+  //std.debug.print("{s} {}\n", .{path, compositor});
 }

@@ -198,7 +198,9 @@ pub fn init(options: DrmOptions) !*Drm {
     .lib = if (options.target.getObjectFormat() == .wasm)
       options.builder.addStaticLibrary(.{
         .name = "drm",
-        .root_source_file = null,
+        .root_source_file = .{
+          .path = getPath("/../../zig/zig-libdrm/src/libdrm.zig"),
+        },
         .version = version,
         .target = options.target,
         .optimize = options.optimize,
@@ -206,7 +208,9 @@ pub fn init(options: DrmOptions) !*Drm {
     else
       options.builder.addSharedLibrary(.{
         .name = "drm",
-        .root_source_file = null,
+        .root_source_file = .{
+          .path = getPath("/../../zig/zig-libdrm/src/libdrm.zig"),
+        },
         .version = version,
         .target = options.target,
         .optimize = options.optimize,
@@ -240,9 +244,16 @@ pub fn init(options: DrmOptions) !*Drm {
   return self;
 }
 
+pub fn createModule(self: *Drm) *Build.Module {
+  return self.lib.step.owner.addModule("libdrm", .{
+    .source_file = self.lib.root_src.?,
+  });
+}
+
 pub fn link(self: *Drm, cs: *Build.CompileStep) void {
   cs.linkLibrary(self.lib);
   cs.addIncludePath(getPath("/include/drm"));
+  cs.addIncludePath(getPath("/"));
 }
 
 pub fn install(self: *Drm) void {

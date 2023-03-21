@@ -6,6 +6,7 @@ const Output = @import("../../output.zig");
 const View = @import("../../view.zig");
 const WaylandCompositor = @This();
 const wl = @import("wayland").server.wl;
+const libdrm = @import("libdrm");
 
 /// Instance creation parameters
 pub const Params = struct {};

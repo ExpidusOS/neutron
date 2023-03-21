@@ -47,6 +47,7 @@ pub fn init(b: *Build, options: VendorOptions, target: std.zig.CrossTarget, opti
 pub fn getDependencies(self: Vendor) ![]const Build.ModuleDependency {
   var len: u32 = 0;
   if (self.wayland != null) len += 1;
+  if (self.libdrm != null) len += 1;
 
   const arr = try self.builder.allocator.alloc(Build.ModuleDependency, len);
 
@@ -56,6 +57,14 @@ pub fn getDependencies(self: Vendor) ![]const Build.ModuleDependency {
     arr[i] = .{
       .name = "wayland",
       .module = self.wayland.?.createModule(),
+    };
+    i += 1;
+  }
+
+  if (self.libdrm != null) {
+    arr[i] = .{
+      .name = "libdrm",
+      .module = self.libdrm.?.createModule(),
     };
     i += 1;
   }
