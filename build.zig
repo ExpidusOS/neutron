@@ -124,6 +124,13 @@ pub const Neutron = struct {
         .optimize = options.optimize,
       });
 
+      const deps = try self.getDependencies();
+      defer b.allocator.free(deps);
+
+      for (deps) |dep| {
+        docs.addModule(dep.name, dep.module);
+      }
+
       try self.includeDependencies(docs);
 
       docs.emit_docs = .{
