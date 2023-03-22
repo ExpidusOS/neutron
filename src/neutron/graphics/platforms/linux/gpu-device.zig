@@ -34,7 +34,7 @@ fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !LinuxGpuDevice 
     .gpu_device = try GpuDevice.init(.{
       .vtable = &vtable,
     }, allocator),
-    .libdrm_node = try libdrm.DeviceNode.init(params.libdrm_node.path),
+    .libdrm_node = try libdrm.DeviceNode.init(allocator, params.libdrm_node.path),
   };
 }
 
@@ -51,7 +51,7 @@ fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
   dest.gpu_device = try GpuDevice.init(.{
     .vtable = &vtable,
   }, dest.getType().allocator);
-  dest.libdrm_node = try libdrm.DeviceNode.init(self.libdrm_node.path);
+  dest.libdrm_node = try libdrm.DeviceNode.init(dest.getType().allocator, self.libdrm_node.path);
 }
 
 pub fn getAll(allocator: ?std.mem.Allocator) !*TypedList {

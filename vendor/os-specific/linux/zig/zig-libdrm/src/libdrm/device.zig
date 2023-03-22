@@ -5,10 +5,12 @@ const utils = @import("../utils.zig");
 const DeviceNode = @import("device-node.zig");
 const Device = @This();
 
+allocator: std.mem.Allocator,
 ptr: ?*c.drmDevice,
 
-pub fn init(ptr: c.drmDevicePtr) Device {
+pub fn init(allocator: std.mem.Allocator, ptr: c.drmDevicePtr) Device {
   return .{
+    .allocator = allocator,
     .ptr = ptr,
   };
 }
@@ -59,7 +61,7 @@ pub fn getNode(self: Device, i: u3) !DeviceNode {
     var len: usize = 0;
     const str = device.*.nodes[i];
     while (str[len] != 0) : (len += 1) {}
-    return try DeviceNode.init(str[0..len]);
+    return try DeviceNode.init(self.allocator, str[0..len]);
   }
 
   return error.InputOutput;

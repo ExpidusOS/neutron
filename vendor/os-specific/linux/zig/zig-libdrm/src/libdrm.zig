@@ -23,24 +23,24 @@ fn wrappedGetDevices2(flags: u32, devices: [*c]c.drmDevicePtr, max_devices: ?usi
   return @intCast(usize, n_devices);
 }
 
-pub fn getDevices2(flags: u32, dest: []Device) !void {
+pub fn getDevices2(allocator: std.mem.Allocator, flags: u32, dest: []Device) !void {
   const n_devices = try wrappedGetDevices2(flags, null, dest.len);
 
   assert(n_devices == dest.len);
-  const devices = try std.heap.c_allocator.alloc(c.drmDevicePtr, n_devices);
-  defer std.heap.c_allocator.free(devices);
+  const devices = try allocator.alloc(c.drmDevicePtr, n_devices);
+  defer allocator.free(devices);
 
   _ = try wrappedGetDevices2(flags, @ptrCast([*c]c.drmDevicePtr, devices), n_devices);
 
   for (dest, devices) |*item, dev| {
-    item.* = Device.init(dev);
+    item.* = Device.init(allocator, dev);
   }
 }
 
 pub fn getDevices2Alloc(allocator: std.mem.Allocator, flags: u32) ![]const Device {
   const n_devices = try wrappedGetDevices2(flags, null, 0);
   var list = try allocator.alloc(Device, @intCast(usize, n_devices));
-  try getDevices2(flags, list);
+  try getDevices2(allocator, flags, list);
   return list;
 }
 

@@ -95,5 +95,7 @@ pub fn main() !void {
       .gpu = &gpu.instance.gpu_device,
     }, allocator);
     defer compositor.unref();
+
+    try neutron.elemental.formatter.json(gpu, "", .{}, stdout);
   }
 }
