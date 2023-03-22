@@ -1,6 +1,8 @@
 const std = @import("std");
 const c = @import("../c.zig").c;
 const utils = @import("../utils.zig");
+const Crtc = @import("crtc.zig");
+const Connector = @import("connector.zig");
 const DeviceNode = @This();
 
 fn dupeString(allocator: std.mem.Allocator, value: [*c]const u8, length: c_int) !?[]const u8 {
@@ -53,6 +55,7 @@ path: []const u8,
 fd: std.os.fd_t,
 version: VersionInfo,
 libversion: std.builtin.Version,
+is_kms: bool,
 
 pub fn init(allocator: std.mem.Allocator, path: []const u8) !DeviceNode {
   const fd = try std.os.open(path, 0, std.os.linux.O.RDONLY | std.os.linux.O.CLOEXEC);
@@ -62,6 +65,7 @@ pub fn init(allocator: std.mem.Allocator, path: []const u8) !DeviceNode {
     .fd = fd,
     .version = try VersionInfo.init(allocator, c.drmGetVersion(fd)),
     .libversion = (try VersionInfo.init(allocator, c.drmGetLibVersion(fd))).value,
+    .is_kms = c.drmIsKMS(fd) == 1,
   };
 }
 
@@ -79,4 +83,34 @@ pub fn getCapability(self: DeviceNode, cap: u64) !u64 {
   }
 
   return value;
+}
+
+pub fn getCrtcs(self: DeviceNode) ![]Crtc {
+  const res = c.drmModeGetResources(self.fd);
+  if (res == null) {
+    return error.InputOutput;
+  }
+
+  defer c.drmModeFreeResources(res);
+
+  const crtcs = try self.allocator.alloc(Crtc, @intCast(usize, res.*.count_crtcs));
+  for (crtcs, res.*.crtcs) |*value, id| {
+    value.* = try Crtc.init(&self, id);
+  }
+  return crtcs;
+}
+
+pub fn getConnectors(self: DeviceNode) ![]Connector {
+  const res = c.drmModeGetResources(self.fd);
+  if (res == null) {
+    return error.InputOutput;
+  }
+
+  defer c.drmModeFreeResources(res);
+
+  const connectors = try self.allocator.alloc(Connector, @intCast(usize, res.*.count_connectors));
+  for (connectors, res.*.connectors) |*value, id| {
+    value.* = try Connector.init(&self, id);
+  }
+  return connectors;
 }

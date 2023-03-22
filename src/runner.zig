@@ -96,6 +96,6 @@ pub fn main() !void {
     }, allocator);
     defer compositor.unref();
 
-    try neutron.elemental.formatter.json(gpu, "", .{}, stdout);
+    // try neutron.elemental.formatter.json(gpu, "", .{}, stdout);
   }
 }

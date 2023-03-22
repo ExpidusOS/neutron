@@ -3,8 +3,11 @@ const assert = std.debug.assert;
 const utils = @import("utils.zig");
 const c = @import("c.zig").c;
 
+pub const Connector = @import("libdrm/connector.zig");
+pub const Crtc = @import("libdrm/crtc.zig");
 pub const Device = @import("libdrm/device.zig");
 pub const DeviceNode = @import("libdrm/device-node.zig");
+pub const FrameBuffer = @import("libdrm/fb.zig");
 
 pub const DrmError = error {
   NoDevices,
@@ -17,9 +20,7 @@ pub fn isAvailable() bool {
 fn wrappedGetDevices2(flags: u32, devices: [*c]c.drmDevicePtr, max_devices: ?usize) !usize {
   const max_devices_pass = if (max_devices == null) 0 else @intCast(c_int, max_devices.?);
   const n_devices = c.drmGetDevices2(flags, devices, max_devices_pass);
-  if (n_devices < 0) {
-    return utils.wrapErrno(n_devices);
-  }
+  try utils.catchError(n_devices);
   return @intCast(usize, n_devices);
 }
 

@@ -110,7 +110,11 @@ pub fn json(value: anytype, comptime fmt: []const u8, options: std.fmt.FormatOpt
           return std.fmt.format(writer, "\"{s}\"", .{ value });
         }
 
-        std.fmt.invalidFmtError(fmt, value);
+        try writer.writeAll("{\"type\": \"");
+        try writer.writeAll(@typeName(ptr_info.child));
+        try writer.writeAll("\", \"value\": ");
+        try std.fmt.format(writer, "{}", .{ @ptrToInt(value) });
+        try writer.writeAll("}");
       },
       .Slice => {
         if (ptr_info.child == u8) {

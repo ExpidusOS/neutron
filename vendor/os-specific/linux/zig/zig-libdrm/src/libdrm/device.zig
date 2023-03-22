@@ -18,7 +18,7 @@ pub fn init(allocator: std.mem.Allocator, ptr: c.drmDevicePtr) Device {
 pub fn fromDevId(dev_id: u32, flags: u32) !Device {
   const ptr: c.drmDevicePtr = undefined;
   const ret = c.drmGetDeviceFromDevId(dev_id, flags, &ptr);
-  if (ret < 0) {
+  if (std.os.linux.getErrno(@intCast(usize, ret * -1)) != .SUCCESS) {
     return utils.wrapErrno(ret);
   }
 
