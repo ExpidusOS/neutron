@@ -26,7 +26,10 @@ pub fn addFrameBuffer(self: Crtc, width: u32, height: u32, depth: u8, bpp: u8, p
 
   var id: u32 = 0;
   const ret = c.drmModeAddFB(self.node.fd, width, height, depth, bpp, pitch, self.ptr.*.buffer_id, &id);
-  try utils.catchError(ret);
+  utils.catchError(ret) catch |err| {
+    std.debug.assert(id == 0);
+    return err;
+  };
 
   const ptr = c.drmModeGetFB(self.node.fd, id);
   if (ptr == null) {

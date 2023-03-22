@@ -6,7 +6,7 @@ const Connector = @import("connector.zig");
 const DeviceNode = @This();
 
 fn dupeString(allocator: std.mem.Allocator, value: [*c]const u8, length: c_int) !?[]const u8 {
-  if (value == null) {
+  if (value == null or length == 0) {
     return null;
   }
 
@@ -51,11 +51,11 @@ pub const VersionInfo = struct {
 };
 
 allocator: std.mem.Allocator,
-path: []const u8,
 fd: std.os.fd_t,
 version: VersionInfo,
 libversion: std.builtin.Version,
 is_kms: bool,
+path: []const u8,
 
 pub fn init(allocator: std.mem.Allocator, path: []const u8) !DeviceNode {
   const fd = try std.os.open(path, 0, std.os.linux.O.RDONLY | std.os.linux.O.CLOEXEC);
