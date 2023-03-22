@@ -3,6 +3,7 @@ const c = @import("../c.zig").c;
 const utils = @import("../utils.zig");
 const Crtc = @import("crtc.zig");
 const Connector = @import("connector.zig");
+const Encoder = @import("encoder.zig");
 const DeviceNode = @This();
 
 fn dupeString(allocator: std.mem.Allocator, value: [*c]const u8, length: c_int) !?[]const u8 {
@@ -94,7 +95,7 @@ pub fn getCrtcs(self: DeviceNode) ![]Crtc {
   defer c.drmModeFreeResources(res);
 
   const crtcs = try self.allocator.alloc(Crtc, @intCast(usize, res.*.count_crtcs));
-  for (crtcs, res.*.crtcs) |*value, id| {
+  for (crtcs, res.*.crtcs[0..@intCast(usize, res.*.count_crtcs)]) |*value, id| {
     value.* = try Crtc.init(&self, id);
   }
   return crtcs;
@@ -109,8 +110,23 @@ pub fn getConnectors(self: DeviceNode) ![]Connector {
   defer c.drmModeFreeResources(res);
 
   const connectors = try self.allocator.alloc(Connector, @intCast(usize, res.*.count_connectors));
-  for (connectors, res.*.connectors) |*value, id| {
+  for (connectors, res.*.connectors[0..@intCast(usize, res.*.count_connectors)]) |*value, id| {
     value.* = try Connector.init(&self, id);
   }
   return connectors;
+}
+
+pub fn getEncoders(self: DeviceNode) ![]Encoder {
+  const res = c.drmModeGetResources(self.fd);
+  if (res == null) {
+    return error.InputOutput;
+  }
+
+  defer c.drmModeFreeResources(res);
+
+  const encoders = try self.allocator.alloc(Connector, @intCast(usize, res.*.count_encoders));
+  for (encoders, res.*.encoders[0..@intCast(usize, res.*.count_encoders)]) |*value, id| {
+    value.* = try Encoder.init(&self, id);
+  }
+  return encoders;
 }

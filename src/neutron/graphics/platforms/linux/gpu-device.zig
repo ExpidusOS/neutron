@@ -30,12 +30,22 @@ const vtable = GpuDevice.VTable {
 
 fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !LinuxGpuDevice {
   const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
-  return .{
+  const self = LinuxGpuDevice {
     .gpu_device = try GpuDevice.init(.{
       .vtable = &vtable,
     }, allocator),
     .libdrm_node = try libdrm.DeviceNode.init(allocator, params.libdrm_node.path),
   };
+
+  const connectors = try self.libdrm_node.getConnectors();
+  defer allocator.free(connectors);
+
+  for (connectors) |connector| {
+    const crtcs = connector.getPossibleCrtcs() catch continue;
+    defer allocator.free(crtcs);
+    std.debug.print("{s}-{}: {any}\n", .{ connector.type_name, connector.type_id, crtcs });
+  }
+  return self;
 }
 
 fn impl_destroy(_self: *anyopaque) void {
