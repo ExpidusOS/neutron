@@ -2,7 +2,9 @@ const std = @import("std");
 const assert = std.debug.assert;
 const utils = @import("utils.zig");
 const c = @import("c.zig").c;
-const Device = @import("device.zig");
+
+pub const Device = @import("libdrm/device.zig");
+pub const DeviceNode = @import("libdrm/device-node.zig");
 
 pub const DrmError = error {
   NoDevices,

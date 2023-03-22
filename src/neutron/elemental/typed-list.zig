@@ -59,6 +59,10 @@ pub fn AlignedTypedList(comptime T: type, comptime P: type, comptime info: _type
       return self.getType().unref();
     }
 
+    pub fn append(self: *Self, value: *ItemType) !void {
+      return try self.list.append(value.ref());
+    }
+
     pub fn dupe(self: *Self) !*Self {
       return &(try self.getType().dupe()).instance;
     }
@@ -72,7 +76,7 @@ pub fn AlignedTypedList(comptime T: type, comptime P: type, comptime info: _type
     }
 
     pub fn item(self: *Self, index: usize) ?*ItemType {
-      if (self.list.items.len > index) return null;
+      if (self.list.items.len < index) return null;
       return self.list.items[index].ref();
     }
 

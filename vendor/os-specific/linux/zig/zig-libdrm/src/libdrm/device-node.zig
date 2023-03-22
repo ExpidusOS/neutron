@@ -1,6 +1,6 @@
 const std = @import("std");
-const c = @import("c.zig").c;
-const utils = @import("utils.zig");
+const c = @import("../c.zig").c;
+const utils = @import("../utils.zig");
 const DeviceNode = @This();
 
 path: []const u8,

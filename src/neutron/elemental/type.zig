@@ -1,6 +1,7 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Mutex = std.Thread.Mutex;
+const formatter = @import("formatter.zig");
 
 /// Define type information
 pub fn TypeInfo(comptime T: type) type {
@@ -16,6 +17,27 @@ pub fn TypeInfo(comptime T: type) type {
 
     /// Duplication method
     dupe: *const fn (self: *anyopaque, dest: *anyopaque) anyerror!void,
+
+    pub fn format(self: @This(), comptime fmt: []const u8, options: std.fmt.FormatOptions, out_stream: anytype) !void {
+      _ = fmt;
+      _ = options;
+
+      try std.fmt.format(out_stream,
+        \\<name>{s}</name>
+        \\<methods>
+        \\  <init>0x{x}</init>
+        \\  <construct>0x{x}</construct>
+        \\  <destroy>0x{x}</destroy>
+        \\  <dupe>0x{x}</dupe>
+        \\</methods>
+      , .{
+        @typeName(T),
+        @ptrToInt(self.init),
+        @ptrToInt(self.construct),
+        @ptrToInt(self.destroy),
+        @ptrToInt(self.dupe),
+      });
+    }
   };
 }
 
@@ -61,14 +83,7 @@ pub fn Type(
       }
 
       const self = try allocator.?.create(Self);
-      self.allocator = allocator.?;
-      self.allocated = true;
-      self.type_info = info;
-      self.instance = try info.init(@ptrCast(*anyopaque, @alignCast(@alignOf(*P), @constCast(&params))), self.allocator);
-
-      if (info.construct != null) {
-        try info.construct.?(&self.instance, &params);
-      }
+      self.* = try Self.init(params, allocator);
       return self;
     }
 
@@ -134,6 +149,28 @@ pub fn Type(
       }
 
       Mutex.unlock(&self.ref_lock);
+    }
+
+    /// A zig formatter
+    pub fn format(self: *const Self, comptime fmt: []const u8, options: std.fmt.FormatOptions, out_stream: anytype) !void {
+      try std.fmt.format(out_stream,
+        \\<{s}>
+        \\  <type>{}</type>
+        \\  <instance is-allocated="{}" refs="{}">
+      , .{
+        @typeName(T),
+        self.type_info,
+        self.allocated,
+        self.ref_count,
+      });
+
+      if (comptime std.meta.trait.hasFn("format")(T)) {
+        try self.instance.format(fmt, options, out_stream);
+      } else {
+        try formatter.format(self.instance, fmt, options, out_stream);
+      }
+
+      try std.fmt.format(out_stream, "</instance></{s}>", .{ @typeName(T) });
     }
   };
 }

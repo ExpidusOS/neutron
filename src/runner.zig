@@ -65,7 +65,7 @@ pub fn main() !void {
 
   if (mode == .compositor) {
     if (builtin.os.tag != .linux) {
-      stderr.print("Neutron runner cannot execute in compositor mode outside of Linux.\n");
+      try stderr.print("Neutron runner cannot execute in compositor mode outside of Linux.\n", .{});
       std.process.exit(1);
     }
   }
@@ -78,10 +78,22 @@ pub fn main() !void {
     path = try std.fs.cwd().realpathAlloc(allocator, path);
   }
 
-  try neutron.drmTest(allocator);
+  if (mode == .compositor) {
+    const gpus = try neutron.graphics.platform.GpuDevice.getAll(allocator);
+    defer gpus.unref();
 
-  //const compositor = try (try neutron.displaykit.Backends.get(.auto)).Compositor.new(.{}, allocator);
-  //defer compositor.unref();
+    const _gpu = gpus.first();
+    if (_gpu == null) {
+      try stderr.print("Neutron runner cannot run in compositor mode without a GPU.\n", .{});
+      std.process.exit(1);
+    }
 
-  //std.debug.print("{s} {}\n", .{path, compositor});
+    const gpu = _gpu.?;
+    defer gpu.unref();
+
+    const compositor = try (try neutron.displaykit.Backends.get(.auto)).Compositor.new(.{
+      .gpu = &gpu.instance.gpu_device,
+    }, allocator);
+    defer compositor.unref();
+  }
 }

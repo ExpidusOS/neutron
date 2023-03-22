@@ -1,7 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
-const c = @import("c.zig").c;
-const utils = @import("utils.zig");
+const c = @import("../c.zig").c;
+const utils = @import("../utils.zig");
 const DeviceNode = @import("device-node.zig");
 const Device = @This();
 
