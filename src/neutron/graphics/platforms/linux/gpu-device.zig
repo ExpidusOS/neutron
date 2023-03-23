@@ -52,22 +52,22 @@ fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !LinuxGpuDevice 
       std.debug.print("{}\n", .{ encoder });
     }
 
+    const modes = try conn.getModes();
+    defer allocator.free(modes);
+
+    for (modes) |mode| {
+      std.debug.print("{}\n", .{ mode });
+    }
+
     var crtcs = try conn.getPossibleCrtcs();
     defer allocator.free(crtcs);
 
     for (crtcs) |crtc| {
       defer crtc.deinit();
 
-      const fb = try crtc.createDumbFrameBuffer(u32, 1024, 768);
+      const fb = try crtc.createDumbFrameBuffer(u64, modes[0].horizontal.value, modes[0].vertical.value);
       defer fb.destroy();
-      std.debug.print("{}\n", .{ fb });
-    }
-
-    const modes = try conn.getModes();
-    defer allocator.free(modes);
-
-    for (modes) |mode| {
-      std.debug.print("{}\n", .{ mode });
+      std.debug.print("{} {}\n", .{ fb, try crtc.getGamma() });
     }
   }
   return self;

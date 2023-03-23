@@ -3,6 +3,7 @@ const assert = std.debug.assert;
 const utils = @import("utils.zig");
 const c = @import("c.zig").c;
 
+pub const Color = @import("libdrm/color.zig");
 pub const Connector = @import("libdrm/connector.zig");
 pub const Crtc = @import("libdrm/crtc.zig");
 pub const Device = @import("libdrm/device.zig");

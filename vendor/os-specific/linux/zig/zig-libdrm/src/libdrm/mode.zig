@@ -38,6 +38,11 @@ pub const Axis = struct {
 clock: u32,
 horizontal: Axis,
 vertical: Axis,
+hskew: u16,
+vscan: u16,
+vrefresh: u32,
+flags: u32,
+@"type": u32,
 name: [c.DRM_DISPLAY_MODE_LEN]u8,
 
 pub fn init(info: c.drmModeModeInfoPtr) Mode {
@@ -45,6 +50,11 @@ pub fn init(info: c.drmModeModeInfoPtr) Mode {
     .clock = info.*.clock,
     .horizontal = Axis.init(info, "h"),
     .vertical = Axis.init(info, "v"),
+    .hskew = info.*.hskew,
+    .vscan = info.*.vscan,
+    .vrefresh = info.*.vrefresh,
+    .flags = info.*.flags,
+    .type = info.*.type,
     .name = info.*.name,
   };
 }
@@ -55,4 +65,24 @@ pub fn getRefreshRate(self: Mode) i32 {
   if (self.vscan > 1) {
     refresh /= self.vscan;
   }
+}
+
+pub fn @"export"(self: Mode) c.drmModeModeInfo {
+  return .{
+    .clock = self.clock,
+    .hdisplay = self.horizontal.value,
+    .hsync_start = self.horizontal.sync.start,
+    .hsync_end = self.horizontal.sync.end,
+    .htotal = self.horizontal.total,
+    .vdisplay = self.vertical.value,
+    .vsync_start = self.vertical.sync.start,
+    .vsync_end = self.vertical.sync.end,
+    .vtotal = self.vertical.total,
+    .hskew = self.hskew,
+    .vscan = self.vscan,
+    .vrefresh = self.vrefresh,
+    .flags = self.flags,
+    .type = self.type,
+    .name = self.name,
+  };
 }

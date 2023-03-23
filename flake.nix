@@ -74,6 +74,19 @@
             rev = "654d2de0da85662fcc7644a7acd7c2dd2cfb21f0";
             sha256 = "sha256-nX8VSlqpX/SVE4fpPLOzj3s/D3zmTC9pObIYfkQq9RA=";
           };
+          "third-party/libs/hwdata" = pkgs.fetchFromGitHub {
+            owner = "vcrhonek";
+            repo = "hwdata";
+            rev = "0e25d93ac6433791edbb9d28b3f8eae0cf5e46ff";
+            sha256 = "sha256-+9UyF4tcy5cJPjbyQ2RuWVJkBsZut+YX2ncUJIqIQZo=";
+          };
+          "third-party/libs/libdisplay-info" = pkgs.fetchFromGitLab {
+            domain = "gitlab.freedesktop.org";
+            owner = "emersion";
+            repo = "libdisplay-info";
+            rev = "92b031749c0fe84ef5cdf895067b84a829920e25";
+            sha256 = "sha256-7t1CoLus3rPba9paapM7+H3qpdsw7FlzJsSHFwM/2Lk=";
+          };
           "third-party/libs/libffi" = pkgs.fetchFromGitHub {
             owner = "libffi";
             repo = "libffi";

@@ -19,3 +19,9 @@
 [submodule "vendor/os-specific/linux/libs/drm"]
 	path = vendor/os-specific/linux/libs/drm
 	url = https://gitlab.freedesktop.org/mesa/drm
+[submodule "vendor/third-party/libs/libdisplay-info"]
+	path = vendor/third-party/libs/libdisplay-info
+	url = https://gitlab.freedesktop.org/emersion/libdisplay-info.git
+[submodule "vendor/third-party/libs/hwdata"]
+	path = vendor/third-party/libs/hwdata
+	url = https://github.com/vcrhonek/hwdata

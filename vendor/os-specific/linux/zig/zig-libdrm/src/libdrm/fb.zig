@@ -4,6 +4,7 @@ const utils = @import("../utils.zig");
 const Crtc = @import("crtc.zig");
 
 pub fn DumbFrameBuffer(comptime S: type) type {
+  if (@typeInfo(S) != .Int) @compileError("Size must be an integer");
   return struct {
     const Self = @This();
 
