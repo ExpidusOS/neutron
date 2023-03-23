@@ -8,24 +8,27 @@ node: *const DeviceNode,
 ptr: c.drmModeEncoderPtr,
 id: u32,
 
-pub fn init(node: *const DeviceNode, id: u32) !Encoder {
+pub fn init(node: *const DeviceNode, id: u32) !*Encoder {
   const ptr = c.drmModeGetEncoder(node.fd, id);
   if (ptr == null) {
     return error.InputOutput;
   }
 
-  return .{
+  const self = try node.allocator.create(Encoder);
+  self.* = .{
     .node = node,
     .ptr = ptr,
     .id = id,
   };
+  return self;
 }
 
-pub fn deinit(self: Encoder) void {
+pub fn deinit(self: *Encoder) void {
   c.drmModeFreeEncoder(self.ptr);
+  self.node.allocator.destroy(self);
 }
 
-pub fn getPossibleCrtcs(self: Encoder) ![]Crtc {
+pub fn getPossibleCrtcs(self: *const Encoder) ![]*Crtc {
   const res = c.drmModeGetResources(self.node.fd);
   if (res == null) {
     return error.InputOutput;
@@ -40,7 +43,7 @@ pub fn getPossibleCrtcs(self: Encoder) ![]Crtc {
     }
   }
 
-  const crtcs = try self.node.allocator.alloc(Crtc, count);
+  const crtcs = try self.node.allocator.alloc(*Crtc, count);
   var i: usize = 0;
   for (res.*.crtcs[0..@intCast(usize, res.*.count_crtcs)], 0..) |id, x| {
     if ((self.ptr.*.possible_crtcs & @as(u32, 1) << @intCast(u5, x)) == 1) {

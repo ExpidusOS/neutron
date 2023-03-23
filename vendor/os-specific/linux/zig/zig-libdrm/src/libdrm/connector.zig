@@ -13,7 +13,7 @@ type_name: [*:0]const u8,
 type_id: u32,
 id: u32,
 
-pub fn init(node: *const DeviceNode, id: u32) !Connector {
+pub fn init(node: *const DeviceNode, id: u32) !*Connector {
   const ptr = c.drmModeGetConnector(node.fd, id);
   if (ptr == null) {
     return error.InputOutput;
@@ -21,22 +21,23 @@ pub fn init(node: *const DeviceNode, id: u32) !Connector {
 
   const type_name = c.drmModeGetConnectorTypeName(ptr.*.connector_type);
 
-  return .{
+  const self = try node.allocator.create(Connector);
+  self.* = .{
     .node = node,
     .ptr = ptr,
     .id = id,
     .type_name = if (type_name == null) "Unknown" else type_name,
     .type_id = ptr.*.connector_type_id,
   };
+  return self;
 }
 
-pub fn deinit(self: Connector) void {
+pub fn deinit(self: *Connector) void {
   c.drmModeFreeConnector(self.ptr);
+  self.node.allocator.destroy(self);
 }
 
-pub fn getPossibleCrtcs(self: Connector) ![]Crtc {
-  std.debug.assert(self.ptr != null);
-
+pub fn getPossibleCrtcs(self: *const Connector) ![]*Crtc {
   const possible = c.drmModeConnectorGetPossibleCrtcs(self.node.fd, self.ptr);
   const res = c.drmModeGetResources(self.node.fd);
   if (res == null) {
@@ -52,7 +53,7 @@ pub fn getPossibleCrtcs(self: Connector) ![]Crtc {
     }
   }
 
-  const crtcs = try self.node.allocator.alloc(Crtc, count);
+  const crtcs = try self.node.allocator.alloc(*Crtc, count);
   var i: usize = 0;
   for (res.*.crtcs[0..@intCast(usize, res.*.count_crtcs)], 0..) |id, x| {
     if ((possible & @as(u32, 1) << @intCast(u5, x)) == 1) {
@@ -63,28 +64,23 @@ pub fn getPossibleCrtcs(self: Connector) ![]Crtc {
   return crtcs;
 }
 
-pub fn getEncoder(self: Connector) !Encoder {
-  std.debug.assert(self.ptr != null);
+pub fn getEncoder(self: *const Connector) !*Encoder {
   return try Encoder.init(self.node, self.ptr.*.encoder_id);
 }
 
-pub fn getEncoders(self: Connector) ![]Encoder {
-  std.debug.assert(self.ptr != null);
-
+pub fn getEncoders(self: *const Connector) ![]*Encoder {
   if (self.ptr.*.encoders == null) {
     return error.InvalidMemory;
   }
 
-  const encoders = try self.node.allocator.alloc(Encoder, @intCast(usize, self.ptr.*.count_encoders));
+  const encoders = try self.node.allocator.alloc(*Encoder, @intCast(usize, self.ptr.*.count_encoders));
   for (encoders, self.ptr.*.encoders[0..@intCast(usize, self.ptr.*.count_encoders)]) |*v, id| {
     v.* = try Encoder.init(self.node, id);
   }
   return encoders;
 }
 
-pub fn getModes(self: Connector) ![]Mode {
-  std.debug.assert(self.ptr != null);
-
+pub fn getModes(self: *const Connector) ![]Mode {
   if (self.ptr.*.modes == null) {
     return error.InvalidMemory;
   }

@@ -58,9 +58,10 @@ libversion: std.builtin.Version,
 is_kms: bool,
 path: []const u8,
 
-pub fn init(allocator: std.mem.Allocator, path: []const u8) !DeviceNode {
+pub fn init(allocator: std.mem.Allocator, path: []const u8) !*DeviceNode {
   const fd = try std.os.open(path, 0, std.os.linux.O.RDONLY | std.os.linux.O.CLOEXEC);
-  return .{
+  const self = try allocator.create(DeviceNode);
+  self.* = .{
     .allocator = allocator,
     .path = path,
     .fd = fd,
@@ -68,14 +69,16 @@ pub fn init(allocator: std.mem.Allocator, path: []const u8) !DeviceNode {
     .libversion = (try VersionInfo.init(allocator, c.drmGetLibVersion(fd))).value,
     .is_kms = c.drmIsKMS(fd) == 1,
   };
+  return self;
 }
 
-pub fn deinit(self: DeviceNode) void {
+pub fn deinit(self: *DeviceNode) void {
   self.version.deinit();
   std.os.close(self.fd);
+  self.allocator.destroy(self);
 }
 
-pub fn getCapability(self: DeviceNode, cap: u64) !u64 {
+pub fn getCapability(self: *DeviceNode, cap: u64) !u64 {
   var value: u64 = 0;
   const ret = c.drmGetCap(self.fd, cap, &value);
   if (ret < 0) {
@@ -86,7 +89,7 @@ pub fn getCapability(self: DeviceNode, cap: u64) !u64 {
   return value;
 }
 
-pub fn getCrtcs(self: DeviceNode) ![]Crtc {
+pub fn getCrtcs(self: *DeviceNode) ![]*Crtc {
   const res = c.drmModeGetResources(self.fd);
   if (res == null) {
     return error.InputOutput;
@@ -94,14 +97,14 @@ pub fn getCrtcs(self: DeviceNode) ![]Crtc {
 
   defer c.drmModeFreeResources(res);
 
-  const crtcs = try self.allocator.alloc(Crtc, @intCast(usize, res.*.count_crtcs));
+  const crtcs = try self.allocator.alloc(*Crtc, @intCast(usize, res.*.count_crtcs));
   for (crtcs, res.*.crtcs[0..@intCast(usize, res.*.count_crtcs)]) |*value, id| {
-    value.* = try Crtc.init(&self, id);
+    value.* = try Crtc.init(self, id);
   }
   return crtcs;
 }
 
-pub fn getConnectors(self: DeviceNode) ![]Connector {
+pub fn getConnectors(self: *DeviceNode) ![]*Connector {
   const res = c.drmModeGetResources(self.fd);
   if (res == null) {
     return error.InputOutput;
@@ -109,14 +112,14 @@ pub fn getConnectors(self: DeviceNode) ![]Connector {
 
   defer c.drmModeFreeResources(res);
 
-  const connectors = try self.allocator.alloc(Connector, @intCast(usize, res.*.count_connectors));
+  const connectors = try self.allocator.alloc(*Connector, @intCast(usize, res.*.count_connectors));
   for (connectors, res.*.connectors[0..@intCast(usize, res.*.count_connectors)]) |*value, id| {
-    value.* = try Connector.init(&self, id);
+    value.* = try Connector.init(self, id);
   }
   return connectors;
 }
 
-pub fn getEncoders(self: DeviceNode) ![]Encoder {
+pub fn getEncoders(self: *DeviceNode) ![]Encoder {
   const res = c.drmModeGetResources(self.fd);
   if (res == null) {
     return error.InputOutput;
@@ -126,7 +129,7 @@ pub fn getEncoders(self: DeviceNode) ![]Encoder {
 
   const encoders = try self.allocator.alloc(Connector, @intCast(usize, res.*.count_encoders));
   for (encoders, res.*.encoders[0..@intCast(usize, res.*.count_encoders)]) |*value, id| {
-    value.* = try Encoder.init(&self, id);
+    value.* = try Encoder.init(self, id);
   }
   return encoders;
 }

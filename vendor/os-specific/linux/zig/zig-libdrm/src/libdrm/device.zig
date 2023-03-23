@@ -8,40 +8,31 @@ const Device = @This();
 allocator: std.mem.Allocator,
 ptr: ?*c.drmDevice,
 
-pub fn init(allocator: std.mem.Allocator, ptr: c.drmDevicePtr) Device {
-  return .{
+pub fn init(allocator: std.mem.Allocator, ptr: c.drmDevicePtr) !*Device {
+  const self = try allocator.create(Device);
+  self.* = .{
     .allocator = allocator,
     .ptr = ptr,
   };
+  return self;
 }
 
-pub fn fromDevId(dev_id: u32, flags: u32) !Device {
-  const ptr: c.drmDevicePtr = undefined;
-  const ret = c.drmGetDeviceFromDevId(dev_id, flags, &ptr);
-  if (std.os.linux.getErrno(@intCast(usize, ret * -1)) != .SUCCESS) {
-    return utils.wrapErrno(ret);
-  }
-
-  return .{
-    .ptr = ptr,
-  };
-}
-
-pub fn isEqual(a: Device, b: Device) bool {
+pub fn isEqual(a: *Device, b: *Device) bool {
   assert(a.ptr != null);
   assert(b.ptr != null);
   return c.drmDeviceEqual(a.ptr, b.ptr);
 }
 
-pub fn deinit(self: Device) void {
+pub fn deinit(self: *Device) void {
   c.drmFreeDevice(@ptrCast([*c]c.drmDevicePtr, @constCast(&self.ptr.?)));
+  self.allocator.destroy(self);
 }
 
-pub fn getNodes(self: Device) ![c.DRM_NODE_MAX]?DeviceNode {
+pub fn getNodes(self: *const Device) ![c.DRM_NODE_MAX]?*DeviceNode {
   assert(self.ptr != null);
   const device = self.ptr.?;
 
-  var list = [c.DRM_NODE_MAX]?DeviceNode { null, null, null };
+  var list = [c.DRM_NODE_MAX]?*DeviceNode { null, null, null };
   inline for (&list, 0..) |*item, i| {
     if ((device.*.available_nodes & 1 << i) == 1) {
       item.* = try self.getNode(i);
@@ -52,7 +43,7 @@ pub fn getNodes(self: Device) ![c.DRM_NODE_MAX]?DeviceNode {
   return list;
 }
 
-pub fn getNode(self: Device, i: u3) !DeviceNode {
+pub fn getNode(self: *const Device, i: u3) !*DeviceNode {
   assert(i < c.DRM_NODE_MAX);
   assert(self.ptr != null);
   const device = self.ptr.?;

@@ -8,7 +8,7 @@ pub const TypedList = elemental.TypedList(LinuxGpuDevice, Params, TypeInfo);
 
 /// Instance creation parameters
 pub const Params = struct {
-  libdrm_node: libdrm.DeviceNode,
+  libdrm_node: *libdrm.DeviceNode,
 };
 
 /// Neutron's Elemental type information
@@ -23,27 +23,36 @@ pub const TypeInfo = elemental.TypeInfo(LinuxGpuDevice) {
 pub const Type = elemental.Type(LinuxGpuDevice, Params, TypeInfo);
 
 gpu_device: GpuDevice.Type,
-libdrm_node: libdrm.DeviceNode,
+libdrm_node: *libdrm.DeviceNode,
 
 const vtable = GpuDevice.VTable {
 };
 
 fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !LinuxGpuDevice {
   const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
-  const self = LinuxGpuDevice {
+  var self = LinuxGpuDevice {
     .gpu_device = try GpuDevice.init(.{
       .vtable = &vtable,
     }, allocator),
     .libdrm_node = try libdrm.DeviceNode.init(allocator, params.libdrm_node.path),
   };
 
-  const connectors = try self.libdrm_node.getConnectors();
+  var connectors = try self.libdrm_node.getConnectors();
   defer allocator.free(connectors);
 
   for (connectors) |conn| {
     defer conn.deinit();
 
-    const crtcs = conn.getPossibleCrtcs() catch continue;
+    var encoders = try conn.getEncoders();
+    defer allocator.free(encoders);
+
+    for (encoders) |encoder| {
+      defer encoder.deinit();
+
+      std.debug.print("{}\n", .{ encoder });
+    }
+
+    var crtcs = try conn.getPossibleCrtcs();
     defer allocator.free(crtcs);
 
     for (crtcs) |crtc| {
@@ -52,6 +61,13 @@ fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !LinuxGpuDevice 
       const fb = try crtc.createDumbFrameBuffer(u32, 1024, 768);
       defer fb.destroy();
       std.debug.print("{}\n", .{ fb });
+    }
+
+    const modes = try conn.getModes();
+    defer allocator.free(modes);
+
+    for (modes) |mode| {
+      std.debug.print("{}\n", .{ mode });
     }
   }
   return self;
@@ -78,7 +94,7 @@ pub fn getAll(allocator: ?std.mem.Allocator) !*TypedList {
     return try getAll(std.heap.page_allocator);
   }
 
-  const libdrm_devices = try libdrm.getDevices2Alloc(allocator.?, 0);
+  var libdrm_devices = try libdrm.getDevices2Alloc(allocator.?, 0);
   defer libdrm.freeDevices(allocator.?, libdrm_devices);
 
   const devices = try TypedList.new(.{

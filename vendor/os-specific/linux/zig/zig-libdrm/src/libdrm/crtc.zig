@@ -9,19 +9,22 @@ node: *const DeviceNode,
 ptr: c.drmModeCrtcPtr,
 id: u32,
 
-pub fn init(node: *const DeviceNode, id: u32) !Crtc {
-  return .{
+pub fn init(node: *const DeviceNode, id: u32) !*Crtc {
+  const self = try node.allocator.create(Crtc);
+  self.* = .{
     .node = node,
     .ptr = c.drmModeGetCrtc(node.fd, id),
     .id = id,
   };
+  return self;
 }
 
-pub fn deinit(self: Crtc) void {
+pub fn deinit(self: *Crtc) void {
   c.drmModeFreeCrtc(self.ptr);
+  self.node.allocator.destroy(self);
 }
 
-pub fn createDumbFrameBuffer(self: Crtc, comptime S: type, width: u32, height: u32) !DumbFrameBuffer(S) {
+pub fn createDumbFrameBuffer(self: *const Crtc, comptime S: type, width: u32, height: u32) !DumbFrameBuffer(S) {
   const size_type_info = @typeInfo(S);
   if (size_type_info != .Int) @compileError("Size must be an integer");
   const bpp = size_type_info.Int.bits;
@@ -45,5 +48,5 @@ pub fn createDumbFrameBuffer(self: Crtc, comptime S: type, width: u32, height: u
     try utils.catchError(c.__errno_location().*);
   }
 
-  return DumbFrameBuffer(S).init(&self, width, height, handle, pitch, addr, size);
+  return DumbFrameBuffer(S).init(self, width, height, handle, pitch, addr, size);
 }
