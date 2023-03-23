@@ -70,7 +70,7 @@ pub fn main() !void {
     }
   }
 
-  const allocator = std.heap.page_allocator;
+  const allocator = std.heap.c_allocator;
   var path = if (res.args.path == null) try std.fs.selfExeDirPathAlloc(allocator) else res.args.path.?;
 
   if (!std.fs.path.isAbsolute(path)) {

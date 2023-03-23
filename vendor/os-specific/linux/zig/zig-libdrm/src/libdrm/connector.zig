@@ -4,6 +4,7 @@ const utils = @import("../utils.zig");
 const Crtc = @import("crtc.zig");
 const DeviceNode = @import("device-node.zig");
 const Encoder = @import("encoder.zig");
+const Mode = @import("mode.zig");
 const Connector = @This();
 
 node: *const DeviceNode,
@@ -34,6 +35,8 @@ pub fn deinit(self: Connector) void {
 }
 
 pub fn getPossibleCrtcs(self: Connector) ![]Crtc {
+  std.debug.assert(self.ptr != null);
+
   const possible = c.drmModeConnectorGetPossibleCrtcs(self.node.fd, self.ptr);
   const res = c.drmModeGetResources(self.node.fd);
   if (res == null) {
@@ -61,13 +64,34 @@ pub fn getPossibleCrtcs(self: Connector) ![]Crtc {
 }
 
 pub fn getEncoder(self: Connector) !Encoder {
+  std.debug.assert(self.ptr != null);
   return try Encoder.init(self.node, self.ptr.*.encoder_id);
 }
 
 pub fn getEncoders(self: Connector) ![]Encoder {
+  std.debug.assert(self.ptr != null);
+
+  if (self.ptr.*.encoders == null) {
+    return error.InvalidMemory;
+  }
+
   const encoders = try self.node.allocator.alloc(Encoder, @intCast(usize, self.ptr.*.count_encoders));
   for (encoders, self.ptr.*.encoders[0..@intCast(usize, self.ptr.*.count_encoders)]) |*v, id| {
     v.* = try Encoder.init(self.node, id);
   }
   return encoders;
+}
+
+pub fn getModes(self: Connector) ![]Mode {
+  std.debug.assert(self.ptr != null);
+
+  if (self.ptr.*.modes == null) {
+    return error.InvalidMemory;
+  }
+
+  const modes = try self.node.allocator.alloc(Mode, @intCast(usize, self.ptr.*.count_modes));
+  for (modes, self.ptr.*.modes[0..@intCast(usize, self.ptr.*.count_modes)]) |*v, mode| {
+    v.* = Mode.init(@ptrCast(c.drmModeModeInfoPtr, @constCast(&mode)));
+  }
+  return modes;
 }

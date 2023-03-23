@@ -40,10 +40,19 @@ fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !LinuxGpuDevice 
   const connectors = try self.libdrm_node.getConnectors();
   defer allocator.free(connectors);
 
-  for (connectors) |connector| {
-    const crtcs = connector.getPossibleCrtcs() catch continue;
+  for (connectors) |conn| {
+    defer conn.deinit();
+
+    const crtcs = conn.getPossibleCrtcs() catch continue;
     defer allocator.free(crtcs);
-    std.debug.print("{s}-{}: {any}\n", .{ connector.type_name, connector.type_id, crtcs });
+
+    for (crtcs) |crtc| {
+      defer crtc.deinit();
+
+      const fb = try crtc.createDumbFrameBuffer(u32, 1024, 768);
+      defer fb.destroy();
+      std.debug.print("{}\n", .{ fb });
+    }
   }
   return self;
 }
