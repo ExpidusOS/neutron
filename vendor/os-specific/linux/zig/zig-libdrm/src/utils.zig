@@ -9,6 +9,7 @@ pub fn catchError(ret: c_int) anyerror!void {
           std.debug.panic("std.os.linux.getErrno({}) returned success but errno is {}", .{ ret, ret });
         }
       },
+      .ACCES => error.PermissionDenied,
       .NOENT => std.fs.File.OpenError.FileNotFound,
       .NOMEM => std.mem.Allocator.Error.OutOfMemory,
       .NOTTY => error.NoTTY,

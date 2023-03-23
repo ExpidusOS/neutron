@@ -67,7 +67,8 @@ fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !LinuxGpuDevice 
 
       const fb = try crtc.createDumbFrameBuffer(u64, modes[0].horizontal.value, modes[0].vertical.value);
       defer fb.destroy();
-      std.debug.print("{} {}\n", .{ fb, try crtc.getGamma() });
+
+      try crtc.set(&[_]*libdrm.Connector { conn }, fb, modes[0]);
     }
   }
   return self;

@@ -66,7 +66,7 @@ pub fn getGamma(self: *const Crtc) !color.U16Color {
   return value;
 }
 
-pub fn set(self: *const Crtc, connectors: []Connector, buffer: anytype, mode: Mode) !void {
+pub fn set(self: *const Crtc, connectors: []*Connector, buffer: anytype, mode: Mode) !void {
   const tmp_connectors = try self.node.allocator.alloc(u32, connectors.len);
   defer self.node.allocator.free(tmp_connectors);
 
@@ -74,6 +74,6 @@ pub fn set(self: *const Crtc, connectors: []Connector, buffer: anytype, mode: Mo
     v.* = conn.id;
   }
 
-  const ret = c.drmModeSetCrtc(self.node.fd, self.id, buffer.handle, 0, 0, tmp_connectors, tmp_connectors.len, &mode.@"export"());
+  const ret = c.drmModeSetCrtc(self.node.fd, self.id, buffer.handle, 0, 0, @ptrCast([*c]u32, tmp_connectors), @intCast(c_int, tmp_connectors.len), @ptrCast(c.drmModeModeInfoPtr, @constCast(&mode.@"export"())));
   try utils.catchError(ret);
 }
