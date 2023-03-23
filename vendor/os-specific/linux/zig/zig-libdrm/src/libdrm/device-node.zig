@@ -4,6 +4,8 @@ const utils = @import("../utils.zig");
 const Crtc = @import("crtc.zig");
 const Connector = @import("connector.zig");
 const Encoder = @import("encoder.zig");
+const FrameBuffer2 = @import("fb.zig").FrameBuffer2;
+const Plane = @import("plane.zig");
 const DeviceNode = @This();
 
 fn dupeString(allocator: std.mem.Allocator, value: [*c]const u8, length: c_int) !?[]const u8 {
@@ -119,7 +121,7 @@ pub fn getConnectors(self: *DeviceNode) ![]*Connector {
   return connectors;
 }
 
-pub fn getEncoders(self: *DeviceNode) ![]Encoder {
+pub fn getEncoders(self: *DeviceNode) ![]*Encoder {
   const res = c.drmModeGetResources(self.fd);
   if (res == null) {
     return error.InputOutput;
@@ -127,9 +129,39 @@ pub fn getEncoders(self: *DeviceNode) ![]Encoder {
 
   defer c.drmModeFreeResources(res);
 
-  const encoders = try self.allocator.alloc(Connector, @intCast(usize, res.*.count_encoders));
+  const encoders = try self.allocator.alloc(*Encoder, @intCast(usize, res.*.count_encoders));
   for (encoders, res.*.encoders[0..@intCast(usize, res.*.count_encoders)]) |*value, id| {
     value.* = try Encoder.init(self, id);
   }
   return encoders;
+}
+
+pub fn getPlanes(self: *DeviceNode) ![]*Plane {
+  const res = c.drmModeGetPlaneResources(self.fd);
+  if (res == null) {
+    return error.InputOutput;
+  }
+
+  defer c.drmModeFreePlaneResources(res);
+
+  const planes = try self.allocator.alloc(*Plane, @intCast(usize, res.*.count_planes));
+  for (planes, res.*.planes[0..@intCast(usize, res.*.count_planes)]) |*value, id| {
+    value.* = try Plane.init(self, id);
+  }
+  return planes;
+}
+
+pub fn createFrameBuffer2(self: *DeviceNode, comptime S: type, width: u32, height: u32, format: u32, handles: [4]u32, pitches: [4]u32, offsets: [4]u32) !FrameBuffer2(S) {
+  var id: u32 = 0;
+  var ret = c.drmModeAddFB2(self.fd, width, height, format, handles, pitches, offsets, &id, 0);
+  try utils.catchErrno(ret);
+  errdefer _ = c.drmModeRmFB(self.fd, id);
+
+  const ptr = c.drmModeGetFB2(self.fd, id);
+  if (ptr == null) {
+    return error.InvalidResource;
+  }
+
+  errdefer c.drmModeFreeFB2(ptr);
+  return FrameBuffer2(S).init(self, ptr);
 }

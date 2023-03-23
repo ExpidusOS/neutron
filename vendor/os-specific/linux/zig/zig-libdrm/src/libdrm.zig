@@ -11,6 +11,7 @@ pub const DeviceNode = @import("libdrm/device-node.zig");
 pub const Encoder = @import("libdrm/encoder.zig");
 pub const FrameBuffer = @import("libdrm/fb.zig").FrameBuffer;
 pub const Mode = @import("libdrm/mode.zig");
+pub const Plane = @import("libdrm/plane.zig");
 
 pub const DrmError = error {
   NoDevices,

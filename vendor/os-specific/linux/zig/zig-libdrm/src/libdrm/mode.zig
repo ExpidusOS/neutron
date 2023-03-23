@@ -33,6 +33,12 @@ pub const Axis = struct {
       },
     };
   }
+
+  pub fn format(self: Axis, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+    _ = fmt;
+    _ = options;
+    return std.fmt.format(writer, "{}px (Sync: {})", .{ self.value, self.sync });
+  }
 };
 
 clock: u32,
@@ -59,12 +65,21 @@ pub fn init(info: c.drmModeModeInfoPtr) Mode {
   };
 }
 
-pub fn getRefreshRate(self: Mode) i32 {
-  var refresh = (self.clock * 1000000 / self.horizontal.total + self.vertical.total / 2) / self.vertical.total;
+pub fn getRefreshRate(self: Mode) c_longlong {
+  var refresh = @divTrunc((@divTrunc(self.clock * @as(c_longlong, 1000000), self.horizontal.total) + self.vertical.total / 2), self.vertical.total);
+
+  if ((self.flags & c.DRM_MODE_FLAG_INTERLACE) != 0) {
+    refresh *= 2;
+  }
+
+  if ((self.flags & c.DRM_MODE_FLAG_DBLSCAN) != 0) {
+    refresh = @divExact(refresh, 2);
+  }
 
   if (self.vscan > 1) {
-    refresh /= self.vscan;
+    refresh = @divExact(refresh, self.vscan);
   }
+  return refresh;
 }
 
 pub fn @"export"(self: Mode) c.drmModeModeInfo {
@@ -85,4 +100,10 @@ pub fn @"export"(self: Mode) c.drmModeModeInfo {
     .type = self.type,
     .name = self.name,
   };
+}
+
+pub fn format(self: Mode, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+  _ = fmt;
+  _ = options;
+  return std.fmt.format(writer, "{s} {}Hz (H: {}) (V: {})", .{ self.name, @divTrunc(self.getRefreshRate(), 1000), self.horizontal, self.vertical });
 }

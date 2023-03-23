@@ -65,11 +65,17 @@ fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !LinuxGpuDevice 
     for (crtcs) |crtc| {
       defer crtc.deinit();
 
-      const fb = try crtc.createDumbFrameBuffer(u64, modes[0].horizontal.value, modes[0].vertical.value);
-      defer fb.destroy();
-
-      try crtc.set(&[_]*libdrm.Connector { conn }, fb, modes[0]);
+      std.debug.print("{}\n", .{ crtc });
     }
+  }
+
+  const planes = try self.libdrm_node.getPlanes();
+  defer allocator.free(planes);
+
+  for (planes) |plane| {
+    defer plane.deinit();
+
+    std.debug.print("{}\n", .{ plane });
   }
   return self;
 }

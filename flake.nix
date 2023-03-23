@@ -120,9 +120,11 @@
           zig build $buildFlags --prefix $out \
             --prefix-lib-dir $out/lib $@
 
-          rm -rf $devdocs/share/docs
-          mkdir -p $devdocs/share/docs/
-          mv $out/docs $devdocs/share/docs/neutron
+          if [[ -d $out/docs ]]; then
+            rm -rf $devdocs/share/docs
+            mkdir -p $devdocs/share/docs/
+            mv $out/docs $devdocs/share/docs/neutron
+          fi
         '';
       in rec {
         packages.default = stdenv.mkDerivation {
