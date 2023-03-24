@@ -26,7 +26,13 @@ gpu_device: GpuDevice.Type,
 libdrm_node: *libdrm.DeviceNode,
 
 const vtable = GpuDevice.VTable {
+  .get_allocator = impl_get_allocator,
 };
+
+fn impl_get_allocator(_self: *anyopaque) std.mem.Allocator {
+  const self = @ptrCast(*LinuxGpuDevice, @alignCast(@alignOf(LinuxGpuDevice), _self));
+  return self.libdrm_node.getAllocator();
+}
 
 fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !LinuxGpuDevice {
   const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
@@ -105,4 +111,8 @@ pub fn ref(self: *LinuxGpuDevice) *LinuxGpuDevice {
 /// Decreases the reference count and free it if the counter is 0
 pub fn unref(self: *LinuxGpuDevice) void {
   return self.getType().unref();
+}
+
+pub fn getAllocator(self: *LinuxGpuDevice) std.mem.Allocator {
+  return self.libdrm_node.getAllocator();
 }

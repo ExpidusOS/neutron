@@ -93,7 +93,7 @@ pub fn main() !void {
 
     const compositor = try (try neutron.displaykit.Backends.get(.auto)).Compositor.new(.{
       .gpu = &gpu.instance.gpu_device,
-    }, allocator);
+    }, gpu.instance.getAllocator());
     defer compositor.unref();
 
     // try neutron.elemental.formatter.json(gpu, "", .{}, stdout);

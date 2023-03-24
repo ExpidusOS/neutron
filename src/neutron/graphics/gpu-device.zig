@@ -4,6 +4,7 @@ const GpuDevice = @This();
 
 /// Implementation specific functions
 pub const VTable = struct {
+  get_allocator: *const fn (self: *anyopaque) std.mem.Allocator,
 };
 
 /// Instance creation parameters
@@ -60,4 +61,9 @@ pub fn ref(self: *GpuDevice) *GpuDevice {
 /// Decreases the reference count and free it if the counter is 0
 pub fn unref(self: *GpuDevice) void {
   return self.getType().unref();
+}
+
+/// Get a Zig allocator for allocating from GPU memory (aka. VRAM)
+pub fn getAllocator(self: *GpuDevice) std.mem.Allocator {
+  return self.vtable.get_allocator(self);
 }
