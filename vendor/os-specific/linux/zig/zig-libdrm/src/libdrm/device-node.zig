@@ -53,8 +53,15 @@ pub const VersionInfo = struct {
   }
 };
 
+pub const AllocEntry = struct {
+  handle: c.drm_magic_t,
+  size: usize,
+  log2_align: u8,
+  ra: usize,
+};
+
 allocator: std.mem.Allocator,
-allocs: std.AutoHashMap(usize, c.drm_magic_t),
+allocs: std.AutoHashMap(usize, AllocEntry),
 fd: std.os.fd_t,
 version: VersionInfo,
 libversion: std.builtin.Version,
@@ -66,7 +73,7 @@ pub fn init(alloc: std.mem.Allocator, path: []const u8) !*DeviceNode {
   const self = try alloc.create(DeviceNode);
   self.* = .{
     .allocator = alloc,
-    .allocs = std.AutoHashMap(usize, c.drm_magic_t).init(alloc),
+    .allocs = std.AutoHashMap(usize, AllocEntry).init(alloc),
     .path = path,
     .fd = fd,
     .version = try VersionInfo.init(alloc, c.drmGetVersion(fd)),
@@ -77,6 +84,11 @@ pub fn init(alloc: std.mem.Allocator, path: []const u8) !*DeviceNode {
 }
 
 pub fn deinit(self: *DeviceNode) void {
+  var allocs = self.allocs.iterator();
+  while (allocs.next()) |entry| {
+    self.getAllocator().rawFree(@intToPtr([]u8, entry.key_ptr.*), entry.value_ptr.log2_align, entry.value_ptr.ra);
+  }
+
   self.version.deinit();
   std.os.close(self.fd);
   self.allocator.destroy(self);
@@ -208,7 +220,12 @@ fn allocator_alloc(_self: *anyopaque, n: usize, log2_align: u8, ra: usize) ?[*]u
   utils.catchErrno(ret) catch @panic("Cannot handle errors in alloc");
   errdefer _ = self.drmUnmap(addr, aligned_len);
 
-  self.allocs.put(@ptrToInt(addr), handle) catch @panic("Failed to update allocation map");
+  self.allocs.put(@ptrToInt(addr), .{
+    .handle = handle,
+    .size = aligned_len,
+    .log2_align = log2_align,
+    .ra = ra,
+  }) catch @panic("Failed to update allocation map");
   return addr;
 }
 
@@ -220,7 +237,7 @@ fn allocator_resize(_self: *anyopaque, buff: []u8, log2_align: u8, n: usize, ra:
   const aligned_len = std.mem.alignForward(n, std.mem.page_size);
 
   const addr = @ptrToInt(@ptrCast([*]u8, buff));
-  var handle = self.allocs.get(addr) orelse @panic("Failed to get from allocation map");
+  var handle = if (self.allocs.get(addr)) |item| item.handle else @panic("Failed to get from allocation map");
   _ = self.allocs.remove(addr);
   errdefer self.allocator.rawFree(buff, log2_align, ra);
 
@@ -237,7 +254,12 @@ fn allocator_resize(_self: *anyopaque, buff: []u8, log2_align: u8, n: usize, ra:
   utils.catchErrno(ret) catch @panic("Cannot handle errors in alloc");
   errdefer _ = self.drmUnmap(addr, aligned_len);
 
-  self.allocs.put(addr, handle) catch @panic("Failed to update allocation map");
+  self.allocs.put(addr, .{
+    .handle = handle,
+    .size = aligned_len,
+    .log2_align = log2_align,
+    .ra = ra,
+  }) catch @panic("Failed to update allocation map");
   return true;
 }
 
@@ -245,7 +267,7 @@ fn allocator_free(_self: *anyopaque, buff: []u8, log2_align: u8, ra: usize) void
   const self = @ptrCast(*DeviceNode, @alignCast(@alignOf(DeviceNode), _self));
 
   const addr = @ptrToInt(@ptrCast([*]u8, buff));
-  const handle = self.allocs.get(addr) orelse @panic("Failed to get from allocation map");
+  const handle = if (self.allocs.get(addr)) |item| item.handle else @panic("Failed to get from allocation map");
   _ = self.allocs.remove(addr);
 
   _ = c.drmUnmap(@ptrCast(*anyopaque, @constCast(buff)), @intCast(c_uint, buff.len));
