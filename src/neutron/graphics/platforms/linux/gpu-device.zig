@@ -30,53 +30,16 @@ const vtable = GpuDevice.VTable {
 
 fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !LinuxGpuDevice {
   const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
-  var self = LinuxGpuDevice {
+  var self = LinuxGpuDevice{
     .gpu_device = try GpuDevice.init(.{
       .vtable = &vtable,
     }, allocator),
     .libdrm_node = try libdrm.DeviceNode.init(allocator, params.libdrm_node.path),
   };
 
-  var connectors = try self.libdrm_node.getConnectors();
-  defer allocator.free(connectors);
-
-  for (connectors) |conn| {
-    defer conn.deinit();
-
-    var encoders = try conn.getEncoders();
-    defer allocator.free(encoders);
-
-    for (encoders) |encoder| {
-      defer encoder.deinit();
-
-      std.debug.print("{}\n", .{ encoder });
-    }
-
-    const modes = try conn.getModes();
-    defer allocator.free(modes);
-
-    for (modes) |mode| {
-      std.debug.print("{}\n", .{ mode });
-    }
-
-    var crtcs = try conn.getPossibleCrtcs();
-    defer allocator.free(crtcs);
-
-    for (crtcs) |crtc| {
-      defer crtc.deinit();
-
-      std.debug.print("{}\n", .{ crtc });
-    }
-  }
-
-  const planes = try self.libdrm_node.getPlanes();
-  defer allocator.free(planes);
-
-  for (planes) |plane| {
-    defer plane.deinit();
-
-    std.debug.print("{}\n", .{ plane });
-  }
+  const alloc = self.libdrm_node.getAllocator();
+  const value = try alloc.dupe(u8, "Hello, world");
+  defer alloc.free(value);
   return self;
 }
 

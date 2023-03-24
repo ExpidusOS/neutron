@@ -8,12 +8,12 @@ const FrameBuffer2 = @import("fb.zig").FrameBuffer2;
 const Plane = @import("plane.zig");
 const DeviceNode = @This();
 
-fn dupeString(allocator: std.mem.Allocator, value: [*c]const u8, length: c_int) !?[]const u8 {
+fn dupeString(alloc: std.mem.Allocator, value: [*c]const u8, length: c_int) !?[]const u8 {
   if (value == null or length == 0) {
     return null;
   }
 
-  return try allocator.dupe(u8, value[0..@intCast(usize, length)]);
+  return try alloc.dupe(u8, value[0..@intCast(usize, length)]);
 }
 
 pub const VersionInfo = struct {
@@ -23,13 +23,13 @@ pub const VersionInfo = struct {
   desc: ?[]const u8,
   value: std.builtin.Version,
 
-  pub fn init(allocator: std.mem.Allocator, value: c.drmVersionPtr) !VersionInfo {
+  pub fn init(alloc: std.mem.Allocator, value: c.drmVersionPtr) !VersionInfo {
     defer c.drmFreeVersion(value);
     return .{
-      .allocator = allocator,
-      .name = try dupeString(allocator, value.*.name, value.*.name_len),
-      .date = try dupeString(allocator, value.*.date, value.*.date_len),
-      .desc = try dupeString(allocator, value.*.desc, value.*.desc_len),
+      .allocator = alloc,
+      .name = try dupeString(alloc, value.*.name, value.*.name_len),
+      .date = try dupeString(alloc, value.*.date, value.*.date_len),
+      .desc = try dupeString(alloc, value.*.desc, value.*.desc_len),
       .value = .{
         .major = @intCast(u32, value.*.version_major),
         .minor = @intCast(u32, value.*.version_minor),
@@ -54,21 +54,23 @@ pub const VersionInfo = struct {
 };
 
 allocator: std.mem.Allocator,
+allocs: std.AutoHashMap(usize, c.drm_magic_t),
 fd: std.os.fd_t,
 version: VersionInfo,
 libversion: std.builtin.Version,
 is_kms: bool,
 path: []const u8,
 
-pub fn init(allocator: std.mem.Allocator, path: []const u8) !*DeviceNode {
+pub fn init(alloc: std.mem.Allocator, path: []const u8) !*DeviceNode {
   const fd = try std.os.open(path, 0, std.os.linux.O.RDONLY | std.os.linux.O.CLOEXEC);
-  const self = try allocator.create(DeviceNode);
+  const self = try alloc.create(DeviceNode);
   self.* = .{
-    .allocator = allocator,
+    .allocator = alloc,
+    .allocs = std.AutoHashMap(usize, c.drm_magic_t).init(alloc),
     .path = path,
     .fd = fd,
-    .version = try VersionInfo.init(allocator, c.drmGetVersion(fd)),
-    .libversion = (try VersionInfo.init(allocator, c.drmGetLibVersion(fd))).value,
+    .version = try VersionInfo.init(alloc, c.drmGetVersion(fd)),
+    .libversion = (try VersionInfo.init(alloc, c.drmGetLibVersion(fd))).value,
     .is_kms = c.drmIsKMS(fd) == 1,
   };
   return self;
@@ -164,4 +166,89 @@ pub fn createFrameBuffer2(self: *DeviceNode, comptime S: type, width: u32, heigh
 
   errdefer c.drmModeFreeFB2(ptr);
   return FrameBuffer2(S).init(self, ptr);
+}
+
+pub fn isMaster(self: *DeviceNode) bool {
+  return c.drmIsMaster(self.fd) == 1;
+}
+
+pub fn setMaster(self: *DeviceNode, value: bool) !void {
+  const ret = if (value) c.drmSetMaster(self.fd) else c.drmDropMaster(self.fd);
+  try utils.catchErrno(ret);
+}
+
+pub fn getAllocator(self: *DeviceNode) std.mem.Allocator {
+  return .{
+    .ptr = self,
+    .vtable = &.{
+      .alloc = allocator_alloc,
+      .resize = allocator_resize,
+      .free = allocator_free,
+    },
+  };
+}
+
+fn allocator_alloc(_self: *anyopaque, n: usize, log2_align: u8, ra: usize) ?[*]u8 {
+  const self = @ptrCast(*DeviceNode, @alignCast(@alignOf(DeviceNode), _self));
+
+  std.debug.assert(n > 0);
+  if (n > std.math.maxInt(usize) - (std.mem.page_size - 1)) return null;
+  const aligned_len = std.mem.alignForward(n, std.mem.page_size);
+
+  var handle: c.drm_handle_t = 0;
+  var ret = c.drmAddMap(self.fd, 0, @intCast(c_uint, aligned_len), c.DRM_SHM, 0, &handle);
+  utils.catchErrno(ret) catch @panic("Cannot handle errors in alloc");
+  errdefer _ = c.drmRmMap(self.fd, handle);
+
+  const addr = self.allocator.rawAlloc(aligned_len, log2_align, ra);
+  if (addr == null) @panic("Cannot handle alllocation failure");
+  errdefer self.allocator.rawFree(addr, log2_align, ra);
+
+  ret = c.drmMap(self.fd, handle, @intCast(c_uint, aligned_len), @ptrCast([*c]?*anyopaque, @constCast(&addr)));
+  utils.catchErrno(ret) catch @panic("Cannot handle errors in alloc");
+  errdefer _ = self.drmUnmap(addr, aligned_len);
+
+  self.allocs.put(@ptrToInt(addr), handle) catch @panic("Failed to update allocation map");
+  return addr;
+}
+
+fn allocator_resize(_self: *anyopaque, buff: []u8, log2_align: u8, n: usize, ra: usize) bool {
+  const self = @ptrCast(*DeviceNode, @alignCast(@alignOf(DeviceNode), _self));
+
+  std.debug.assert(n > 0);
+  if (n > std.math.maxInt(usize) - (std.mem.page_size - 1)) return false;
+  const aligned_len = std.mem.alignForward(n, std.mem.page_size);
+
+  const addr = @ptrToInt(@ptrCast([*]u8, buff));
+  var handle = self.allocs.get(addr) orelse @panic("Failed to get from allocation map");
+  _ = self.allocs.remove(addr);
+  errdefer self.allocator.rawFree(buff, log2_align, ra);
+
+  _ = c.drmUnmap(@ptrCast(*anyopaque, @constCast(buff)), @intCast(c_uint, buff.len));
+  _ = c.drmRmMap(self.fd, handle);
+
+  handle = 0;
+
+  var ret = c.drmAddMap(self.fd, 0, @intCast(c_uint, aligned_len), c.DRM_SHM, 0, &handle);
+  utils.catchErrno(ret) catch @panic("Cannot handle errors in alloc");
+  errdefer _ = c.drmRmMap(self.fd, handle);
+
+  ret = c.drmMap(self.fd, handle, @intCast(c_uint, aligned_len), @ptrCast([*c]?*anyopaque, @constCast(&addr)));
+  utils.catchErrno(ret) catch @panic("Cannot handle errors in alloc");
+  errdefer _ = self.drmUnmap(addr, aligned_len);
+
+  self.allocs.put(addr, handle) catch @panic("Failed to update allocation map");
+  return true;
+}
+
+fn allocator_free(_self: *anyopaque, buff: []u8, log2_align: u8, ra: usize) void {
+  const self = @ptrCast(*DeviceNode, @alignCast(@alignOf(DeviceNode), _self));
+
+  const addr = @ptrToInt(@ptrCast([*]u8, buff));
+  const handle = self.allocs.get(addr) orelse @panic("Failed to get from allocation map");
+  _ = self.allocs.remove(addr);
+
+  _ = c.drmUnmap(@ptrCast(*anyopaque, @constCast(buff)), @intCast(c_uint, buff.len));
+  _ = c.drmRmMap(self.fd, handle);
+  self.allocator.rawFree(buff, log2_align, ra);
 }
