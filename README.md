@@ -21,6 +21,7 @@ we've made this list of working targets.
 - `x86-windows-gnu` (**requires**: `-Ddocs=false`)
 - `x86_64-windows-gnu` (**requires**: `-Ddocs=false`)
 - `x86_64-macos-none` (**requires**: `-Ddocs=false`)
+- `wasm32-freestanding-musl` (**requires**: `-Ddocs=false`)
 
 ### Broken
 
@@ -31,3 +32,4 @@ we've made this list of working targets.
 - `x86-linux-gnu` (**problem**: static assert fails in libdrm)
 - `x86-linux-musl` (**problem**: `-fPIC` required but still causes issues)
 - `x86_64-linux-gnux32` (**problem**: `-fPIC` required but still causes issues)
+- `wasm32-wasi-musl` (**problem**: `wasm-ld: ~/.cache/zig/o/8b851326a8ea1aa1038ed95edb355938/libc.a(~/.cache/zig/o/375e64c994ce951a58e8e144063929cd/__main_void.o): undefined symbol: main`)
