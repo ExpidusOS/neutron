@@ -112,16 +112,16 @@ pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) 
     .include_path = "fficonfig.h",
   }, .{
     .EH_FRAME_FLAGS = "a",
-    .FFI_NO_RAW_API = false,
-    .FFI_MMAP_EXEC_EMUTRAMP_PAX = false,
+    .FFI_NO_RAW_API = null,
+    .FFI_MMAP_EXEC_EMUTRAMP_PAX = null,
     .FFI_EXEC_TRAMPOLINE_TABLE = target.isDarwin(),
     .FFI_MMAP_EXEC_WRIT = target.isDarwin() or target.isFreeBSD() or target.isOpenBSD(),
     .FFI_DEBUG = optimize == .Debug,
     .FFI_EXEC_STATIC_TRAMP = true,
-    .FFI_NO_STRUCTS = false,
+    .FFI_NO_STRUCTS = null,
     .HAVE_AS_CFI_PSEUDO_OP = true,
     .HAVE_AS_REGISTER_PSEUDO_OP = target.getCpuArch() == .sparc,
-    .HAVE_AS_S390_ZARCH = false,
+    .HAVE_AS_S390_ZARCH = null,
     .HAVE_AS_SPARC_UA_PCREL = target.getCpuArch() == .sparc,
     .HAVE_AS_X86_64_UNWIND_SECTION_TYPE = target.getCpuArch() == .x86_64,
     .HAVE_AS_X86_PCREL = target.getCpuArch() == .x86 or target.getCpuArch() == .x86_64,
@@ -138,9 +138,9 @@ pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) 
     .HAVE_SYS_TYPES_H = !target.isWindows(),
     .HAVE_UNISTD_H = true,
     .HAVE_HIDDEN_VISIBILITY_ATTRIBUTE = true,
-    .HAVE_PTRAUTH = false,
+    .HAVE_PTRAUTH = null,
     .HAVE_LONG_DOUBLE = true,
-    .HAVE_LONG_DOUBLE_VARIANT = false,
+    .HAVE_LONG_DOUBLE_VARIANT = null,
     .HAVE_RO_EH_FRAME = true,
     .HAVE_MEMFD_CREATE = true,
     .HAVE_MEMCPY = true,
@@ -158,7 +158,7 @@ pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) 
     .PACKAGE_URL = "",
     .PACKAGE_VERSION = b.fmt("{}.{}.{}", .{ version.major, version.minor, version.patch }),
     .STDC_HEADERS = true,
-    .USING_PURIFY = false,
+    .USING_PURIFY = null,
     .VERSION = b.fmt("{}.{}.{}", .{ version.major, version.minor, version.patch }),
   }));
 
@@ -184,19 +184,55 @@ pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) 
   });
 
   const target_dir = try switch (target.getCpuArch()) {
-    .x86_64 => getPath("/src/x86"),
-    .x86 => getPath("/src/x86"),
+    .aarch64 => getPath("/src/aarch64"),
+    .arm => getPath("/src/arm"),
+    .m68k => getPath("/src/m68k"),
+    .riscv64, .riscv32 => getPath("/src/riscv"),
+    .x86_64, .x86 => getPath("/src/x86"),
     .wasm32 => getPath("/src/wasm32"),
     else => Error.InvalidArch,
   };
   lib.addIncludePath(target_dir);
 
-  if (target.getCpuArch() == .x86_64) {
-    lib.addAssemblyFile(getPath("/src/x86/win64.S"));
-    lib.addAssemblyFile(getPath("/src/x86/unix64.S"));
-  }
+  const target_asm = switch (target.getCpuArch()) {
+    .aarch64 => &[_][]const u8 {
+      getPath("/src/aarch64/sysv.S"),
+    },
+    .arm => &[_][]const u8 {
+      getPath("/src/arm/sysv.S"),
+    },
+    .m68k => &[_][]const u8 {
+      getPath("/src/m68k/sysv.S"),
+    },
+    .x86 => &[_][]const u8 {
+      getPath("/src/x86/sysv.S")
+    },
+    .x86_64 => &[_][]const u8 {
+      getPath("/src/x86/win64.S"),
+      getPath("/src/x86/unix64.S")
+    },
+    .riscv32, .riscv64 => &[_][]const u8 {
+      getPath("/src/x86/sysv.S")
+    },
+    else => &[_][]const u8 {},
+  };
+
+  for (target_asm) |v|
+    lib.addAssemblyFile(v);
 
   const target_src = switch (target.getCpuArch()) {
+    .aarch64 => &[_][]const u8 {
+      getPath("/src/aarch64/ffi.c"),
+    },
+    .arm => &[_][]const u8 {
+      getPath("/src/arm/ffi.c"),
+    },
+    .m68k => &[_][]const u8 {
+      getPath("/src/m68k/ffi.c"),
+    },
+    .riscv32, .riscv64 => &[_][]const u8 {
+      getPath("/src/riscv/ffi.c"),
+    },
     .x86_64 => &[_][]const u8 {
       getPath("/src/x86/ffi64.c"),
       getPath("/src/x86/ffiw64.c")
