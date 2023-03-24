@@ -103,7 +103,7 @@ pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) 
 
   try header_dest_dir.writeFile("ffi.h", header_source_txt);
 
-  lib.addConfigHeader(b.addConfigHeader(.{
+  const config_header = b.addConfigHeader(.{
     .style = .{
       .autoconf = .{
         .path = getPath("/../fficonfig.h.in"),
@@ -114,18 +114,18 @@ pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) 
     .EH_FRAME_FLAGS = "a",
     .FFI_NO_RAW_API = null,
     .FFI_MMAP_EXEC_EMUTRAMP_PAX = null,
-    .FFI_EXEC_TRAMPOLINE_TABLE = target.isDarwin(),
-    .FFI_MMAP_EXEC_WRIT = target.isDarwin() or target.isFreeBSD() or target.isOpenBSD(),
-    .FFI_DEBUG = optimize == .Debug,
+    .FFI_EXEC_TRAMPOLINE_TABLE = null,
+    .FFI_MMAP_EXEC_WRIT = null,
+    .FFI_DEBUG = null,
     .FFI_EXEC_STATIC_TRAMP = true,
     .FFI_NO_STRUCTS = null,
     .HAVE_AS_CFI_PSEUDO_OP = true,
-    .HAVE_AS_REGISTER_PSEUDO_OP = target.getCpuArch() == .sparc,
+    .HAVE_AS_REGISTER_PSEUDO_OP = null,
     .HAVE_AS_S390_ZARCH = null,
-    .HAVE_AS_SPARC_UA_PCREL = target.getCpuArch() == .sparc,
-    .HAVE_AS_X86_64_UNWIND_SECTION_TYPE = target.getCpuArch() == .x86_64,
-    .HAVE_AS_X86_PCREL = target.getCpuArch() == .x86 or target.getCpuArch() == .x86_64,
-    .HAVE_ALLOCA_H = target.getAbi().isGnu(),
+    .HAVE_AS_SPARC_UA_PCREL = null,
+    .HAVE_AS_X86_64_UNWIND_SECTION_TYPE = null,
+    .HAVE_AS_X86_PCREL = null,
+    .HAVE_ALLOCA_H = null,
     .HAVE_DLFCN_H = true,
     .HAVE_INTTYPES_H = true,
     .HAVE_STDINT_H = true,
@@ -133,9 +133,9 @@ pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) 
     .HAVE_STDLIB_H = true,
     .HAVE_STRINGS_H = true,
     .HAVE_STRING_H = true,
-    .HAVE_SYS_MEMFD_H = !target.isWindows(),
-    .HAVE_SYS_STAT_H = !target.isWindows(),
-    .HAVE_SYS_TYPES_H = !target.isWindows(),
+    .HAVE_SYS_MEMFD_H = null,
+    .HAVE_SYS_STAT_H = null,
+    .HAVE_SYS_TYPES_H = null,
     .HAVE_UNISTD_H = true,
     .HAVE_HIDDEN_VISIBILITY_ATTRIBUTE = true,
     .HAVE_PTRAUTH = null,
@@ -148,7 +148,7 @@ pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) 
     .SIZEOF_LONG_DOUBLE = @sizeOf(c_longdouble),
     .SIZEOF_SIZE_T = @sizeOf(usize),
     .LIBFFI_GNU_SYMBOL_VERSIONING = true,
-    .SYMBOL_UNDERSCORE = target.isDarwin(),
+    .SYMBOL_UNDERSCORE = null,
     .LT_OBJDIR = "",
     .PACKAGE = "libffi",
     .PACKAGE_BUGREPORT = "http://github.com/libffi/libffi/issues",
@@ -160,7 +160,61 @@ pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) 
     .STDC_HEADERS = true,
     .USING_PURIFY = null,
     .VERSION = b.fmt("{}.{}.{}", .{ version.major, version.minor, version.patch }),
-  }));
+  });
+
+  if (optimize == .Debug) {
+    config_header.addValues(.{
+      .FFI_DEBUG = true,
+    });
+  }
+
+  if (target.isDarwin()) {
+    config_header.addValues(.{
+      .FFI_EXEC_TRAMPOLINE_TABLE = true,
+      .SYMBOL_UNDERSCORE = true,
+    });
+  }
+
+  if (target.isDarwin() or target.isFreeBSD() or target.isOpenBSD()) {
+    config_header.addValues(.{
+      .FFI_MMAP_EXEC_WRIT = true,
+    });
+  }
+
+  if (target.getCpuArch() == .sparc) {
+    config_header.addValues(.{
+      .HAVE_AS_REGISTER_PSEUDO_OP = true,
+      .HAVE_AS_SPARC_UA_PCREL = true,
+    });
+  }
+
+  if (target.getCpuArch() == .x86_64) {
+    config_header.addValues(.{
+      .HAVE_AS_X86_64_UNWIND_SECTION_TYPE = true,
+    });
+  }
+
+  if (target.getCpuArch() == .x86 or target.getCpuArch() == .x86_64) {
+    config_header.addValues(.{
+      .HAVE_AS_X86_PCREL = true,
+    });
+  }
+
+  if (target.getAbi().isGnu()) {
+    config_header.addValues(.{
+      .HAVE_ALLOCA_H = true,
+    });
+  }
+
+  if (!target.isWindows()) {
+    config_header.addValues(.{
+      .HAVE_SYS_MEMFD_H = true,
+      .HAVE_SYS_STAT_H = true,
+      .HAVE_SYS_TYPES_H = true,
+    });
+  }
+
+  lib.addConfigHeader(config_header);
 
   lib.linkLibC();
   lib.addIncludePath(getPath("/include"));
@@ -212,7 +266,7 @@ pub fn init(b: *Build, target: std.zig.CrossTarget, optimize: std.builtin.Mode) 
       getPath("/src/x86/unix64.S")
     },
     .riscv32, .riscv64 => &[_][]const u8 {
-      getPath("/src/x86/sysv.S")
+      getPath("/src/riscv/sysv.S")
     },
     else => &[_][]const u8 {},
   };
