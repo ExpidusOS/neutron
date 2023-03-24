@@ -16,15 +16,18 @@ we've made this list of working targets.
 - `x86_64-linux-musl`
 - `riscv64-linux-musl`
 
+### Partially Working
+
+- `x86-windows-gnu` (**requires**: `-Ddocs=false`)
+- `x86_64-windows-gnu` (**requires**: `-Ddocs=false`)
+- `x86_64-macos-none` (**requires**: `-Ddocs=false`)
+
 ### Broken
 
-- `arm-linux-gnueabi`
-- `arm-linux-gnueabihf`
-- `arm-linux-musleabi`
-- `arm-windows-gnu`
-- `x86-linux-gnu`
-- `x86-linux-musl`
-- `x86-windows-gnu`
-- `x86_64-linux-gnux32`
-- `x86_64-windows-gnu`
-- `x86_64-macos-none`
+- `arm-linux-gnueabi` (**problem**: `blx` instruction used but not supported)
+- `arm-linux-gnueabihf` (**problem**: static assert fails in libdrm)
+- `arm-linux-musleabi` (**problem**: instruction requires armv5t)
+- `arm-windows-gnu` (**problem**: functions use arm instructions but arm is not supported)
+- `x86-linux-gnu` (**problem**: static assert fails in libdrm)
+- `x86-linux-musl` (**problem**: `-fPIC` required but still causes issues)
+- `x86_64-linux-gnux32` (**problem**: `-fPIC` required but still causes issues)

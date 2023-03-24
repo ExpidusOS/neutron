@@ -206,7 +206,9 @@ pub const Neutron = struct {
   fn includeDependencies(self: Neutron, compile: *Build.CompileStep) !void {
     compile.linkLibC();
 
-    self.vendor.libffi.install();
+    if (self.vendor.libffi != null) {
+      self.vendor.libffi.?.install();
+    }
 
     if (self.vendor.wayland != null) {
       self.vendor.wayland.?.link(compile);

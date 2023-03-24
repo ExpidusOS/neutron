@@ -8,7 +8,7 @@ const Build = std.Build;
 const Vendor = @This();
 
 builder: *std.Build,
-libffi: Libffi,
+libffi: ?Libffi,
 libdrm: ?*Drm,
 wayland: ?Wayland,
 
@@ -20,7 +20,7 @@ pub const VendorOptions = struct {
 pub fn init(b: *Build, options: VendorOptions, target: std.zig.CrossTarget, optimize: std.builtin.Mode) !Vendor {
   var self = Vendor {
     .builder = b,
-    .libffi = try Libffi.init(b, target, optimize),
+    .libffi = null,
     .libdrm = null,
     .wayland = null,
   };
@@ -34,8 +34,9 @@ pub fn init(b: *Build, options: VendorOptions, target: std.zig.CrossTarget, opti
   }
 
   if (options.use_wayland) {
+    self.libffi = try Libffi.init(b, target, optimize);
     self.wayland = try Wayland.init(.{
-      .libffi = &self.libffi,
+      .libffi = &self.libffi.?,
       .builder = b,
       .target = target,
       .optimize = optimize,
