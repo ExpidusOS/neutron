@@ -226,6 +226,12 @@ pub fn init(options: DrmOptions) !*Drm {
     },
   };
 
+  var prog = std.Progress {};
+  var node = prog.start("Generate generated_static_table_fourcc.h", 0);
+  defer node.end();
+  node.activate();
+  try gen_step_make(&self.gen_step, node);
+
   self.lib.step.dependOn(&self.gen_step);
 
   self.lib.linkLibC();

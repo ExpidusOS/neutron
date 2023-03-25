@@ -118,12 +118,27 @@
 
           mkdir -p $out/lib
           zig build $buildFlags --prefix $out \
-            --prefix-lib-dir $out/lib $@
+            --prefix-lib-dir $out/lib \
+            --cache-dir $out/zig-cache $@
 
           if [[ -d $out/docs ]]; then
             rm -rf $devdocs/share/docs
             mkdir -p $devdocs/share/docs/
             mv $out/docs $devdocs/share/docs/neutron
+          fi
+
+          rm -rf $out/zig-cache/c
+          rm -rf $out/zig-cache/h
+          rm -rf $out/zig-cache/neutron
+          rm -rf $out/zig-cache/tmp
+          rm -rf $out/zig-cache/z
+          rm -rf $out/zig-cache/zig-wayland
+          find $out/zig-cache/o -type f -not -name '*.so' -delete
+
+          if [[ -f $out/bin/neutron-runner ]]; then
+            source ${pkgs.makeWrapper.outPath}/nix-support/setup-hook
+            wrapProgram $out/bin/neutron-runner \
+              --prefix LD_LIBRARY_PATH : "$out/lib"
           fi
         '';
       in rec {
@@ -152,7 +167,7 @@
             ${concatStrings (attrValues (mapAttrs (path: src: ''
               echo "Linking ${src} -> $NIX_BUILD_TOP/source/vendor/${path}"
               rm -rf $NIX_BUILD_TOP/source/vendor/${path}
-              ln -s ${src} $NIX_BUILD_TOP/source/vendor/${path}
+              cp -r -P --no-preserve=ownership,mode ${src} $NIX_BUILD_TOP/source/vendor/${path}
             '') vendor))}
           '';
 
@@ -160,8 +175,7 @@
 
           installPhase = ''
             export XDG_CACHE_HOME=$NIX_BUILD_TOP/.cache
-            sh ${buildPhase}/bin/expidus-neutron-${version}-build.sh \
-              --cache-dir $NIX_BUILD_TOP/source/zig-cache -freference-trace -fno-summary
+            sh ${buildPhase}/bin/expidus-neutron-${version}-build.sh -freference-trace -fno-summary
           '';
         };
 

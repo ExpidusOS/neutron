@@ -76,7 +76,7 @@ pub fn AlignedTypedList(comptime T: type, comptime P: type, comptime info: _type
     }
 
     pub fn item(self: *Self, index: usize) ?*ItemType {
-      if (self.list.items.len < index) return null;
+      if (self.list.items.len <= index) return null;
       return self.list.items[index].ref();
     }
 
