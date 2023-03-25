@@ -1,6 +1,7 @@
 const std = @import("std");
 const elemental = @import("../elemental.zig");
 const displaykit = @import("../displaykit.zig");
+const rpc = @import("rpc.zig").implementations.stream;
 const Runtime = @This();
 
 /// Mode to launch the runtime in
@@ -27,6 +28,7 @@ pub const TypeInfo = elemental.TypeInfo(Runtime) {
 pub const Type = elemental.Type(Runtime, Params, TypeInfo);
 
 displaykit_context: *displaykit.Context,
+rpc: rpc.OneOf,
 mode: Mode,
 path: []const u8,
 
@@ -39,16 +41,51 @@ fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Runtime {
     else => @panic("Runtime mode is missing the implementation"),
   };
 
+  const socket = blk: {
+    const dir = if (std.os.getenv("XDG_RUNTIME_DIR")) |value| try allocator.dupe(u8, value)
+      else try std.process.getCwdAlloc(allocator);
+    defer allocator.free(dir);
+
+    break :blk try std.fs.path.join(allocator, &.{
+      dir,
+      "neutron.sock",
+    });
+  };
+  defer allocator.free(socket);
+
   return .{
     .mode = params.mode,
     .path = params.path,
     .displaykit_context = displaykit_context,
+    .rpc = switch (params.mode) {
+      .compositor => .{
+        .server = blk: {
+          var server = std.net.StreamServer.init(.{});
+          try server.listen(try std.net.Address.initUnix(socket));
+          break :blk try rpc.Server.new(.{
+            .server = server,
+          }, allocator);
+        },
+      },
+      .application => .{
+        .client = try rpc.newClient(try std.net.connectUnixSocket(socket), allocator),
+      },
+    },
   };
 }
 
 fn impl_destroy(_self: *anyopaque) void {
   const self = @ptrCast(*Runtime, @alignCast(@alignOf(Runtime), _self));
   self.displaykit_context.unref();
+
+  switch (self.rpc) {
+    .server => |server| {
+      server.unref();
+    },
+    .client => |client| {
+      client.unref();
+    },
+  }
 }
 
 fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
@@ -58,6 +95,14 @@ fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
   dest.mode = self.mode;
   dest.path = self.path;
   dest.displaykit_context = try self.displaykit_context.dupe();
+  dest.rpc = switch (self.rpc) {
+    .server => |server| .{
+      .server = try server.dupe(),
+    },
+    .client => |client| .{
+      .client = try client.dupe(),
+    },
+  };
 }
 
 pub fn new(params: Params, allocator: ?std.mem.Allocator) !*Runtime {

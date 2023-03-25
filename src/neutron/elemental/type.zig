@@ -108,7 +108,7 @@ pub fn Type(
       };
 
       if (info.construct != null) {
-        try info.construct.?(&self.instance, &params);
+        try info.construct.?(@ptrCast(*anyopaque, @alignCast(@alignOf(*T), @constCast(&self.instance))), @ptrCast(*anyopaque, @alignCast(@alignOf(*P), @constCast(&params))));
       }
       return self;
     }
