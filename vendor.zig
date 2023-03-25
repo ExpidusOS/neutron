@@ -1,3 +1,4 @@
+const Antiphony = @import("vendor/third-party/antiphony.zig");
 const Expat = @import("vendor/third-party/expat.zig");
 const Libffi = @import("vendor/third-party/libffi.zig");
 const Drm = @import("vendor/os-specific/linux/drm.zig");
@@ -46,13 +47,18 @@ pub fn init(b: *Build, options: VendorOptions, target: std.zig.CrossTarget, opti
 }
 
 pub fn getDependencies(self: Vendor) ![]const Build.ModuleDependency {
-  var len: u32 = 0;
+  var len: u32 = 1;
   if (self.wayland != null) len += 1;
   if (self.libdrm != null) len += 1;
 
   const arr = try self.builder.allocator.alloc(Build.ModuleDependency, len);
 
   var i: u32 = 0;
+  arr[0] = .{
+    .name = "antiphony",
+    .module = Antiphony.createModule(self.builder),
+  };
+  i += 1;
 
   if (self.wayland != null) {
     arr[i] = .{

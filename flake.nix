@@ -37,10 +37,21 @@
           inherit (pkgs) zig;
         };
 
+        vendorOverride = {
+          "third-party/zig/antiphony" = pkgs.fetchFromGitHub {
+            owner = "ExpidusOS";
+            repo = "antiphony";
+            rev = "43c1c3f87f51b4d472026379e4589ac3c07ecbd4";
+            fetchSubmodules = true;
+            sha256 = "sha256-VWAPMVPlwBDiOKrzvgGeEzAvGTFy6SjujCsZfjBQiig=";
+          };
+        };
+
         packages = {
           default = mkPackage {
             rev = "${self.shortRev or "dirty"}";
             src = cleanSource self;
+            inherit vendorOverride;
           };
         };
 
