@@ -1,6 +1,5 @@
 const std = @import("std");
 const elemental = @import("../../../elemental.zig");
-const graphics = @import("../../../graphics.zig");
 const Context = @import("../../context.zig");
 const Compositor = @import("../../compositor.zig");
 const Output = @import("../../output.zig");
@@ -11,8 +10,6 @@ const libdrm = @import("libdrm");
 
 /// Instance creation parameters
 pub const Params = struct {
-  /// Graphics card to use
-  gpu: *graphics.GpuDevice.Type,
 };
 
 /// Neutron's Elemental type information
@@ -28,9 +25,6 @@ pub const Type = elemental.Type(WaylandCompositor, Params, TypeInfo);
 
 /// DisplayKit compositor instance
 compositor: Compositor.Type,
-
-/// Graphics card instance
-gpu: *graphics.GpuDevice.Type,
 
 /// Wayland server instance
 wl_server: *wl.Server,
@@ -73,10 +67,8 @@ fn impl_list_views(ctx: *anyopaque) ![]*View {
   return values;
 }
 
-fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !WaylandCompositor {
-  const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
+fn impl_init(_: *anyopaque, allocator: std.mem.Allocator) !WaylandCompositor {
   return .{
-    .gpu = params.gpu.ref(),
     .outputs = try elemental.TypedList(Output, Output.Params, Output.TypeInfo).new(.{
       .list = null,
     }, allocator),
@@ -96,7 +88,6 @@ fn impl_destroy(_self: *anyopaque) void {
   self.compositor.unref();
   self.wl_server.destroyClients();
   self.wl_server.destroy();
-  self.gpu.unref();
 }
 
 fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
@@ -106,8 +97,6 @@ fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
   dest.compositor = try Compositor.init(.{
     .vtable = self.compositor.instance.vtable,
   }, self.getType().allocator);
-
-  dest.gpu = self.gpu.ref();
 }
 
 pub fn new(params: Params, allocator: ?std.mem.Allocator) !*WaylandCompositor {

@@ -47,6 +47,8 @@
         mkDevShell = name: mkShell {
           inherit (packages.${name}) pname version name buildFlags;
 
+          packages = packages.${name}.buildInputs ++ packages.${name}.nativeBuildInputs;
+
           shellHook = ''
             export rootOut=$(dirname $out)
             export devdocs=$rootOut/devdocs
@@ -54,6 +56,7 @@
 
             function installPhase {
               export NIX_BUILD_TOP=$HOME
+              rm -rf $rootOut
               ${packages.${name}.installPhase}
             }
           '';

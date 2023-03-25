@@ -28,11 +28,11 @@
         "zig-overlay": "zig-overlay"
       },
       "locked": {
-        "lastModified": 1679704057,
-        "narHash": "sha256-WkuAyh2CZgW/o+CBCuyPB1+bsLXdtT0zUbBDcb1swWQ=",
+        "lastModified": 1679707837,
+        "narHash": "sha256-Zu/kBBiWIqPu8fjij4C7gHGSBvelv8XjTWuzQt6XF+8=",
         "owner": "ExpidusOS",
         "repo": "sdk",
-        "rev": "f11a14165003521a6cc0802acd31a6c52e9529f7",
+        "rev": "901d9b2c762086b1ea0878a1055a4fbf4ce48664",
         "type": "github"
       },
       "original": {

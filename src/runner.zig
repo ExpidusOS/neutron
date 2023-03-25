@@ -3,11 +3,6 @@ const std = @import("std");
 const clap = @import("clap");
 const neutron = @import("neutron");
 
-const Mode = enum {
-  application,
-  compositor
-};
-
 const parser = .{
   .string = clap.parsers.string,
   .str = clap.parsers.string,
@@ -23,7 +18,7 @@ const parser = .{
   .isize = clap.parsers.int(isize, 0),
   .f32 = clap.parsers.float(f32),
   .f64 = clap.parsers.float(f64),
-  .mode = clap.parsers.enumeration(Mode),
+  .mode = clap.parsers.enumeration(neutron.runtime.Runtime.Mode),
 };
 
 pub fn main() !void {
@@ -49,19 +44,17 @@ pub fn main() !void {
 
   if (res.args.help) {
     try stdout.print(
-      \\Flutter Runner for Neutron (v{}.{}.{}) - API & Runtime for ExpidusOS
+      \\Flutter Runner for Neutron (v{}) - API & Runtime for ExpidusOS
       \\
       \\Options:
       \\
     , .{
-      neutron.config.version.major,
-      neutron.config.version.minor,
-      neutron.config.version.patch
+      neutron.config.version
     });
     return clap.help(stdout, clap.Help, &params, .{});
   }
 
-  const mode = res.args.mode orelse Mode.application;
+  const mode = res.args.mode orelse neutron.runtime.Runtime.Mode.application;
 
   if (mode == .compositor) {
     if (builtin.os.tag != .linux) {
@@ -70,7 +63,7 @@ pub fn main() !void {
     }
   }
 
-  const allocator = std.heap.c_allocator;
+  const allocator = std.heap.page_allocator;
   var path = if (res.args.path == null) try std.fs.selfExeDirPathAlloc(allocator) else res.args.path.?;
 
   if (!std.fs.path.isAbsolute(path)) {
@@ -78,24 +71,9 @@ pub fn main() !void {
     path = try std.fs.cwd().realpathAlloc(allocator, path);
   }
 
-  if (mode == .compositor) {
-    const gpus = try neutron.graphics.platform.GpuDevice.getAll(allocator);
-    defer gpus.unref();
-
-    const _gpu = gpus.first();
-    if (_gpu == null) {
-      try stderr.print("Neutron runner cannot run in compositor mode without a GPU.\n", .{});
-      std.process.exit(1);
-    }
-
-    const gpu = _gpu.?;
-    defer gpu.unref();
-
-    const compositor = try (try neutron.displaykit.Backends.get(.auto)).Compositor.new(.{
-      .gpu = &gpu.instance.gpu_device,
-    }, gpu.instance.getAllocator());
-    defer compositor.unref();
-
-    // try neutron.elemental.formatter.json(gpu, "", .{}, stdout);
-  }
+  const runtime = try neutron.runtime.Runtime.new(.{
+    .mode = mode,
+    .path = path,
+  }, allocator);
+  defer runtime.unref();
 }
