@@ -65,7 +65,14 @@ fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Runtime {
       const str = try std.fmt.allocPrint(allocator, "neutron-{}.sock", .{ i });
       defer allocator.free(str);
 
-      if (std.mem.eql(u8, entry.name, str)) i += 1;
+      switch (params.mode) {
+        .compositor => {
+          if (std.mem.eql(u8, entry.name, str)) i += 1;
+        },
+        .application => {
+          if (std.mem.eql(u8, entry.name, str)) break;
+        },
+      }
     }
 
     const fname = try std.fmt.allocPrint(allocator, "neutron-{}.sock", .{ i });
