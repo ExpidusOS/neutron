@@ -49,7 +49,7 @@ pub fn Implementation(comptime Reader: type, comptime Writer: type) type {
 
       fn impl_construct(_self: *anyopaque, _: *anyopaque) !void {
         const self = @ptrCast(*Self, @alignCast(@alignOf(Self), _self));
-        self.endpoint.connect(self);
+        try self.endpoint.connect(self);
       }
 
       fn impl_destroy(_self: *anyopaque) void {

@@ -1,5 +1,6 @@
 const std = @import("std");
 const elemental = @import("../../../../elemental.zig");
+const impl = @import("../stream.zig");
 const Server = @This();
 
 pub const Params = struct {
@@ -9,7 +10,7 @@ pub const Params = struct {
 /// Neutron's Elemental type information
 pub const TypeInfo = elemental.TypeInfo(Server) {
   .init = impl_init,
-  .construct = null,
+  .construct = impl_construct,
   .destroy = impl_destroy,
   .dupe = impl_dupe,
 };
@@ -18,16 +19,46 @@ pub const TypeInfo = elemental.TypeInfo(Server) {
 pub const Type = elemental.Type(Server, Params, TypeInfo);
 
 server: std.net.StreamServer,
+thread: std.Thread,
+host_threads: std.ArrayList(std.Thread),
+running: bool,
 
-fn impl_init(_params: *anyopaque, _: std.mem.Allocator) !Server {
+fn thread_main(self: *Server, conn: ?std.net.StreamServer.Connection) !void {
+  if (conn == null) {
+    while (self.running) {
+      // TODO: we should log the errors
+      try self.host_threads.append(try std.Thread.spawn(.{}, thread_main, .{
+        self,
+        try self.server.accept(),
+      }));
+    }
+  } else {
+    const host = try impl.newHost(conn.?.stream, self.getType().allocator);
+    try host.endpoint.acceptCalls();
+  }
+}
+
+fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Server {
   const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
   return .{
     .server = params.server,
+    .thread = undefined,
+    .host_threads = std.ArrayList(std.Thread).init(allocator),
+    .running = false,
   };
+}
+
+fn impl_construct(_self: *anyopaque, _: *anyopaque) !void {
+  const self = @ptrCast(*Server, @alignCast(@alignOf(Server), _self));
+  self.running = true;
+  self.thread = try std.Thread.spawn(.{}, thread_main, .{ self, null });
 }
 
 fn impl_destroy(_self: *anyopaque) void {
   const self = @ptrCast(*Server, @alignCast(@alignOf(Server), _self));
+  self.running = false;
+  self.thread.join();
+  self.host_threads.deinit();
   self.server.close();
 }
 
