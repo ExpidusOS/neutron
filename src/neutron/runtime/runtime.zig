@@ -13,7 +13,9 @@ pub const Mode = enum {
 /// Instance creation parameters
 pub const Params = struct {
   mode: Mode = Mode.application,
-  path: []const u8
+  path: []const u8,
+  runtime_dir: ?[]const u8 = null,
+  socket: ?[]const u8 = null,
 };
 
 /// Neutron's Elemental type information
@@ -29,6 +31,8 @@ pub const Type = elemental.Type(Runtime, Params, TypeInfo);
 
 displaykit_context: *displaykit.Context,
 rpc: rpc.OneOf,
+runtime_dir: []const u8,
+socket_path: []const u8,
 mode: Mode,
 path: []const u8,
 
@@ -41,22 +45,45 @@ fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Runtime {
     else => @panic("Runtime mode is missing the implementation"),
   };
 
-  const socket = blk: {
-    const dir = if (std.os.getenv("XDG_RUNTIME_DIR")) |value| try allocator.dupe(u8, value)
-      else try std.process.getCwdAlloc(allocator);
-    defer allocator.free(dir);
+  const runtime_dir = if (params.runtime_dir) |value| try allocator.dupe(u8, value)
+  else if (std.os.getenv("XDG_RUNTIME_DIR")) |value| try allocator.dupe(u8, value)
+  else try std.process.getCwdAlloc(allocator);
+  errdefer allocator.free(runtime_dir);
+
+  const socket = if (params.socket) |value| try allocator.dupe(u8, value)
+  else if (std.os.getenv("NEUTRON_SOCKET")) |value| try allocator.dupe(u8, value)
+  else blk: {
+    var i: usize = 0;
+    var diriter = try std.fs.openIterableDirAbsolute(runtime_dir, .{
+      .access_sub_paths = false,
+      .no_follow = true,
+    });
+    defer diriter.close();
+
+    var iter = diriter.iterate();
+    while (try iter.next()) |entry| {
+      const str = try std.fmt.allocPrint(allocator, "neutron-{}.sock", .{ i });
+      defer allocator.free(str);
+
+      if (std.mem.eql(u8, entry.name, str)) i += 1;
+    }
+
+    const fname = try std.fmt.allocPrint(allocator, "neutron-{}.sock", .{ i });
+    defer allocator.free(fname);
 
     break :blk try std.fs.path.join(allocator, &.{
-      dir,
-      "neutron.sock",
+      runtime_dir,
+      fname
     });
   };
-  defer allocator.free(socket);
+  errdefer allocator.free(socket);
 
   return .{
     .mode = params.mode,
     .path = params.path,
     .displaykit_context = displaykit_context,
+    .runtime_dir = runtime_dir,
+    .socket_path = socket,
     .rpc = switch (params.mode) {
       .compositor => .{
         .server = blk: {
@@ -86,6 +113,11 @@ fn impl_destroy(_self: *anyopaque) void {
       client.unref();
     },
   }
+
+  std.fs.deleteFileAbsolute(self.socket_path) catch @panic("Failed to delete the socket");
+
+  self.getType().allocator.free(self.runtime_dir);
+  self.getType().allocator.free(self.socket_path);
 }
 
 fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
@@ -95,6 +127,8 @@ fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
   dest.mode = self.mode;
   dest.path = self.path;
   dest.displaykit_context = try self.displaykit_context.dupe();
+  dest.runtime_dir = try dest.getType().allocator.dupe(u8, self.runtime_dir);
+  dest.socket_path = try dest.getType().allocator.dupe(u8, self.socket_path);
   dest.rpc = switch (self.rpc) {
     .server => |server| .{
       .server = try server.dupe(),
