@@ -15,7 +15,8 @@ pub const Params = struct {
   mode: Mode = Mode.application,
   path: []const u8,
   runtime_dir: ?[]const u8 = null,
-  socket: ?[]const u8 = null,
+  socket_name: ?[]const u8 = null,
+  socket_path: ?[]const u8 = null,
 };
 
 /// Neutron's Elemental type information
@@ -50,8 +51,16 @@ fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Runtime {
   else try std.process.getCwdAlloc(allocator);
   errdefer allocator.free(runtime_dir);
 
-  const socket = if (params.socket) |value| try allocator.dupe(u8, value)
-  else if (std.os.getenv("NEUTRON_SOCKET")) |value| try allocator.dupe(u8, value)
+  const socket = if (params.socket_path) |value| try allocator.dupe(u8, value)
+  else if (params.socket_name) |value| try std.fs.path.join(allocator, &.{
+    runtime_dir,
+    value,
+  })
+  else if (std.os.getenv("NEUTRON_SOCKET_NAME")) |value| try std.fs.path.join(allocator, &.{
+    runtime_dir,
+    value,
+  })
+  else if (std.os.getenv("NEUTRON_SOCKET_PATH")) |value| try allocator.dupe(u8, value)
   else blk: {
     var i: usize = 0;
     var diriter = try std.fs.openIterableDirAbsolute(runtime_dir, .{

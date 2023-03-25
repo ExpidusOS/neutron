@@ -26,9 +26,10 @@ pub fn main() !void {
   const stderr = std.io.getStdErr().writer();
 
   const params = comptime clap.parseParamsComptime(
-    \\-h, --help        Display this help and exit.
-    \\-p, --path <str>  An optional parameter which sets the Flutter application base path.
-    \\-m, --mode <mode> An optional parameter which sets the runtime mode.
+    \\-h, --help              Display this help and exit.
+    \\-p, --path <str>        An optional parameter which sets the Flutter application base path.
+    \\-m, --mode <mode>       An optional parameter which sets the runtime mode.
+    \\-r, --runtime-dir <str> An optional parameter set the runtime directory.
     \\
   );
 
@@ -74,6 +75,7 @@ pub fn main() !void {
   const runtime = try neutron.runtime.Runtime.new(.{
     .mode = mode,
     .path = path,
+    .runtime_dir = res.args.@"runtime-dir"
   }, allocator);
   defer runtime.unref();
 }
