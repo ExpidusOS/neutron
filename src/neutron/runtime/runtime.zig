@@ -70,7 +70,8 @@ fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Runtime {
           if (std.mem.eql(u8, entry.name, str)) i += 1;
         },
         .application => {
-          if (std.mem.eql(u8, entry.name, str)) break;
+          if (std.mem.eql(u8, entry.name, str)) break
+          else if (std.mem.startsWith(u8, entry.name, "neutron-") and std.mem.endsWith(u8, entry.name, ".sock")) i += 1;
         },
       }
     }
