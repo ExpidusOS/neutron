@@ -150,27 +150,5 @@ pub fn Type(
 
       Mutex.unlock(&self.ref_lock);
     }
-
-    /// A zig formatter
-    pub fn format(self: *const Self, comptime fmt: []const u8, options: std.fmt.FormatOptions, out_stream: anytype) !void {
-      try std.fmt.format(out_stream,
-        \\<{s}>
-        \\  <type>{}</type>
-        \\  <instance is-allocated="{}" refs="{}">
-      , .{
-        @typeName(T),
-        self.type_info,
-        self.allocated,
-        self.ref_count,
-      });
-
-      if (comptime std.meta.trait.hasFn("format")(T)) {
-        try self.instance.format(fmt, options, out_stream);
-      } else {
-        try formatter.format(self.instance, fmt, options, out_stream);
-      }
-
-      try std.fmt.format(out_stream, "</instance></{s}>", .{ @typeName(T) });
-    }
   };
 }

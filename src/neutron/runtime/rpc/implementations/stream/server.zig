@@ -1,12 +1,16 @@
 const builtin = @import("builtin");
 const std = @import("std");
 const elemental = @import("../../../../elemental.zig");
-const impl = @import("../stream.zig");
+const Runtime = @import("../../../runtime.zig");
 const xev = @import("xev");
+const Host = @import("host.zig");
 const Server = @This();
+
+const HostArrayList = elemental.TypedList(Host, Host.Params, Host.TypeInfo);
 
 pub const Params = struct {
   server: std.net.StreamServer,
+  runtime: *Runtime,
 };
 
 /// Neutron's Elemental type information
@@ -20,13 +24,19 @@ pub const TypeInfo = elemental.TypeInfo(Server) {
 /// Neutron's Elemental type definition
 pub const Type = elemental.Type(Server, Params, TypeInfo);
 
+runtime: *Runtime,
+hosts: *HostArrayList,
 server: std.net.StreamServer,
 thread: std.Thread,
 loop: xev.Loop,
 
-fn impl_init(_params: *anyopaque, _: std.mem.Allocator) !Server {
+fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Server {
   const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
   return .{
+    .runtime = params.runtime.ref(),
+    .hosts = try HostArrayList.new(.{
+      .list = null,
+    }, allocator),
     .server = params.server,
     .thread = undefined,
     .loop = try xev.Loop.init(.{}),
@@ -59,12 +69,12 @@ fn impl_construct(_self: *anyopaque, _: *anyopaque) !void {
           const stream = std.net.Stream {
             .handle = fd,
           };
-
-          const host = impl.newHost(stream, server.getType().allocator) catch null;
-          if (host == null) return .rearm;
-
-          defer host.?.unref();
-          host.?.endpoint.acceptCalls() catch unreachable;
+          
+          const host = Host.new(.{
+            .runtime = server.runtime,
+            .stream = stream,
+          }, server.getType().allocator) catch unreachable;
+          server.hosts.append(host.getType()) catch unreachable;
         }
         return .rearm;
       }
@@ -82,14 +92,21 @@ fn impl_destroy(_self: *anyopaque) void {
   // FIXME: we should join but the thread isn't stopping
   // self.thread.join();
   self.loop.deinit();
+  self.hosts.unref();
   self.server.close();
+  self.runtime.unref();
 }
 
 fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
   const self = @ptrCast(*Server, @alignCast(@alignOf(Server), _self));
   const dest = @ptrCast(*Server, @alignCast(@alignOf(Server), _dest));
 
-  dest.server = self.server;
+  const params = Params {
+    .runtime = self.runtime,
+    .server = self.server,
+  };
+  dest.* = try impl_init(@ptrCast(*anyopaque, @alignCast(@alignOf(*Params), @constCast(&params))), dest.getType().allocator);
+  try impl_construct(dest, @ptrCast(*anyopaque, @alignCast(@alignOf(*Params), @constCast(&params))));
 }
 
 pub fn new(params: Params, allocator: ?std.mem.Allocator) !*Server {

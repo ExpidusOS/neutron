@@ -1,6 +1,7 @@
 const std = @import("std");
 const rpc = @import("antiphony");
 const elemental = @import("../../elemental.zig");
+const Runtime = @import("../runtime.zig");
 const config = @import("neutron-config");
 
 pub const Definition = rpc.CreateDefinition(.{
@@ -25,6 +26,7 @@ pub fn Implementation(comptime Reader: type, comptime Writer: type) type {
       pub const EndPoint = Definition.HostEndPoint(Reader, Writer, Self);
 
       pub const Params = struct {
+        runtime: *Runtime,
         endpoint: EndPoint,
       };
 
@@ -39,10 +41,12 @@ pub fn Implementation(comptime Reader: type, comptime Writer: type) type {
       pub const Type = elemental.Type(Self, Params, TypeInfo);
 
       endpoint: EndPoint,
+      runtime: *Runtime,
 
       fn impl_init(_params: *anyopaque, _: std.mem.Allocator) !Self {
         const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
         return .{
+          .runtime = params.runtime.ref(),
           .endpoint = params.endpoint,
         };
       }
@@ -55,6 +59,7 @@ pub fn Implementation(comptime Reader: type, comptime Writer: type) type {
       fn impl_destroy(_self: *anyopaque) void {
         const self = @ptrCast(*Self, @alignCast(@alignOf(Self), _self));
         self.endpoint.destroy();
+        self.runtime.unref();
       }
 
       fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
@@ -62,6 +67,7 @@ pub fn Implementation(comptime Reader: type, comptime Writer: type) type {
         const dest = @ptrCast(*Self, @alignCast(@alignOf(Self), _dest));
 
         dest.endpoint = self.endpoint;
+        dest.runtime = self.runtime.ref();
       }
 
       pub fn new(params: Params, allocator: ?std.mem.Allocator) !*Self {
@@ -114,6 +120,7 @@ pub fn Implementation(comptime Reader: type, comptime Writer: type) type {
 
       pub const Params = struct {
         endpoint: EndPoint,
+        runtime: *Runtime,
       };
 
       pub const TypeInfo = elemental.TypeInfo(Self) {
@@ -127,11 +134,13 @@ pub fn Implementation(comptime Reader: type, comptime Writer: type) type {
       pub const Type = elemental.Type(Self, Params, TypeInfo);
 
       endpoint: EndPoint,
+      runtime: *Runtime,
 
       fn impl_init(_params: *anyopaque, _: std.mem.Allocator) !Self {
         const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
         return .{
           .endpoint = params.endpoint,
+          .runtime = params.runtime.ref(),
         };
       }
 
@@ -143,6 +152,7 @@ pub fn Implementation(comptime Reader: type, comptime Writer: type) type {
       fn impl_destroy(_self: *anyopaque) void {
         const self = @ptrCast(*Self, @alignCast(@alignOf(Self), _self));
         self.endpoint.destroy();
+        self.runtime.unref();
       }
 
       fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
@@ -150,6 +160,7 @@ pub fn Implementation(comptime Reader: type, comptime Writer: type) type {
         const dest = @ptrCast(*Self, @alignCast(@alignOf(Self), _dest));
 
         dest.endpoint = self.endpoint;
+        dest.runtime = self.runtime.ref();
       }
 
       pub fn new(params: Params, allocator: ?std.mem.Allocator) !*Self {

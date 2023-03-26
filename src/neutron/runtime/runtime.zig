@@ -1,7 +1,7 @@
 const std = @import("std");
 const elemental = @import("../elemental.zig");
 const displaykit = @import("../displaykit.zig");
-const rpc = @import("rpc.zig").implementations.stream;
+const rpc = @import("rpc/implementations/stream.zig");
 const xev = @import("xev");
 const Runtime = @This();
 
@@ -23,7 +23,7 @@ pub const Params = struct {
 /// Neutron's Elemental type information
 pub const TypeInfo = elemental.TypeInfo(Runtime) {
   .init = impl_init,
-  .construct = null,
+  .construct = impl_construct,
   .destroy = impl_destroy,
   .dupe = impl_dupe,
 };
@@ -32,7 +32,7 @@ pub const TypeInfo = elemental.TypeInfo(Runtime) {
 pub const Type = elemental.Type(Runtime, Params, TypeInfo);
 
 displaykit_context: *displaykit.Context,
-rpc: rpc.OneOf,
+rpc: *anyopaque,
 runtime_dir: []const u8,
 socket_path: []const u8,
 mode: Mode,
@@ -102,33 +102,41 @@ fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Runtime {
     .displaykit_context = displaykit_context,
     .runtime_dir = runtime_dir,
     .socket_path = socket,
-    .rpc = switch (params.mode) {
-      .compositor => .{
-        .server = blk: {
-          var server = std.net.StreamServer.init(.{});
-          try server.listen(try std.net.Address.initUnix(socket));
-          break :blk try rpc.Server.new(.{
-            .server = server,
-          }, allocator);
-        },
-      },
-      .application => .{
-        .client = try rpc.newClient(try std.net.connectUnixSocket(socket), allocator),
-      },
-    },
+    .rpc = undefined,
   };
 }
 
 fn impl_construct(_self: *anyopaque, _: *anyopaque) !void {
   const self = @ptrCast(*Runtime, @alignCast(@alignOf(Runtime), _self));
-  _ = self;
+
+  const _rpc = try self.getType().allocator.create(rpc.OneOf);
+  _rpc.* = switch (self.mode) {
+    .compositor => .{
+      .server = blk: {
+        var server = std.net.StreamServer.init(.{});
+        try server.listen(try std.net.Address.initUnix(self.socket_path));
+        break :blk try rpc.Server.new(.{
+          .server = server,
+          .runtime = self,
+        }, self.getType().allocator);
+      },
+    },
+    .application => .{
+      .client = try rpc.newClient(self, try std.net.connectUnixSocket(self.socket_path), self.getType().allocator),
+    },
+  };
+
+  self.rpc = @ptrCast(*anyopaque, @alignCast(@alignOf(*rpc.OneOf), _rpc));
 }
 
 fn impl_destroy(_self: *anyopaque) void {
   const self = @ptrCast(*Runtime, @alignCast(@alignOf(Runtime), _self));
   self.displaykit_context.unref();
 
-  switch (self.rpc) {
+  const _rpc = @ptrCast(*rpc.OneOf, @alignCast(@alignOf(*anyopaque), self.rpc));
+  defer self.getType().allocator.destroy(_rpc);
+
+  switch (_rpc.*) {
     .server => |server| {
       server.unref();
     },
@@ -147,12 +155,10 @@ fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
   const self = @ptrCast(*Runtime, @alignCast(@alignOf(Runtime), _self));
   const dest = @ptrCast(*Runtime, @alignCast(@alignOf(Runtime), _dest));
 
-  dest.mode = self.mode;
-  dest.path = self.path;
-  dest.displaykit_context = try self.displaykit_context.dupe();
-  dest.runtime_dir = try dest.getType().allocator.dupe(u8, self.runtime_dir);
-  dest.socket_path = try dest.getType().allocator.dupe(u8, self.socket_path);
-  dest.rpc = switch (self.rpc) {
+  const self_rpc = @ptrCast(*rpc.OneOf, @alignCast(@alignOf(rpc.OneOf), self.rpc));
+  const dest_rpc = try self.getType().allocator.create(rpc.OneOf);
+
+  dest_rpc.* = switch (self_rpc.*) {
     .server => |server| .{
       .server = try server.dupe(),
     },
@@ -160,6 +166,13 @@ fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
       .client = try client.dupe(),
     },
   };
+
+  dest.mode = self.mode;
+  dest.path = self.path;
+  dest.displaykit_context = try self.displaykit_context.dupe();
+  dest.runtime_dir = try dest.getType().allocator.dupe(u8, self.runtime_dir);
+  dest.socket_path = try dest.getType().allocator.dupe(u8, self.socket_path);
+  dest.rpc = dest_rpc;
 }
 
 pub fn new(params: Params, allocator: ?std.mem.Allocator) !*Runtime {
