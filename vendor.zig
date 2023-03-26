@@ -3,6 +3,7 @@ const Expat = @import("vendor/third-party/expat.zig");
 const Libffi = @import("vendor/third-party/libffi.zig");
 const Drm = @import("vendor/os-specific/linux/drm.zig");
 const Wayland = @import("vendor/os-specific/linux/wayland.zig");
+const xev = @import("vendor/third-party/zig/libxev/build.zig");
 const std = @import("std");
 const Build = std.Build;
 
@@ -47,7 +48,7 @@ pub fn init(b: *Build, options: VendorOptions, target: std.zig.CrossTarget, opti
 }
 
 pub fn getDependencies(self: Vendor) ![]const Build.ModuleDependency {
-  var len: u32 = 1;
+  var len: u32 = 2;
   if (self.wayland != null) len += 1;
   if (self.libdrm != null) len += 1;
 
@@ -58,7 +59,11 @@ pub fn getDependencies(self: Vendor) ![]const Build.ModuleDependency {
     .name = "antiphony",
     .module = Antiphony.createModule(self.builder),
   };
-  i += 1;
+  arr[1] = .{
+    .name = "xev",
+    .module = xev.module(self.builder),
+  };
+  i += 2;
 
   if (self.wayland != null) {
     arr[i] = .{

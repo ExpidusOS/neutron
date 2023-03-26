@@ -2,6 +2,7 @@ const std = @import("std");
 const elemental = @import("../elemental.zig");
 const displaykit = @import("../displaykit.zig");
 const rpc = @import("rpc.zig").implementations.stream;
+const xev = @import("xev");
 const Runtime = @This();
 
 /// Mode to launch the runtime in
@@ -116,6 +117,11 @@ fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Runtime {
       },
     },
   };
+}
+
+fn impl_construct(_self: *anyopaque, _: *anyopaque) !void {
+  const self = @ptrCast(*Runtime, @alignCast(@alignOf(Runtime), _self));
+  _ = self;
 }
 
 fn impl_destroy(_self: *anyopaque) void {

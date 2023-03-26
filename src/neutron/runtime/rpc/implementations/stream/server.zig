@@ -1,6 +1,8 @@
+const builtin = @import("builtin");
 const std = @import("std");
 const elemental = @import("../../../../elemental.zig");
 const impl = @import("../stream.zig");
+const xev = @import("xev");
 const Server = @This();
 
 pub const Params = struct {
@@ -20,45 +22,66 @@ pub const Type = elemental.Type(Server, Params, TypeInfo);
 
 server: std.net.StreamServer,
 thread: std.Thread,
-host_threads: std.ArrayList(std.Thread),
-running: bool,
+loop: xev.Loop,
 
-fn thread_main(self: *Server, conn: ?std.net.StreamServer.Connection) !void {
-  if (conn == null) {
-    while (self.running) {
-      // TODO: we should log the errors
-      try self.host_threads.append(try std.Thread.spawn(.{}, thread_main, .{
-        self,
-        try self.server.accept(),
-      }));
-    }
-  } else {
-    const host = try impl.newHost(conn.?.stream, self.getType().allocator);
-    try host.endpoint.acceptCalls();
-  }
-}
-
-fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Server {
+fn impl_init(_params: *anyopaque, _: std.mem.Allocator) !Server {
   const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
   return .{
     .server = params.server,
     .thread = undefined,
-    .host_threads = std.ArrayList(std.Thread).init(allocator),
-    .running = false,
+    .loop = try xev.Loop.init(.{}),
   };
 }
 
 fn impl_construct(_self: *anyopaque, _: *anyopaque) !void {
   const self = @ptrCast(*Server, @alignCast(@alignOf(Server), _self));
-  self.running = true;
-  self.thread = try std.Thread.spawn(.{}, thread_main, .{ self, null });
+
+  self.loop.add(&xev.Completion {
+    .op = .{
+      .accept = .{
+        .socket = self.server.sockfd.?,
+      },
+    },
+
+    .userdata = self,
+    .callback = (struct {
+      fn callback(
+        ud: ?*anyopaque,
+        l: *xev.Loop,
+        c: *xev.Completion,
+        r: xev.Result,
+      ) xev.CallbackAction {
+        _ = l;
+        _ = c;
+
+        const server = @ptrCast(*Server, @alignCast(@alignOf(Server), ud.?));
+        if (r.accept catch null) |fd| {
+          const stream = std.net.Stream {
+            .handle = fd,
+          };
+
+          const host = impl.newHost(stream, server.getType().allocator) catch null;
+          if (host == null) return .rearm;
+
+          defer host.?.unref();
+          host.?.endpoint.acceptCalls() catch unreachable;
+        }
+        return .rearm;
+      }
+    }).callback,
+  });
+
+  self.thread = try std.Thread.spawn(.{}, xev.Loop.run, .{ @constCast(&self.loop), xev.RunMode.until_done });
+  try self.thread.setName("rpc-server");
 }
 
 fn impl_destroy(_self: *anyopaque) void {
   const self = @ptrCast(*Server, @alignCast(@alignOf(Server), _self));
-  self.running = false;
-  self.thread.join();
-  self.host_threads.deinit();
+
+  self.loop.stop();
+  // FIXME: we should join but the thread isn't stopping
+  // self.thread.join();
+  self.loop.deinit();
   self.server.close();
 }
 

@@ -45,6 +45,12 @@
             fetchSubmodules = true;
             sha256 = "sha256-VWAPMVPlwBDiOKrzvgGeEzAvGTFy6SjujCsZfjBQiig=";
           };
+          "third-party/zig/libxev" = pkgs.fetchFromGitHub {
+            owner = "mitchellh";
+            repo = "libxev";
+            rev = "aab505ffca04117ef8eeeb8dc3c64c87d80dfe6d";
+            sha256 = "sha256-a7caowEsonavStCG5qNLDh/Ij6JIYJ9NS1DNFPr2Mrk=";
+          };
         };
 
         packages = {

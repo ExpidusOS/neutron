@@ -28,3 +28,6 @@
 [submodule "vendor/third-party/zig/antiphony"]
 	path = vendor/third-party/zig/antiphony
 	url = https://github.com/ExpidusOS/antiphony
+[submodule "vendor/third-party/zig/libxev"]
+	path = vendor/third-party/zig/libxev
+	url = https://github.com/mitchellh/libxev
