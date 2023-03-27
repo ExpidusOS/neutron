@@ -139,13 +139,12 @@ fn impl_destroy(_self: *anyopaque) void {
   switch (_rpc.*) {
     .server => |server| {
       server.unref();
+      std.fs.deleteFileAbsolute(self.socket_path) catch @panic("Failed to delete the socket");
     },
     .client => |client| {
       client.unref();
     },
   }
-
-  std.fs.deleteFileAbsolute(self.socket_path) catch @panic("Failed to delete the socket");
 
   self.getType().allocator.free(self.runtime_dir);
   self.getType().allocator.free(self.socket_path);
