@@ -159,16 +159,16 @@ fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
 
   dest_rpc.* = switch (self_rpc.*) {
     .server => |server| .{
-      .server = try server.dupe(),
+      .server = try server.dupe(dest.getType().allocator),
     },
     .client => |client| .{
-      .client = try client.dupe(),
+      .client = try client.dupe(dest.getType().allocator),
     },
   };
 
   dest.mode = self.mode;
   dest.path = self.path;
-  dest.displaykit_context = try self.displaykit_context.dupe();
+  dest.displaykit_context = try self.displaykit_context.dupe(dest.getType().allocator);
   dest.runtime_dir = try dest.getType().allocator.dupe(u8, self.runtime_dir);
   dest.socket_path = try dest.getType().allocator.dupe(u8, self.socket_path);
   dest.rpc = dest_rpc;

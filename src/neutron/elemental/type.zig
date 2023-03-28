@@ -9,10 +9,10 @@ pub const TypeInfo = struct {
   init: *const fn (params: *anyopaque, allocator: Allocator) anyerror!*anyopaque,
 
   /// Constructor method
-  construct: ?*const fn (self: *anyopaque, params: *anyopaque) anyerror!void,
+  construct: ?*const fn (self: *anyopaque, params: *anyopaque) anyerror!void = null,
 
   /// Destroy method
-  destroy: ?*const fn (self: *anyopaque) anyerror!void,
+  destroy: ?*const fn (self: *anyopaque) anyerror!void = null,
 
   /// Duplication method
   dupe: *const fn (self: *anyopaque, dest: *anyopaque) anyerror!void,
@@ -35,6 +35,8 @@ pub fn Type(
     allocated: bool,
 
     type_info: TypeInfo,
+
+    parent: ?*OpaqueType,
 
     /// Memory allocator used for the instance
     allocator: Allocator,
@@ -80,6 +82,7 @@ pub fn Type(
         const self = Self {
           .allocated = false,
           .allocator = alloc,
+          .parent = null,
           .ref_count = 0,
           .ref_lock = .{},
           .type_info = type_info,
@@ -94,30 +97,52 @@ pub fn Type(
       return Self.init(params, std.heap.page_allocator);
     }
 
-    /// Duplicate the instance
-    pub fn dupe(self: *Self) !*Self {
-      const dest = try self.allocator.create(Self);
-      dest.allocator = self.allocator;
-      dest.allocated = true;
+    pub fn toOpaque(self: *Self) *OpaqueType {
+      return @ptrCast(*OpaqueType, @alignCast(@alignOf(*OpaqueType), self));
+    }
 
-      try type_info.dupe(&self.instance, &dest.instance);
-      return dest;
+    pub fn getTop(self: *Self) *OpaqueType {
+      var parent = self.parent;
+      while (parent) |value| : (parent = @field(value, "parent")) {
+        if (@field(value, "parent") == null) return value;
+      }
+
+      return self.toOpaque();
+    }
+
+    /// Duplicate the instance
+    pub fn dupe(self: *Self, allocator: ?Allocator) !*Self {
+      if (allocator) |alloc| {
+        const dest = try self.allocator.create(Self);
+        dest.allocator = alloc;
+        dest.allocated = true;
+
+        try type_info.dupe(&self.instance, &dest.instance);
+        return dest;
+      }
+
+      return self.dupe(self.allocator);
     }
 
     /// Creates a reference
     pub fn ref(self: *Self) *Self {
-      Mutex.lock(&self.ref_lock);
-      self.ref_count += 1;
-      Mutex.unlock(&self.ref_lock);
+      const top = self.getTop();
+
+      Mutex.lock(&@field(top, "ref_lock"));
+      defer Mutex.unlock(&@field(top, "ref_lock"));
+      @field(top, "ref_count") += 1;
       return self;
     }
 
     /// Decreases the reference count.
     /// Once it hits 0, destroy the instance.
     pub fn unref(self: *Self) void {
-      Mutex.lock(&self.ref_lock);
+      const top = self.getTop();
 
-      if (self.ref_count == 0) {
+      Mutex.lock(&@field(top, "ref_lock"));
+      defer Mutex.unlock(&@field(top, "ref_lock"));
+
+      if (@field(top, "ref_count") == 0) {
         if (type_info.destroy) |destroy| {
           destroy(&self.instance) catch @panic("Cannot fail during type destruction");
         }
@@ -126,10 +151,42 @@ pub fn Type(
           if (self.allocated) self.allocator.destroy(self);
         }
       } else {
-        self.ref_count -= 1;
+        @field(top, "ref_count") -= 1;
       }
-
-      Mutex.unlock(&self.ref_lock);
     }
   };
+}
+
+pub const OpaqueTypeValue = struct {
+  pub fn getType(self: *OpaqueTypeValue) *OpaqueTypeValue {
+    return @fieldParentPtr(OpaqueType, "instance", self);
+  }
+
+  /// Increases the reference count and return the instance
+  pub fn ref(self: *OpaqueTypeValue) *OpaqueTypeValue {
+    return &(self.getType().ref().instance);
+  }
+
+  /// Decreases the reference count and free it if the counter is 0
+  pub fn unref(self: *OpaqueTypeValue) void {
+    return self.getType().unref();
+  }
+
+  pub fn dupe(self: *OpaqueTypeValue, allocator: ?std.mem.Allocator) *OpaqueTypeValue {
+    return &(try self.getType().dupe(allocator)).instance;
+  }
+};
+
+pub const OpaqueType = Type(OpaqueTypeValue, OpaqueTypeValue, .{
+  .init = opaque_impl_init,
+  .dupe = opaque_impl_dupe,
+});
+
+fn opaque_impl_init(_: *anyopaque, allocator: Allocator) !*anyopaque {
+  _ = allocator;
+  return @ptrCast(*anyopaque, @alignCast(@alignOf(*anyopaque), @constCast(&(OpaqueTypeValue {}))));
+}
+
+fn opaque_impl_dupe(_: *anyopaque, dest: *anyopaque) !void {
+  _ = dest;
 }

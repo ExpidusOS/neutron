@@ -17,7 +17,7 @@ pub const Params = struct {
 /// Neutron's Elemental type information
 pub const TypeInfo = elemental.TypeInfo {
   .init = impl_init,
-  .construct = null,
+  .construct = impl_construct,
   .destroy = impl_destroy,
   .dupe = impl_dupe,
 };
@@ -36,6 +36,11 @@ fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !*anyopaque {
       .vtable = params.vtable.context,
     }, allocator),
   });
+}
+
+fn impl_construct(_self: *anyopaque, _: *anyopaque) !void {
+  const self = @ptrCast(*Compositor, @alignCast(@alignOf(Compositor), _self));
+  self.context.parent = self.getType().toOpaque();
 }
 
 fn impl_destroy(_self: *anyopaque) !void {

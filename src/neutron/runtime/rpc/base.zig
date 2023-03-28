@@ -93,8 +93,8 @@ pub fn Implementation(comptime Reader: type, comptime Writer: type) type {
         return self.getType().unref();
       }
 
-      pub fn dupe(self: *Self) !*Self {
-        return &(try self.getType().dupe()).instance;
+      pub fn dupe(self: *Self, allocator: ?std.mem.Allocator) !*Self {
+        return &(try self.getType().dupe(allocator)).instance;
       }
 
       pub fn getVersion(_: *Self) std.builtin.Version {
@@ -186,8 +186,8 @@ pub fn Implementation(comptime Reader: type, comptime Writer: type) type {
         return self.getType().unref();
       }
 
-      pub fn dupe(self: *Self) !*Self {
-        return &(try self.getType().dupe()).instance;
+      pub fn dupe(self: *Self, allocator: ?std.mem.Allocator) !*Self {
+        return &(try self.getType().dupe(allocator)).instance;
       }
     };
 

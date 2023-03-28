@@ -132,6 +132,6 @@ pub fn unref(self: *Server) void {
   return self.getType().unref();
 }
 
-pub fn dupe(self: *Server) !*Server {
-  return &(try self.getType().dupe()).instance;
+pub fn dupe(self: *Server, allocator: ?std.mem.Allocator) !*Server {
+  return &(try self.getType().dupe(allocator)).instance;
 }

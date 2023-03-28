@@ -68,8 +68,8 @@ pub fn unref(self: *Context) void {
   return self.getType().unref();
 }
 
-pub fn dupe(self: *Context) !*Context {
-  return &(try self.getType().dupe()).instance;
+pub fn dupe(self: *Context, allocator: ?std.mem.Allocator) !*Context {
+  return &(try self.getType().dupe(allocator)).instance;
 }
 
 /// Gets an array list of outputs
