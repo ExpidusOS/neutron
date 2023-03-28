@@ -74,6 +74,29 @@ pub fn json(value: anytype, comptime fmt: []const u8, options: std.fmt.FormatOpt
 
       try writer.writeAll("} }");
     },
+    .Enum => |enum_info| {
+      const type_name = getTypeName(T, true);
+      defer std.heap.page_allocator.free(type_name);
+
+      try writer.writeAll("{\"");
+      try writer.writeAll(type_name);
+
+      try writer.writeAll("\": {\"value\": \"");
+      try writer.writeAll(@tagName(value));
+      try writer.writeAll("\", \"fields\": [");
+
+      inline for (enum_info.fields, 0..) |enum_field, i| {
+        const is_last = i + 1 == enum_info.fields.len;
+
+        try std.fmt.format(writer, "\"{s}\"", .{ enum_field.name });
+
+        if (!is_last) {
+          try writer.writeAll(",");
+        }
+      }
+
+      try writer.writeAll("] } }");
+    },
     .Pointer => |ptr_info| switch (ptr_info.size) {
       .One => switch (@typeInfo(ptr_info.child)) {
         .Array => |info| {
@@ -179,6 +202,154 @@ pub fn json(value: anytype, comptime fmt: []const u8, options: std.fmt.FormatOpt
       }
     },
     .Null => return writer.writeAll("null"),
+    else => @compileError("Unable to format type '" ++ @typeName(T) ++ "'"),
+  }
+}
+
+pub fn xml(value: anytype, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+  const T = @TypeOf(value);
+
+  switch (@typeInfo(T)) {
+    .ComptimeInt, .Int, .ComptimeFloat, .Float => return std.fmt.format(writer, "{}", .{ value }),
+    .Bool => return std.fmt.formatBuf(if (value) "true" else "false", options, writer),
+    .Struct => |info| {
+      const type_name = getTypeName(T, true);
+      defer std.heap.page_allocator.free(type_name);
+
+      try writer.writeAll("<");
+      try writer.writeAll(type_name);
+      try writer.writeAll(">");
+
+      inline for (info.fields) |f| {
+        try writer.writeAll("<");
+        try writer.writeAll(f.name);
+        try writer.writeAll(">");
+
+        try xml(@field(value, f.name), fmt, options, writer);
+        try writer.writeAll("</");
+        try writer.writeAll(f.name);
+        try writer.writeAll(">");
+      }
+
+      try writer.writeAll("</");
+      try writer.writeAll(type_name);
+      try writer.writeAll(">");
+    },
+    .Enum => |enum_info| {
+      const type_name = getTypeName(T, true);
+      defer std.heap.page_allocator.free(type_name);
+
+      try writer.writeAll("<");
+      try writer.writeAll(type_name);
+
+      try writer.writeAll(" value=\"");
+      try writer.writeAll(@tagName(value));
+      try writer.writeAll("\"");
+      try writer.writeAll(">");
+
+      inline for (enum_info.fields) |enum_field| {
+        try std.fmt.format(writer, "<{s} value={} />", .{ enum_field.name, enum_field.value });
+      }
+
+      try writer.writeAll("</");
+      try writer.writeAll(type_name);
+      try writer.writeAll(">");
+    },
+    .Pointer => |ptr_info| switch (ptr_info.size) {
+      .One => switch (@typeInfo(ptr_info.child)) {
+        .Array => |info| {
+          if (info.child == u8) {
+            return std.fmt.format(writer, "{s}", .{ value });
+          }
+
+          std.fmt.invalidFmtError(fmt, value);
+        },
+        .Enum, .Union, .Struct => {
+          const type_name = getTypeName(ptr_info.child, false);
+          defer std.heap.page_allocator.free(type_name);
+
+          try writer.writeAll("<");
+          try writer.writeAll(type_name);
+          try writer.writeAll(">");
+
+          try xml(value.*, fmt, options, writer);
+
+          try writer.writeAll("</");
+          try writer.writeAll(type_name);
+          try writer.writeAll(">");
+        },
+        else => {
+          try writer.writeAll("<type name=\"");
+          try writer.writeAll(@typeName(ptr_info.child));
+          try writer.writeAll("\" value=\"");
+          try std.fmt.format(writer, "{}", .{ @ptrToInt(value) });
+          try writer.writeAll("\" />");
+        },
+      },
+      .Many, .C => {
+        if (ptr_info.sentinel) |_| {
+          return xml(std.mem.span(value), fmt, options, writer);
+        }
+
+        if (ptr_info.child == u8) {
+          return std.fmt.format(writer, "{s}", .{ value });
+        }
+
+        try writer.writeAll("<type name=\"");
+        try writer.writeAll(@typeName(ptr_info.child));
+        try writer.writeAll("\" value=\"");
+        try std.fmt.format(writer, "{}", .{ @ptrToInt(value) });
+        try writer.writeAll("\" />");
+      },
+      .Slice => {
+        if (ptr_info.child == u8) {
+          return std.fmt.format(writer, "{s}", .{ value });
+        }
+
+        try writer.writeAll("<slice>");
+
+        for (value) |elem| {
+          try writer.writeAll("<item>");
+          try xml(elem, fmt, options, writer);
+          try writer.writeAll("</item>");
+        }
+
+        try writer.writeAll("</slice>");
+      },
+    },
+    .Array => |info| {
+      if (info.child == u8) {
+        return std.fmt.format(writer, "{s}", .{ value });
+      }
+
+      try writer.writeAll("<array>");
+
+      for (value) |elem| {
+        try writer.writeAll("<item>");
+        try xml(elem, fmt, options, writer);
+        try writer.writeAll("</item>");
+      }
+
+      try writer.writeAll("</array>");
+    },
+    .Vector => |info| {
+      try writer.writeAll("<vector>");
+
+      var i: usize = 0;
+      while (i < info.len) : (i += 1) {
+        try writer.writeAll("<item>");
+        try xml(value[i], fmt, options, writer);
+        try writer.writeAll("</item>");
+      }
+
+      try writer.writeAll("</vector>");
+    },
+    .Optional => {
+      if (value) |payload| {
+        return xml(payload, fmt, options, writer);
+      }
+    },
+    .Null => {},
     else => @compileError("Unable to format type '" ++ @typeName(T) ++ "'"),
   }
 }

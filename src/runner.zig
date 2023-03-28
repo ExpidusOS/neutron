@@ -78,5 +78,6 @@ pub fn main() !void {
     .runtime_dir = res.args.@"runtime-dir"
   }, allocator);
   defer runtime.unref();
-  std.debug.print("{}\n", .{ runtime });
+
+  try neutron.elemental.formatter.json(runtime, "", .{}, stdout);
 }
