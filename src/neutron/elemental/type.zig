@@ -128,9 +128,9 @@ pub fn Type(
     pub fn ref(self: *Self) *Self {
       const top = self.getTop();
 
-      Mutex.lock(&@field(top, "ref_lock"));
-      defer Mutex.unlock(&@field(top, "ref_lock"));
-      @field(top, "ref_count") += 1;
+      Mutex.lock(&top.ref_lock);
+      defer Mutex.unlock(&top.ref_lock);
+      top.ref_count += 1;
       return self;
     }
 
@@ -139,10 +139,10 @@ pub fn Type(
     pub fn unref(self: *Self) void {
       const top = self.getTop();
 
-      Mutex.lock(&@field(top, "ref_lock"));
-      defer Mutex.unlock(&@field(top, "ref_lock"));
+      Mutex.lock(&top.ref_lock);
+      defer Mutex.unlock(&top.ref_lock);
 
-      if (@field(top, "ref_count") == 0) {
+      if (top.ref_count == 0) {
         if (type_info.destroy) |destroy| {
           destroy(&self.instance) catch @panic("Cannot fail during type destruction");
         }
@@ -151,7 +151,7 @@ pub fn Type(
           if (self.allocated) self.allocator.destroy(self);
         }
       } else {
-        @field(top, "ref_count") -= 1;
+        top.ref_count += 1;
       }
     }
   };
