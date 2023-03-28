@@ -30,7 +30,7 @@ pub fn Implementation(comptime Reader: type, comptime Writer: type) type {
         endpoint: EndPoint,
       };
 
-      pub const TypeInfo = elemental.TypeInfo(Self) {
+      pub const TypeInfo = elemental.TypeInfo {
         .init = impl_init,
         .construct = impl_construct,
         .destroy = impl_destroy,
@@ -43,12 +43,12 @@ pub fn Implementation(comptime Reader: type, comptime Writer: type) type {
       endpoint: EndPoint,
       runtime: *Runtime,
 
-      fn impl_init(_params: *anyopaque, _: std.mem.Allocator) !Self {
+      fn impl_init(_params: *anyopaque, _: std.mem.Allocator) !*anyopaque {
         const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
-        return .{
+        return &(Self {
           .runtime = params.runtime.ref(),
           .endpoint = params.endpoint,
-        };
+        });
       }
 
       fn impl_construct(_self: *anyopaque, _: *anyopaque) !void {
@@ -56,7 +56,7 @@ pub fn Implementation(comptime Reader: type, comptime Writer: type) type {
         try self.endpoint.connect(self);
       }
 
-      fn impl_destroy(_self: *anyopaque) void {
+      fn impl_destroy(_self: *anyopaque) !void {
         const self = @ptrCast(*Self, @alignCast(@alignOf(Self), _self));
         self.endpoint.destroy();
         self.runtime.unref();
@@ -123,7 +123,7 @@ pub fn Implementation(comptime Reader: type, comptime Writer: type) type {
         runtime: *Runtime,
       };
 
-      pub const TypeInfo = elemental.TypeInfo(Self) {
+      pub const TypeInfo = elemental.TypeInfo {
         .init = impl_init,
         .construct = impl_construct,
         .destroy = impl_destroy,
@@ -136,12 +136,12 @@ pub fn Implementation(comptime Reader: type, comptime Writer: type) type {
       endpoint: EndPoint,
       runtime: *Runtime,
 
-      fn impl_init(_params: *anyopaque, _: std.mem.Allocator) !Self {
+      fn impl_init(_params: *anyopaque, _: std.mem.Allocator) !*anyopaque {
         const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
-        return .{
+        return &(Self {
           .endpoint = params.endpoint,
           .runtime = params.runtime.ref(),
-        };
+        });
       }
 
       fn impl_construct(_self: *anyopaque, _: *anyopaque) !void {
@@ -149,7 +149,7 @@ pub fn Implementation(comptime Reader: type, comptime Writer: type) type {
         try self.endpoint.connect(self);
       }
 
-      fn impl_destroy(_self: *anyopaque) void {
+      fn impl_destroy(_self: *anyopaque) !void {
         const self = @ptrCast(*Self, @alignCast(@alignOf(Self), _self));
         self.endpoint.destroy();
         self.runtime.unref();

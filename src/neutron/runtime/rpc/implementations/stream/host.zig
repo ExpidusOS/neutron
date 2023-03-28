@@ -12,7 +12,7 @@ pub const Params = struct {
 };
 
 /// Neutron's Elemental type information
-pub const TypeInfo = elemental.TypeInfo(Host) {
+pub const TypeInfo = elemental.TypeInfo {
   .init = impl_init,
   .construct = impl_construct,
   .destroy = impl_destroy,
@@ -28,9 +28,9 @@ stream: std.net.Stream,
 thread: std.Thread,
 loop: xev.Loop,
 
-fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Host {
+fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !*anyopaque {
   const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
-  return .{
+  return &(Host {
     .runtime = params.runtime.ref(),
     .impl = try impl.Implementation.Host.new(.{
       .runtime = params.runtime,
@@ -39,7 +39,7 @@ fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Host {
     .stream = params.stream,
     .thread = undefined,
     .loop = try xev.Loop.init(.{}),
-  };
+  });
 }
 
 fn impl_construct(_self: *anyopaque, _: *anyopaque) !void {
@@ -49,7 +49,7 @@ fn impl_construct(_self: *anyopaque, _: *anyopaque) !void {
   try self.thread.setName("rpc-host");
 }
 
-fn impl_destroy(_self: *anyopaque) void {
+fn impl_destroy(_self: *anyopaque) !void {
   const self = @ptrCast(*Host, @alignCast(@alignOf(Host), _self));
 
   self.loop.stop();
@@ -69,8 +69,8 @@ fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
     .runtime = self.runtime,
     .stream = self.stream,
   };
-  dest.* = try impl_init(@ptrCast(*anyopaque, @alignCast(@alignOf(*Params), @constCast(&params))), dest.getType().allocator);
-  try impl_construct(dest, @ptrCast(*anyopaque, @alignCast(@alignOf(*Params), @constCast(&params))));
+
+  dest.* = (try init(params, dest.getType().allocator)).instance;
 }
 
 pub fn new(params: Params, allocator: ?std.mem.Allocator) !*Host {

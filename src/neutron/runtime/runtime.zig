@@ -21,7 +21,7 @@ pub const Params = struct {
 };
 
 /// Neutron's Elemental type information
-pub const TypeInfo = elemental.TypeInfo(Runtime) {
+pub const TypeInfo = elemental.TypeInfo {
   .init = impl_init,
   .construct = impl_construct,
   .destroy = impl_destroy,
@@ -38,7 +38,7 @@ socket_path: []const u8,
 mode: Mode,
 path: []const u8,
 
-fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Runtime {
+fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !*anyopaque {
   const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
   const dk_backend = try displaykit.Backends.get(.auto);
 
@@ -96,14 +96,14 @@ fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Runtime {
   };
   errdefer allocator.free(socket);
 
-  return .{
+  return &(Runtime {
     .mode = params.mode,
     .path = params.path,
     .displaykit_context = displaykit_context,
     .runtime_dir = runtime_dir,
     .socket_path = socket,
     .rpc = undefined,
-  };
+  });
 }
 
 fn impl_construct(_self: *anyopaque, _: *anyopaque) !void {
@@ -129,7 +129,7 @@ fn impl_construct(_self: *anyopaque, _: *anyopaque) !void {
   self.rpc = @ptrCast(*anyopaque, @alignCast(@alignOf(*rpc.OneOf), _rpc));
 }
 
-fn impl_destroy(_self: *anyopaque) void {
+fn impl_destroy(_self: *anyopaque) !void {
   const self = @ptrCast(*Runtime, @alignCast(@alignOf(Runtime), _self));
   self.displaykit_context.unref();
 
@@ -139,7 +139,7 @@ fn impl_destroy(_self: *anyopaque) void {
   switch (_rpc.*) {
     .server => |server| {
       server.unref();
-      std.fs.deleteFileAbsolute(self.socket_path) catch @panic("Failed to delete the socket");
+      try std.fs.deleteFileAbsolute(self.socket_path);
     },
     .client => |client| {
       client.unref();

@@ -1,17 +1,17 @@
 const std = @import("std");
 const _type = @import("type.zig");
 
-pub fn TypedList(comptime T: type, comptime P: type, comptime info: _type.TypeInfo(T)) type {
+pub fn TypedList(comptime T: type, comptime P: type, comptime info: _type.TypeInfo) type {
   return AlignedTypedList(T, P, info, null);
 }
 
 /// Define a new typed list
-pub fn AlignedTypedList(comptime T: type, comptime P: type, comptime info: _type.TypeInfo(T), comptime alignment: ?u29) type {
+pub fn AlignedTypedList(comptime T: type, comptime P: type, comptime info: _type.TypeInfo, comptime alignment: ?u29) type {
   return struct {
     const Self = @This();
 
     pub const Params = struct {
-      list: ?ArrayList,
+      list: ?ArrayList = null,
     };
 
     /// Neutron's Elemental type information for items
@@ -21,10 +21,10 @@ pub fn AlignedTypedList(comptime T: type, comptime P: type, comptime info: _type
     pub const ItemType = _type.Type(T, P, info);
 
     /// Neutron's Elemental type information
-    pub const TypeInfo = _type.TypeInfo(Self) {
+    pub const TypeInfo = _type.TypeInfo {
       .init = impl_init,
       .construct = null,
-      .destroy = destroy,
+      .destroy = impl_destroy,
       .dupe = impl_dupe,
     };
 
@@ -80,14 +80,14 @@ pub fn AlignedTypedList(comptime T: type, comptime P: type, comptime info: _type
       return self.list.items[index].ref();
     }
 
-    fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Self {
+    fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !*anyopaque {
       const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
-      return .{
-        .list = if (params.list != null) params.list.? else ArrayList.init(allocator),
-      };
+      return &(Self {
+        .list = if (params.list) |list| list else ArrayList.init(allocator),
+      });
     }
 
-    fn destroy(_self: *anyopaque) void {
+    fn impl_destroy(_self: *anyopaque) !void {
       const self = @ptrCast(*Self, @alignCast(@alignOf(Self), _self));
 
       var _item = self.list.popOrNull();

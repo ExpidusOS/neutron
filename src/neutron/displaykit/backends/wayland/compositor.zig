@@ -13,7 +13,7 @@ pub const Params = struct {
 };
 
 /// Neutron's Elemental type information
-pub const TypeInfo = elemental.TypeInfo(WaylandCompositor) {
+pub const TypeInfo = elemental.TypeInfo {
   .init = impl_init,
   .construct = null,
   .destroy = impl_destroy,
@@ -67,8 +67,8 @@ fn impl_list_views(ctx: *anyopaque) ![]*View {
   return values;
 }
 
-fn impl_init(_: *anyopaque, allocator: std.mem.Allocator) !WaylandCompositor {
-  return .{
+fn impl_init(_: *anyopaque, allocator: std.mem.Allocator) !*anyopaque {
+  return &(WaylandCompositor {
     .outputs = try elemental.TypedList(Output, Output.Params, Output.TypeInfo).new(.{
       .list = null,
     }, allocator),
@@ -79,10 +79,10 @@ fn impl_init(_: *anyopaque, allocator: std.mem.Allocator) !WaylandCompositor {
       .vtable = &vtable,
     }, allocator),
     .wl_server = try wl.Server.create(),
-  };
+  });
 }
 
-fn impl_destroy(_self: *anyopaque) void {
+fn impl_destroy(_self: *anyopaque) !void {
   const self = @ptrCast(*WaylandCompositor, @alignCast(@alignOf(WaylandCompositor), _self));
 
   self.compositor.unref();

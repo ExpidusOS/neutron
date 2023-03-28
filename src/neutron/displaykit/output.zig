@@ -13,7 +13,7 @@ pub const Params = struct {
 };
 
 /// Neutron's Elemental type information
-pub const TypeInfo = elemental.TypeInfo(Output) {
+pub const TypeInfo = elemental.TypeInfo {
   .init = impl_init,
   .construct = null,
   .destroy = impl_destroy,
@@ -27,16 +27,16 @@ pub const Type = elemental.Type(Output, TypeInfo);
 vtable: *const VTable,
 context: *Context,
 
-fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !Output {
+fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !*anyopaque {
   const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
   _ = allocator;
-  return .{
+  return &(Output {
     .vtable = params.vtable,
     .context = params.context.ref(),
-  };
+  });
 }
 
-fn impl_destroy(_self: *anyopaque) void {
+fn impl_destroy(_self: *anyopaque) !void {
   const self = @ptrCast(*Output, @alignCast(@alignOf(Output), _self));
   self.context.unref();
 }

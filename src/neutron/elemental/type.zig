@@ -4,42 +4,19 @@ const Mutex = std.Thread.Mutex;
 const formatter = @import("formatter.zig");
 
 /// Define type information
-pub fn TypeInfo(comptime T: type) type {
-  return struct {
-    /// Initialize method for type
-    init: *const fn (params: *anyopaque, allocator: Allocator) anyerror!T,
+pub const TypeInfo = struct {
+  /// Initialize method for type
+  init: *const fn (params: *anyopaque, allocator: Allocator) anyerror!*anyopaque,
 
-    /// Constructor method
-    construct: ?*const fn (self: *anyopaque, params: *anyopaque) anyerror!void,
+  /// Constructor method
+  construct: ?*const fn (self: *anyopaque, params: *anyopaque) anyerror!void,
 
-    /// Destroy method
-    destroy: ?*const fn (self: *anyopaque) void,
+  /// Destroy method
+  destroy: ?*const fn (self: *anyopaque) anyerror!void,
 
-    /// Duplication method
-    dupe: *const fn (self: *anyopaque, dest: *anyopaque) anyerror!void,
-
-    pub fn format(self: @This(), comptime fmt: []const u8, options: std.fmt.FormatOptions, out_stream: anytype) !void {
-      _ = fmt;
-      _ = options;
-
-      try std.fmt.format(out_stream,
-        \\<name>{s}</name>
-        \\<methods>
-        \\  <init>0x{x}</init>
-        \\  <construct>0x{x}</construct>
-        \\  <destroy>0x{x}</destroy>
-        \\  <dupe>0x{x}</dupe>
-        \\</methods>
-      , .{
-        @typeName(T),
-        @ptrToInt(self.init),
-        @ptrToInt(self.construct),
-        @ptrToInt(self.destroy),
-        @ptrToInt(self.dupe),
-      });
-    }
-  };
-}
+  /// Duplication method
+  dupe: *const fn (self: *anyopaque, dest: *anyopaque) anyerror!void,
+};
 
 /// Define a new type
 pub fn Type(
@@ -48,16 +25,16 @@ pub fn Type(
   /// Parameter type
   comptime P: type,
   /// Type information
-  comptime info: TypeInfo(T)
+  comptime type_info: TypeInfo
 ) type {
   return struct {
     const Self = @This();
 
-    pub const Info = info;
+    pub const Info = type_info;
 
     allocated: bool,
 
-    type_info: TypeInfo(T),
+    type_info: TypeInfo,
 
     /// Memory allocator used for the instance
     allocator: Allocator,
@@ -78,13 +55,15 @@ pub fn Type(
       /// An optional memory allocator to use, defaults to `std.heap.page_allocator` if `null`.
       allocator: ?Allocator
     ) !*Self {
-      if (allocator == null) {
-        return Self.new(params, std.heap.page_allocator);
-      }
+      if (allocator) |alloc| {
+        const self = try alloc.create(Self);
+        errdefer alloc.destroy(self);
 
-      const self = try allocator.?.create(Self);
-      self.* = try Self.init(params, allocator);
-      return self;
+        self.* = try Self.init(params, allocator);
+        self.allocated = true;
+        return self;
+      }
+      return Self.new(params, std.heap.page_allocator);
     }
 
     // Initializes a new type instance rather than allocates one
@@ -94,23 +73,25 @@ pub fn Type(
       /// An optional memory allocator to use, defaults to `std.heap.page_allocator` if `null`.
       allocator: ?Allocator
     ) !Self {
-      if (allocator == null) {
-        return Self.init(params, std.heap.page_allocator);
-      }
+      if (allocator) |alloc| {
+        const opaque_instance_ptr = try type_info.init(@ptrCast(*anyopaque, @alignCast(@alignOf(*P), @constCast(&params))), allocator.?);
+        const instance_ptr = @ptrCast(*T, @alignCast(@alignOf(*T), opaque_instance_ptr));
 
-      const self = Self {
-        .allocated = false,
-        .allocator = allocator.?,
-        .ref_count = 0,
-        .ref_lock = .{},
-        .type_info = info,
-        .instance = try info.init(@ptrCast(*anyopaque, @alignCast(@alignOf(*P), @constCast(&params))), allocator.?),
-      };
+        const self = Self {
+          .allocated = false,
+          .allocator = alloc,
+          .ref_count = 0,
+          .ref_lock = .{},
+          .type_info = type_info,
+          .instance = instance_ptr.*,
+        };
 
-      if (info.construct != null) {
-        try info.construct.?(@ptrCast(*anyopaque, @alignCast(@alignOf(*T), @constCast(&self.instance))), @ptrCast(*anyopaque, @alignCast(@alignOf(*P), @constCast(&params))));
+        if (type_info.construct) |construct| {
+          try construct(@ptrCast(*anyopaque, @alignCast(@alignOf(*T), @constCast(&self.instance))), @ptrCast(*anyopaque, @alignCast(@alignOf(*P), @constCast(&params))));
+        }
+        return self;
       }
-      return self;
+      return Self.init(params, std.heap.page_allocator);
     }
 
     /// Duplicate the instance
@@ -119,7 +100,7 @@ pub fn Type(
       dest.allocator = self.allocator;
       dest.allocated = true;
 
-      try info.dupe(&self.instance, &dest.instance);
+      try type_info.dupe(&self.instance, &dest.instance);
       return dest;
     }
 
@@ -137,8 +118,8 @@ pub fn Type(
       Mutex.lock(&self.ref_lock);
 
       if (self.ref_count == 0) {
-        if (info.destroy != null) {
-          info.destroy.?(&self.instance);
+        if (type_info.destroy) |destroy| {
+          destroy(&self.instance) catch @panic("Cannot fail during type destruction");
         }
 
         defer {
