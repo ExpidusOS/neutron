@@ -1,202 +1,29 @@
 const std = @import("std");
 const elemental = @import("../elemental.zig");
-const displaykit = @import("../displaykit.zig");
-const rpc = @import("rpc/implementations/stream.zig");
-const xev = @import("xev");
-const Runtime = @This();
+const Self = @This();
 
-/// Mode to launch the runtime in
-pub const Mode = enum {
-  compositor,
-  application
-};
+pub const Params = struct {};
 
-/// Instance creation parameters
-pub const Params = struct {
-  mode: Mode = Mode.application,
-  path: []const u8,
-  runtime_dir: ?[]const u8 = null,
-  socket_name: ?[]const u8 = null,
-  socket_path: ?[]const u8 = null,
-};
+const Impl = struct {};
 
-/// Neutron's Elemental type information
-pub const TypeInfo = elemental.TypeInfo {
-  .init = impl_init,
-  .construct = impl_construct,
-  .destroy = impl_destroy,
-  .dupe = impl_dupe,
-};
+pub const Type = elemental.Type(Self, Params, Impl);
 
-/// Neutron's Elemental type definition
-pub const Type = elemental.Type(Runtime, Params, TypeInfo);
+@"type": Type,
 
-displaykit_context: *displaykit.Context,
-rpc: *anyopaque,
-runtime_dir: []const u8,
-socket_path: []const u8,
-mode: Mode,
-path: []const u8,
-
-fn impl_init(_params: *anyopaque, allocator: std.mem.Allocator) !*anyopaque {
-  const params = @ptrCast(*Params, @alignCast(@alignOf(Params), _params));
-  const dk_backend = try displaykit.Backends.get(.auto);
-
-  const displaykit_context = switch (params.mode) {
-    .compositor => &(try dk_backend.Compositor.new(.{}, allocator)).compositor.instance.context.instance,
-    else => @panic("Runtime mode is missing the implementation"),
+pub fn init(_: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
+  return .{
+    .type = Type.init(parent, allocator),
   };
-
-  const runtime_dir = if (params.runtime_dir) |value| try allocator.dupe(u8, value)
-  else if (std.os.getenv("XDG_RUNTIME_DIR")) |value| try allocator.dupe(u8, value)
-  else try std.process.getCwdAlloc(allocator);
-  errdefer allocator.free(runtime_dir);
-
-  const socket = if (params.socket_path) |value| try allocator.dupe(u8, value)
-  else if (params.socket_name) |value| try std.fs.path.join(allocator, &.{
-    runtime_dir,
-    value,
-  })
-  else if (std.os.getenv("NEUTRON_SOCKET_NAME")) |value| try std.fs.path.join(allocator, &.{
-    runtime_dir,
-    value,
-  })
-  else if (std.os.getenv("NEUTRON_SOCKET_PATH")) |value| try allocator.dupe(u8, value)
-  else blk: {
-    var i: usize = 0;
-    var diriter = try std.fs.openIterableDirAbsolute(runtime_dir, .{
-      .access_sub_paths = false,
-      .no_follow = true,
-    });
-    defer diriter.close();
-
-    var iter = diriter.iterate();
-    while (try iter.next()) |entry| {
-      const str = try std.fmt.allocPrint(allocator, "neutron-{}.sock", .{ i });
-      defer allocator.free(str);
-
-      switch (params.mode) {
-        .compositor => {
-          if (std.mem.eql(u8, entry.name, str)) i += 1;
-        },
-        .application => {
-          if (std.mem.eql(u8, entry.name, str)) break
-          else if (std.mem.startsWith(u8, entry.name, "neutron-") and std.mem.endsWith(u8, entry.name, ".sock")) i += 1;
-        },
-      }
-    }
-
-    const fname = try std.fmt.allocPrint(allocator, "neutron-{}.sock", .{ i });
-    defer allocator.free(fname);
-
-    break :blk try std.fs.path.join(allocator, &.{
-      runtime_dir,
-      fname
-    });
-  };
-  errdefer allocator.free(socket);
-
-  return &(Runtime {
-    .mode = params.mode,
-    .path = params.path,
-    .displaykit_context = displaykit_context,
-    .runtime_dir = runtime_dir,
-    .socket_path = socket,
-    .rpc = undefined,
-  });
 }
 
-fn impl_construct(_self: *anyopaque, _: *anyopaque) !void {
-  const self = @ptrCast(*Runtime, @alignCast(@alignOf(Runtime), _self));
-
-  const _rpc = try self.getType().allocator.create(rpc.OneOf);
-  _rpc.* = switch (self.mode) {
-    .compositor => .{
-      .server = blk: {
-        var server = std.net.StreamServer.init(.{});
-        try server.listen(try std.net.Address.initUnix(self.socket_path));
-        break :blk try rpc.Server.new(.{
-          .server = server,
-          .runtime = self,
-        }, self.getType().allocator);
-      },
-    },
-    .application => .{
-      .client = try rpc.newClient(self, try std.net.connectUnixSocket(self.socket_path), self.getType().allocator),
-    },
-  };
-
-  self.rpc = @ptrCast(*anyopaque, @alignCast(@alignOf(*rpc.OneOf), _rpc));
+pub inline fn new(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !*Self {
+  return Type.new(params, parent, allocator);
 }
 
-fn impl_destroy(_self: *anyopaque) !void {
-  const self = @ptrCast(*Runtime, @alignCast(@alignOf(Runtime), _self));
-  self.displaykit_context.unref();
-
-  const _rpc = @ptrCast(*rpc.OneOf, @alignCast(@alignOf(*anyopaque), self.rpc));
-  defer self.getType().allocator.destroy(_rpc);
-
-  switch (_rpc.*) {
-    .server => |server| {
-      server.unref();
-      try std.fs.deleteFileAbsolute(self.socket_path);
-    },
-    .client => |client| {
-      client.unref();
-    },
-  }
-
-  self.getType().allocator.free(self.runtime_dir);
-  self.getType().allocator.free(self.socket_path);
+pub inline fn ref(self: *Self) !*Self {
+  return self.type.refNew();
 }
 
-fn impl_dupe(_self: *anyopaque, _dest: *anyopaque) !void {
-  const self = @ptrCast(*Runtime, @alignCast(@alignOf(Runtime), _self));
-  const dest = @ptrCast(*Runtime, @alignCast(@alignOf(Runtime), _dest));
-
-  const self_rpc = @ptrCast(*rpc.OneOf, @alignCast(@alignOf(rpc.OneOf), self.rpc));
-  const dest_rpc = try self.getType().allocator.create(rpc.OneOf);
-
-  dest_rpc.* = switch (self_rpc.*) {
-    .server => |server| .{
-      .server = try server.dupe(dest.getType().allocator),
-    },
-    .client => |client| .{
-      .client = try client.dupe(dest.getType().allocator),
-    },
-  };
-
-  dest.mode = self.mode;
-  dest.path = self.path;
-  dest.displaykit_context = try self.displaykit_context.dupe(dest.getType().allocator);
-  dest.runtime_dir = try dest.getType().allocator.dupe(u8, self.runtime_dir);
-  dest.socket_path = try dest.getType().allocator.dupe(u8, self.socket_path);
-  dest.rpc = dest_rpc;
-}
-
-pub fn new(params: Params, allocator: ?std.mem.Allocator) !*Runtime {
-  return &(try Type.new(params, allocator)).instance;
-}
-
-pub fn init(params: Params, allocator: ?std.mem.Allocator) !Type {
-  return try Type.init(params, allocator);
-}
-
-/// Gets the Elemental type definition instance for this instance
-pub fn getType(self: *Runtime) *Type {
-  return @fieldParentPtr(Type, "instance", self);
-}
-
-/// Increases the reference count and return the instance
-pub fn ref(self: *Runtime) *Runtime {
-  return &(self.getType().ref().instance);
-}
-
-/// Decreases the reference count and free it if the counter is 0
-pub fn unref(self: *Runtime) void {
-  return self.getType().unref();
-}
-
-pub fn dupe(self: *Runtime) !*Runtime {
-  return &(try self.getType().dupe()).instance;
+pub inline fn unref(self: *Self) !void {
+  return self.type.unref();
 }

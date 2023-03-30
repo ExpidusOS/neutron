@@ -18,7 +18,6 @@ const parser = .{
   .isize = clap.parsers.int(isize, 0),
   .f32 = clap.parsers.float(f32),
   .f64 = clap.parsers.float(f64),
-  .mode = clap.parsers.enumeration(neutron.runtime.Runtime.Mode),
 };
 
 pub fn main() !void {
@@ -28,7 +27,6 @@ pub fn main() !void {
   const params = comptime clap.parseParamsComptime(
     \\-h, --help              Display this help and exit.
     \\-p, --path <str>        An optional parameter which sets the Flutter application base path.
-    \\-m, --mode <mode>       An optional parameter which sets the runtime mode.
     \\-r, --runtime-dir <str> An optional parameter set the runtime directory.
     \\
   );
@@ -55,15 +53,6 @@ pub fn main() !void {
     return clap.help(stdout, clap.Help, &params, .{});
   }
 
-  const mode = res.args.mode orelse neutron.runtime.Runtime.Mode.application;
-
-  if (mode == .compositor) {
-    if (builtin.os.tag != .linux) {
-      try stderr.print("Neutron runner cannot execute in compositor mode outside of Linux.\n", .{});
-      std.process.exit(1);
-    }
-  }
-
   const allocator = std.heap.page_allocator;
   var path = if (res.args.path == null) try std.fs.selfExeDirPathAlloc(allocator) else res.args.path.?;
 
@@ -72,10 +61,8 @@ pub fn main() !void {
     path = try std.fs.cwd().realpathAlloc(allocator, path);
   }
 
-  const runtime = try neutron.runtime.Runtime.new(.{
-    .mode = mode,
-    .path = path,
-    .runtime_dir = res.args.@"runtime-dir"
-  }, allocator);
-  defer runtime.unref();
+  const runtime = try neutron.runtime.Runtime.new(.{}, null, allocator);
+  defer runtime.unref() catch @panic("Failed to unref");
+
+  try stdout.print("{}\n", .{ runtime });
 }

@@ -65,6 +65,7 @@ pub fn json(value: anytype, comptime fmt: []const u8, options: std.fmt.FormatOpt
         try writer.writeAll(f.name);
         try writer.writeAll("\": ");
 
+        // FIXME: https://github.com/ziglang/zig/issues/2971
         try json(@field(value, f.name), fmt, options, writer);
 
         if (!is_last) {
@@ -225,6 +226,7 @@ pub fn xml(value: anytype, comptime fmt: []const u8, options: std.fmt.FormatOpti
         try writer.writeAll(f.name);
         try writer.writeAll(">");
 
+        // FIXME: https://github.com/ziglang/zig/issues/2971
         try xml(@field(value, f.name), fmt, options, writer);
         try writer.writeAll("</");
         try writer.writeAll(f.name);

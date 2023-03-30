@@ -1,4 +1,3 @@
-pub usingnamespace @import("elemental/type.zig");
-pub usingnamespace @import("elemental/typed-list.zig");
-
 pub const formatter = @import("elemental/formatter.zig");
+pub const Reference = @import("elemental/ref.zig");
+pub const Type = @import("elemental/type.zig").Type;
