@@ -1,59 +1,38 @@
 const std = @import("std");
-const elemental = @import("../elemental.zig");
-const ipc = @import("ipc.zig");
+const elemental = @import("../../elemental.zig");
+const Runtime = @import("../runtime.zig");
 const Self = @This();
 
-pub const Mode = enum {
-  compositor,
-  application,
-
-  pub fn getIpcType(self: Mode) ipc.Type {
-    return switch (self) {
-      .compositor => .server,
-      .application => .client,
-    };
-  }
+pub const VTable = struct {
 };
 
 pub const Params = struct {
-  mode: Mode = .application,
-  ipc: ?ipc.Ipc.Params = null,
+  vtable: *const VTable,
+  runtime: *Runtime,
 };
 
 const Impl = struct {
   pub fn ref(self: *Self, t: Type) !Self {
     return .{
       .type = t,
-      .mode = self.mode,
-      .ipc = try self.ipc.ref(t.allocator),
+      .vtable = self.vtable,
+      .runtime = try self.runtime,
     };
-  }
-
-  pub fn unref(self: *Self) !void {
-    try self.ipc.unref();
   }
 };
 
 pub const Type = elemental.Type(Self, Params, Impl);
 
 @"type": Type,
-ipc: ipc.Ipc,
-mode: Mode,
+vtable: *const VTable,
+runtime: *Runtime,
 
 pub fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
   var self = Self {
     .type = Type.init(parent, allocator),
-    .mode = params.mode,
-    .ipc = undefined,
+    .vtable = params.vtable,
+    .runtime = params.runtime,
   };
-
-  self.ipc = try ipc.Ipc.init(
-    if (params.ipc) |value| value
-    else .{
-      .type = params.mode.getIpcType(),
-      .socket = null,
-    },
-    &self, allocator);
   return self;
 }
 

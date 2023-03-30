@@ -25,9 +25,9 @@
 [submodule "vendor/third-party/libs/hwdata"]
 	path = vendor/third-party/libs/hwdata
 	url = https://github.com/vcrhonek/hwdata
-[submodule "vendor/third-party/zig/antiphony"]
-	path = vendor/third-party/zig/antiphony
-	url = https://github.com/ExpidusOS/antiphony
 [submodule "vendor/third-party/zig/libxev"]
 	path = vendor/third-party/zig/libxev
 	url = https://github.com/mitchellh/libxev
+[submodule "vendor/third-party/zig/s2s"]
+	path = vendor/third-party/zig/s2s
+	url = https://github.com/ziglibs/s2s

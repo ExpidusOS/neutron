@@ -18,6 +18,8 @@ const parser = .{
   .isize = clap.parsers.int(isize, 0),
   .f32 = clap.parsers.float(f32),
   .f64 = clap.parsers.float(f64),
+  .runtime_mode = clap.parsers.enumeration(neutron.runtime.Runtime.Mode),
+  .ipc_mode = clap.parsers.enumeration(neutron.runtime.ipc.Type),
 };
 
 pub fn main() !void {
@@ -25,9 +27,12 @@ pub fn main() !void {
   const stderr = std.io.getStdErr().writer();
 
   const params = comptime clap.parseParamsComptime(
-    \\-h, --help              Display this help and exit.
-    \\-p, --path <str>        An optional parameter which sets the Flutter application base path.
-    \\-r, --runtime-dir <str> An optional parameter set the runtime directory.
+    \\-h, --help                Display this help and exit.
+    \\-p, --path <str>          An optional parameter which sets the Flutter application base path.
+    \\-m, --mode <runtime_mode> An optional parameter which sets the runtime mode (compositor, application).
+    \\-i, --ipc-mode <ipc_mode> An optional parameter which sets the IPC mode (server, client).
+    \\-s, --socket <str>        An optional parameter which sets the path to use for the IPC socket.
+    \\-r, --runtime-dir <str>   An optional parameter set the runtime directory.
     \\
   );
 
@@ -61,7 +66,15 @@ pub fn main() !void {
     path = try std.fs.cwd().realpathAlloc(allocator, path);
   }
 
-  const runtime = try neutron.runtime.Runtime.new(.{}, null, allocator);
+  const runtime_mode = if (res.args.mode) |mode| mode else .application;
+
+  const runtime = try neutron.runtime.Runtime.new(.{
+    .mode = runtime_mode,
+    .ipc = .{
+      .type = if (res.args.@"ipc-mode") |t| t else runtime_mode.getIpcType(),
+      .socket = res.args.socket,
+    },
+  }, null, allocator);
   defer runtime.unref() catch @panic("Failed to unref");
 
   try stdout.print("{}\n", .{ runtime });

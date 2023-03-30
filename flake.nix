@@ -38,12 +38,11 @@
         };
 
         vendorOverride = {
-          "third-party/zig/antiphony" = pkgs.fetchFromGitHub {
-            owner = "ExpidusOS";
-            repo = "antiphony";
-            rev = "43c1c3f87f51b4d472026379e4589ac3c07ecbd4";
-            fetchSubmodules = true;
-            sha256 = "sha256-VWAPMVPlwBDiOKrzvgGeEzAvGTFy6SjujCsZfjBQiig=";
+          "third-party/zig/s2s" = pkgs.fetchFromGitHub {
+            owner = "ziglibs";
+            repo = "s2s";
+            rev = "87156727654be52d2ed583919b280ad8a2c84d35";
+            sha256 = "sha256-roibYbyxqp3Z7LVUUFxqstYIvSGX3fpVXMZiFOFaj4Y=";
           };
           "third-party/zig/libxev" = pkgs.fetchFromGitHub {
             owner = "mitchellh";

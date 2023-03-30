@@ -5,6 +5,9 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
   return struct {
     const Self = @This();
 
+    const RefFunc = fn (self: *T, t: Self) anyerror!T;
+    const UnrefFunc = fn (self: *T) anyerror!void;
+
     allocated: bool,
     allocator: std.mem.Allocator,
     parent: ?*anyopaque,
@@ -44,35 +47,33 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
       return @fieldParentPtr(T, "type", self);
     }
 
-    pub fn refInit(self: *Self, allocator: ?std.mem.Allocator) !Self {
+    pub fn refInit(self: *Self, allocator: ?std.mem.Allocator) !T {
       if (allocator) |alloc| {
-        return Self {
+        const ref_type = Self {
           .allocated = false,
           .allocator = alloc,
           .parent = self.parent,
           .ref = try self.ref.ref(),
         };
+
+        return if (@hasDecl(impl, "ref"))
+          try @as(RefFunc, impl.ref)(self.getInstance(), ref_type)
+        else
+          T {
+            .type = ref_type,
+          };
       }
       return self.refInit(self.allocator);
     }
 
-    pub fn refNew(self: *Self, allocator: ?std.mem.Allocator) !*Self {
+    pub fn refNew(self: *Self, allocator: ?std.mem.Allocator) !*T {
       if (allocator) |alloc| {
-        const ref_type = try self.refInit(alloc);
-        errdefer ref_type.ref.unref();
+        const self_ref = try alloc.create(T);
+        errdefer alloc.destroy(self_ref);
 
-        const self_ref = try ref_type.allocator.create(T);
-        errdefer ref_type.allocator.destroy(self_ref);
-
-        ref_type.allocated = true;
-
-        if (@hasDecl(impl, "ref")) {
-          self_ref.* = try impl.ref(self.getInstance(), ref_type);
-        }
-
-        self_ref.type = ref_type;
+        self_ref.* = try self.refInit(alloc);
         self_ref.type.allocated = true;
-        return true;
+        return self_ref;
       }
 
       return self.refNew(self.allocator);
@@ -82,7 +83,7 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
       try self.ref.unref();
 
       if (@hasDecl(impl, "unref")) {
-        try impl.unref(self.getInstance());
+        try @as(UnrefFunc, impl.unref)(self.getInstance());
       }
 
       if (self.allocated) {

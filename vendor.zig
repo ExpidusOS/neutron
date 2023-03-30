@@ -1,4 +1,4 @@
-const Antiphony = @import("vendor/third-party/antiphony.zig");
+const s2s = @import("vendor/third-party/s2s.zig");
 const Expat = @import("vendor/third-party/expat.zig");
 const Libffi = @import("vendor/third-party/libffi.zig");
 const Drm = @import("vendor/os-specific/linux/drm.zig");
@@ -56,8 +56,8 @@ pub fn getDependencies(self: Vendor) ![]const Build.ModuleDependency {
 
   var i: u32 = 0;
   arr[0] = .{
-    .name = "antiphony",
-    .module = Antiphony.createModule(self.builder),
+    .name = "s2s",
+    .module = s2s.createModule(self.builder),
   };
   arr[1] = .{
     .name = "xev",
