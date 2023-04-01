@@ -8,10 +8,10 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
     const RefFunc = fn (self: *T, t: Self) anyerror!T;
     const UnrefFunc = fn (self: *T) anyerror!void;
 
-    allocated: bool,
-    allocator: std.mem.Allocator,
-    parent: ?*anyopaque,
-    ref: Reference,
+    allocated: bool = false,
+    allocator: std.mem.Allocator = std.heap.page_allocator,
+    parent: ?*anyopaque = null,
+    ref: Reference = .{},
 
     pub fn init(parent: ?*anyopaque, allocator: ?std.mem.Allocator) Self {
       if (allocator) |alloc| {
