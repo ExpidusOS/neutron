@@ -1,6 +1,6 @@
 const std = @import("std");
-const elemental = @import("../../elemental.zig");
-const Runtime = @import("../runtime.zig");
+const elemental = @import("../../../elemental.zig");
+const Runtime = @import("../../runtime.zig");
 const Base = @import("base.zig");
 const Self = @This();
 

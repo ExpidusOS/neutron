@@ -1,49 +1,52 @@
 const std = @import("std");
-const elemental = @import("../../elemental.zig");
 const Runtime = @import("../runtime.zig");
-const Self = @This();
 
-pub const VTable = struct {
+pub const Base = @import("base/base.zig");
+pub const Client = @import("base/client.zig");
+pub const Server = @import("base/server.zig");
+
+/// Type of IPC instance
+pub const Type = enum {
+  client,
+  server,
 };
 
 pub const Params = struct {
-  vtable: *const VTable,
-  runtime: *Runtime,
+  @"type": Type,
 };
 
-const Impl = struct {
-  pub fn ref(self: *Self, t: Type) !Self {
-    return .{
-      .type = t,
-      .vtable = self.vtable,
-      .runtime = try self.runtime,
+pub const Ipc = union(Type) {
+  client: *Client,
+  server: *Server,
+
+  pub fn init(_: Params, runtime: *Runtime, allocator: ?std.mem.Allocator) !Ipc {
+    _ = runtime;
+    _ = allocator;
+    @compileError("Not implemented!");
+  }
+
+  pub fn ref(self: *Ipc, allocator: ?std.mem.Allocator) !Ipc {
+    return switch (self.*) {
+      .client => |client| .{
+        .client = try client.ref(allocator),
+      },
+      .server => |server| .{
+        .server = try server.ref(allocator),
+      },
+    };
+  }
+
+  pub fn unref(self: *Ipc) !void {
+    return switch (self.*) {
+      .client => |client| client.unref(),
+      .server => |server| server.unref()
+    };
+  }
+
+  pub fn toBase(self: *Ipc) *Base {
+    return switch (self.*) {
+      .client => |client| &client.base,
+      .server => |server| &server.base,
     };
   }
 };
-
-pub const Type = elemental.Type(Self, Params, Impl);
-
-@"type": Type,
-vtable: *const VTable,
-runtime: *Runtime,
-
-pub fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
-  var self = Self {
-    .type = Type.init(parent, allocator),
-    .vtable = params.vtable,
-    .runtime = params.runtime,
-  };
-  return self;
-}
-
-pub inline fn new(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !*Self {
-  return Type.new(params, parent, allocator);
-}
-
-pub inline fn ref(self: *Self, allocator: ?std.mem.Allocator) !*Self {
-  return self.type.refNew(allocator);
-}
-
-pub inline fn unref(self: *Self) !void {
-  return self.type.unref();
-}

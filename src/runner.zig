@@ -21,6 +21,7 @@ const parser = .{
   .format_type = clap.parsers.enumeration(neutron.elemental.formatter.Type),
   .runtime_mode = clap.parsers.enumeration(neutron.runtime.Runtime.Mode),
   .ipc_mode = clap.parsers.enumeration(neutron.runtime.ipc.Type),
+  .ipc_kind = clap.parsers.enumeration(neutron.runtime.ipc.Kind),
 };
 
 pub fn main() !void {
@@ -33,6 +34,7 @@ pub fn main() !void {
     \\-f, --format <format_type>  An optional parameter which sets the format to print messages in (json, xml, std).
     \\-m, --mode <runtime_mode>   An optional parameter which sets the runtime mode (compositor, application).
     \\-i, --ipc-mode <ipc_mode>   An optional parameter which sets the IPC mode (server, client).
+    \\-k, --ipc-kind <ipc_kind>   An optional parameter which sets the how IPC should operate (socket).
     \\-s, --socket <str>          An optional parameter which sets the path to use for the IPC socket.
     \\-r, --runtime-dir <str>     An optional parameter set the runtime directory.
     \\
@@ -71,12 +73,25 @@ pub fn main() !void {
   }
 
   const runtime_mode = if (res.args.mode) |mode| mode else .application;
+  const ipc_kind = if (res.args.@"ipc-kind") |kind| kind else .socket;
+
+  const params_ipc_base = neutron.runtime.ipc.base.Params {
+    .type = if (res.args.@"ipc-mode") |t| t else runtime_mode.getIpcType(),
+  };
+
+  if (ipc_kind != .socket and res.args.socket != null) {
+    @panic("Cannot specify a socket when not using a socket.");
+  }
 
   const runtime = try neutron.runtime.Runtime.new(.{
     .mode = runtime_mode,
-    .ipc = .{
-      .type = if (res.args.@"ipc-mode") |t| t else runtime_mode.getIpcType(),
-      .socket = res.args.socket,
+    .ipc = switch (ipc_kind) {
+      .socket => .{
+        .socket = .{
+          .base = params_ipc_base,
+          .path = res.args.socket,
+        }
+      },
     },
   }, null, allocator);
   defer runtime.unref() catch @panic("Failed to unref");

@@ -1,63 +1,48 @@
 const std = @import("std");
 const Runtime = @import("runtime.zig");
 
-pub const Base = @import("ipc/base.zig");
-pub const Client = @import("ipc/client.zig");
-pub const Server = @import("ipc/server.zig");
+pub const base = @import("ipc/base.zig");
+pub const socket = @import("ipc/socket.zig");
 
-/// Type of IPC instance
-pub const Type = enum {
-  client,
-  server,
+pub const Type = base.Type;
+
+/// Kinds of IPC instances
+pub const Kind = enum {
+  socket,
 };
 
-/// IPC instance
-pub const Ipc = union(Type) {
-  pub const Params = struct {
-    @"type": Type,
-    socket: ?[]const u8,
-  };
+pub const Params = union(Kind) {
+  socket: socket.Params
+};
 
-  client: *Client,
-  server: *Server,
+pub const Ipc = union(Kind) {
+  socket: socket.Ipc,
 
   pub fn init(params: Params, runtime: *Runtime, allocator: ?std.mem.Allocator) !Ipc {
-    return switch (params.type) {
-      .client => .{
-        .client = try Client.new(.{
-          .runtime = runtime,
-        }, null, allocator)
-      },
-      .server => .{
-        .server = try Server.new(.{
-          .runtime = runtime,
-        }, null, allocator),
+    return switch (params) {
+      .socket => |params_socket| .{
+        .socket = try socket.Ipc.init(params_socket, runtime, allocator),
       },
     };
   }
 
-  pub fn ref(self: *Ipc, allocator: ?std.mem.Allocator) !Ipc {
+  pub fn ref(self: *Ipc, allocator: ?std.mem.Allocator) Ipc {
     return switch (self.*) {
-      .client => |client| .{
-        .client = try client.ref(allocator),
-      },
-      .server => |server| .{
-        .server = try server.ref(allocator),
+      .socket => |socket_ipc| .{
+        .socket = try socket_ipc.ref(allocator),
       },
     };
   }
 
   pub fn unref(self: *Ipc) !void {
     return switch (self.*) {
-      .client => |client| client.unref(),
-      .server => |server| server.unref()
+      .socket => self.socket.unref(),
     };
   }
-
-  pub fn toBase(self: *Ipc) *Base {
-    return switch (self.*) {
-      .client => |client| &client.base,
-      .server => |server| &server.base,
+  
+  pub fn toBase(self: *Ipc) base.Ipc {
+    return switch (self) {
+      .socket => |socket_ipc| socket_ipc.toBase(),
     };
   }
 };
