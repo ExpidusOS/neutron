@@ -18,6 +18,7 @@ const parser = .{
   .isize = clap.parsers.int(isize, 0),
   .f32 = clap.parsers.float(f32),
   .f64 = clap.parsers.float(f64),
+  .format_type = clap.parsers.enumeration(neutron.elemental.formatter.Type),
   .runtime_mode = clap.parsers.enumeration(neutron.runtime.Runtime.Mode),
   .ipc_mode = clap.parsers.enumeration(neutron.runtime.ipc.Type),
 };
@@ -27,12 +28,13 @@ pub fn main() !void {
   const stderr = std.io.getStdErr().writer();
 
   const params = comptime clap.parseParamsComptime(
-    \\-h, --help                Display this help and exit.
-    \\-p, --path <str>          An optional parameter which sets the Flutter application base path.
-    \\-m, --mode <runtime_mode> An optional parameter which sets the runtime mode (compositor, application).
-    \\-i, --ipc-mode <ipc_mode> An optional parameter which sets the IPC mode (server, client).
-    \\-s, --socket <str>        An optional parameter which sets the path to use for the IPC socket.
-    \\-r, --runtime-dir <str>   An optional parameter set the runtime directory.
+    \\-h, --help                  Display this help and exit.
+    \\-p, --path <str>            An optional parameter which sets the Flutter application base path.
+    \\-f, --format <format_type>  An optional parameter which sets the format to print messages in (json, xml, std).
+    \\-m, --mode <runtime_mode>   An optional parameter which sets the runtime mode (compositor, application).
+    \\-i, --ipc-mode <ipc_mode>   An optional parameter which sets the IPC mode (server, client).
+    \\-s, --socket <str>          An optional parameter which sets the path to use for the IPC socket.
+    \\-r, --runtime-dir <str>     An optional parameter set the runtime directory.
     \\
   );
 
@@ -58,6 +60,8 @@ pub fn main() !void {
     return clap.help(stdout, clap.Help, &params, .{});
   }
 
+  const fmt_output = res.args.format orelse neutron.elemental.formatter.Type.std;
+
   const allocator = std.heap.page_allocator;
   var path = if (res.args.path == null) try std.fs.selfExeDirPathAlloc(allocator) else res.args.path.?;
 
@@ -77,5 +81,5 @@ pub fn main() !void {
   }, null, allocator);
   defer runtime.unref() catch @panic("Failed to unref");
 
-  try stdout.print("{}\n", .{ runtime });
+  try neutron.elemental.formatter.format(fmt_output, stdout, "{}", .{ runtime });
 }
