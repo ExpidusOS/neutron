@@ -1,5 +1,6 @@
 const s2s = @import("vendor/third-party/s2s.zig");
 const Expat = @import("vendor/third-party/expat.zig");
+const DisplayInfo = @import("vendor/third-party/libdisplayinfo.zig");
 const Libffi = @import("vendor/third-party/libffi.zig");
 const Drm = @import("vendor/os-specific/linux/drm.zig");
 const Wayland = @import("vendor/os-specific/linux/wayland.zig");
@@ -12,6 +13,7 @@ const Vendor = @This();
 builder: *std.Build,
 libffi: ?Libffi,
 libdrm: ?*Drm,
+libdisplayinfo: *DisplayInfo,
 wayland: ?Wayland,
 
 pub const VendorOptions = struct {
@@ -24,6 +26,7 @@ pub fn init(b: *Build, options: VendorOptions, target: std.zig.CrossTarget, opti
     .builder = b,
     .libffi = null,
     .libdrm = null,
+    .libdisplayinfo = try DisplayInfo.init(b, target, optimize),
     .wayland = null,
   };
 
@@ -48,22 +51,28 @@ pub fn init(b: *Build, options: VendorOptions, target: std.zig.CrossTarget, opti
 }
 
 pub fn getDependencies(self: Vendor) ![]const Build.ModuleDependency {
-  var len: u32 = 2;
+  const base_deps = [_]Build.ModuleDependency {
+    .{
+      .name = "s2s",
+      .module = s2s.createModule(self.builder),
+    },
+    .{
+      .name = "xev",
+      .module = xev.module(self.builder),
+    },
+  };
+
+  var len: u32 = base_deps.len;
   if (self.wayland != null) len += 1;
   if (self.libdrm != null) len += 1;
 
   const arr = try self.builder.allocator.alloc(Build.ModuleDependency, len);
 
   var i: u32 = 0;
-  arr[0] = .{
-    .name = "s2s",
-    .module = s2s.createModule(self.builder),
-  };
-  arr[1] = .{
-    .name = "xev",
-    .module = xev.module(self.builder),
-  };
-  i += 2;
+  for (base_deps) |dep| {
+    arr[i] = dep;
+    i += 1;
+  }
 
   if (self.wayland != null) {
     arr[i] = .{
