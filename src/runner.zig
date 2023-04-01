@@ -84,6 +84,7 @@ pub fn main() !void {
   }
 
   const runtime = try neutron.runtime.Runtime.new(.{
+    .dir = res.args.@"runtime-dir",
     .mode = runtime_mode,
     .ipc = switch (ipc_kind) {
       .socket => .{

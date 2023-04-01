@@ -43,6 +43,14 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
       return self;
     }
 
+    pub fn fromOpaque(op: *anyopaque) *T {
+      return @ptrCast(*T, @alignCast(@alignOf(*T), op));
+    }
+
+    pub fn toOpaque(self: *Self) *anyopaque {
+      return @ptrCast(*anyopaque, @alignCast(@alignOf(*T), self.getInstance()));
+    }
+
     pub fn getInstance(self: *Self) *T {
       return @fieldParentPtr(T, "type", self);
     }

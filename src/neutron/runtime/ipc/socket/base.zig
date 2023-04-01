@@ -4,6 +4,7 @@ const Runtime = @import("../../runtime.zig");
 const Self = @This();
 
 pub const VTable = struct {
+  get_fd: *const fn (self: *anyopaque) std.os.socket_t,
 };
 
 pub const Params = struct {
@@ -46,4 +47,8 @@ pub inline fn ref(self: *Self, allocator: ?std.mem.Allocator) !*Self {
 
 pub inline fn unref(self: *Self) !void {
   return self.type.unref();
+}
+
+pub inline fn getFd(self: *Self) std.os.socket_t {
+  return self.vtable.get_fd(self.type.toOpaque());
 }

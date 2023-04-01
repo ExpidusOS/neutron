@@ -6,6 +6,7 @@ const Self = @This();
 
 pub const Params = struct {
   runtime: *Runtime,
+  address: std.net.Address,
 };
 
 const Impl = struct {
@@ -26,6 +27,12 @@ pub const Type = elemental.Type(Self, Params, Impl);
 @"type": Type,
 base: Base,
 
+fn get_fd(_self: *anyopaque) std.os.socket_t {
+  const self = Type.fromOpaque(_self);
+  _ = self;
+  return 0;
+}
+
 pub fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
   var self = Self {
     .type = Type.init(parent, allocator),
@@ -33,7 +40,9 @@ pub fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) 
   };
 
   self.base = try Base.init(.{
-    .vtable = &.{},
+    .vtable = &.{
+      .get_fd = get_fd,
+    },
     .runtime = params.runtime,
   }, &self, self.type.allocator);
   return self;

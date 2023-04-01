@@ -11,21 +11,61 @@ pub const Params = struct {
   path: ?[]const u8,
 };
 
+fn findActive(allocator: std.mem.Allocator, runtime: *Runtime) ![]const u8 {
+  var dir = try std.fs.openIterableDirAbsolute(runtime.dir, .{
+    .access_sub_paths = false,
+    .no_follow = true,
+  });
+  defer dir.close();
+
+  var iter = dir.iterate();
+  while (try iter.next()) |entry| {
+    if (std.mem.startsWith(u8, entry.name, "neutron-") and std.mem.endsWith(u8, entry.name, ".sock")) {
+      return std.fs.path.join(allocator, &[_][]const u8 {
+        runtime.dir,
+        entry.name,
+      });
+    }
+  }
+
+  return error.FileNotFound;
+}
+
+fn findNew(allocator: std.mem.Allocator, runtime: *Runtime) ![]const u8 {
+  var i: usize = 0;
+  while (i < @typeInfo(usize).Int.bits) : (i += 1) {
+    const fmt = try std.fmt.allocPrint(allocator, "neutron-{}.sock", .{ i });
+    defer allocator.free(fmt);
+
+    const path = try std.fs.path.join(allocator, &[_][]const u8 {
+      runtime.dir,
+      fmt,
+    });
+    defer allocator.free(path);
+
+    std.fs.accessAbsolute(path, .{}) catch return allocator.dupe(u8, path);
+  }
+  return error.FileNotFound;
+}
+
 pub const Ipc = union(base.Type) {
   client: *Client,
   server: *Server,
 
   pub fn init(params: Params, runtime: *Runtime, allocator: ?std.mem.Allocator) !Ipc {
+    const alloc = if (allocator) |value| value else runtime.type.allocator;
     return switch (params.base.type) {
       .client => .{
         .client = try Client.new(.{
           .runtime = runtime,
-        }, null, allocator)
+          .address = try std.net.Address.initUnix(if (params.path) |value| try alloc.dupe(u8, value) else try findActive(alloc, runtime)),
+        }, null, alloc)
       },
       .server => .{
         .server = try Server.new(.{
           .runtime = runtime,
-        }, null, allocator),
+          .address = try std.net.Address.initUnix(if (params.path) |value| try alloc.dupe(u8, value) else try findNew(alloc, runtime)),
+        }, null, alloc),
       },
     };
   }

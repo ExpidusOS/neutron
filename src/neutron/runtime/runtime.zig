@@ -17,6 +17,7 @@ pub const Mode = enum {
 
 pub const Params = struct {
   mode: Mode = .application,
+  dir: ?[]const u8,
   ipc: ?ipc.Params = null,
 };
 
@@ -31,21 +32,29 @@ const Impl = struct {
 
   pub fn unref(self: *Self) !void {
     try self.ipc.unref();
+    self.type.allocator.free(self.dir);
   }
 };
 
 pub const Type = elemental.Type(Self, Params, Impl);
 
 @"type": Type,
+dir: []const u8,
 ipc: ipc.Ipc,
 mode: Mode,
 
 pub fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
+  const t = Type.init(parent, allocator);
+
   var self = Self {
-    .type = Type.init(parent, allocator),
+    .type = t,
     .mode = params.mode,
+    .dir = try (if (params.dir) |value| t.allocator.dupe(u8, value)
+      else (if (std.os.getenv("XDG_RUNTIME_DIR")) |xdg_runtime_dir| t.allocator.dupe(u8, xdg_runtime_dir) else std.process.getCwdAlloc(t.allocator))),
     .ipc = undefined,
   };
+
+  errdefer t.allocator.free(self.dir);
 
   self.ipc = try ipc.Ipc.init(
     if (params.ipc) |value| value
