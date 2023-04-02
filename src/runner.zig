@@ -97,5 +97,5 @@ pub fn main() !void {
   }, null, allocator);
   defer runtime.unref() catch @panic("Failed to unref");
 
-  try neutron.elemental.formatter.format(fmt_output, stdout, "{}", .{ runtime });
+  try neutron.elemental.formatter.format(fmt_output, stdout, "{}", .{ runtime.ipc.toBase() });
 }

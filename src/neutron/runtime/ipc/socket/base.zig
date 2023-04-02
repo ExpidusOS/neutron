@@ -1,6 +1,7 @@
 const std = @import("std");
 const elemental = @import("../../../elemental.zig");
 const Runtime = @import("../../runtime.zig");
+const base = @import("../base.zig");
 const Self = @This();
 
 pub const VTable = struct {
@@ -9,6 +10,7 @@ pub const VTable = struct {
 
 pub const Params = struct {
   vtable: *const VTable,
+  base: *base.Base,
   runtime: *Runtime,
 };
 
@@ -16,21 +18,29 @@ const Impl = struct {
   pub fn ref(self: *Self, t: Type) !Self {
     return .{
       .type = t,
+      .base = try self.base.ref(t.allocator),
       .vtable = self.vtable,
-      .runtime = try self.runtime,
+      .runtime = self.runtime,
     };
+  }
+
+  pub fn unref(self: *Self) !void {
+    try self.base.unref();
   }
 };
 
 pub const Type = elemental.Type(Self, Params, Impl);
 
 @"type": Type,
+base: *base.Base,
 vtable: *const VTable,
 runtime: *Runtime,
 
 pub fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
+  const t = Type.init(parent, allocator);
   var self = Self {
-    .type = Type.init(parent, allocator),
+    .type = t,
+    .base = try params.base.ref(t.allocator),
     .vtable = params.vtable,
     .runtime = params.runtime,
   };

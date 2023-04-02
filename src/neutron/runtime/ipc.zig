@@ -28,8 +28,8 @@ pub const Ipc = union(Kind) {
 
   pub fn ref(self: *Ipc, allocator: ?std.mem.Allocator) Ipc {
     return switch (self.*) {
-      .socket => |socket_ipc| .{
-        .socket = try socket_ipc.ref(allocator),
+      .socket => .{
+        .socket = try self.socket.ref(allocator),
       },
     };
   }
@@ -41,8 +41,8 @@ pub const Ipc = union(Kind) {
   }
   
   pub fn toBase(self: *Ipc) base.Ipc {
-    return switch (self) {
-      .socket => |socket_ipc| socket_ipc.toBase(),
+    return switch (self.*) {
+      .socket => self.socket.toBase(),
     };
   }
 };

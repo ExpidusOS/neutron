@@ -91,10 +91,10 @@ pub const Ipc = union(base.Type) {
   pub fn toBase(self: *Ipc) base.Ipc {
     return switch (self.*) {
       .client => |client| .{
-        .client = &client.base
+        .client = &client.base_client
       },
       .server => |server| .{
-        .server = &server.base,
+        .server = &server.base_server,
       },
     };
   }
