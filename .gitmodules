@@ -16,3 +16,9 @@
 [submodule "vendor/bindings/zig-wayland"]
 	path = vendor/bindings/zig-wayland
 	url = https://github.com/ExpidusOS/zig-wayland
+[submodule "vendor/bindings/zig-xkbcommon"]
+	path = vendor/bindings/zig-xkbcommon
+	url = https://github.com/ifreund/zig-xkbcommon
+[submodule "vendor/bindings/zig-pixman"]
+	path = vendor/bindings/zig-pixman
+	url = https://github.com/ifreund/zig-pixman

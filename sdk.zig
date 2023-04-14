@@ -136,10 +136,42 @@ fn getDependencies(self: *Self) ![]Build.ModuleDependency {
 
   if (self.wl_scan_protocols) |scanner| {
     try deps.append(.{
-      .name = "wayland",
-      .module = self.builder.addModule("wayland", .{
+      .name = "wlroots",
+      .module = self.builder.addModule("wlroots", .{
         .source_file = .{
-          .generated = &scanner.result,
+          .path = getPath(&.{
+            "vendor", "bindings", "zig-wlroots", "src", "wlroots.zig",
+          }),
+        },
+        .dependencies = &.{
+          .{
+            .name = "wayland",
+            .module = self.builder.addModule("wayland", .{
+              .source_file = .{
+                .generated = &scanner.result,
+              },
+            }),
+          },
+          .{
+            .name = "xkbcommon",
+            .module = self.builder.addModule("xkbcommon", .{
+              .source_file = .{
+                .path = getPath(&.{
+                  "vendor", "bindings", "zig-xkbcommon", "src", "xkbcommon.zig",
+                }),
+              },
+            }),
+          },
+          .{
+            .name = "pixman",
+            .module = self.builder.addModule("pixman", .{
+              .source_file = .{
+                .path = getPath(&.{
+                  "vendor", "bindings", "zig-pixman", "pixman.zig",
+                }),
+              },
+            }),
+          },
         },
       }),
     });
@@ -167,6 +199,9 @@ pub fn linkLibraries(self: *Self, artifact: *Build.CompileStep) void {
 
     artifact.linkSystemLibrary("wayland-client");
     artifact.linkSystemLibrary("wayland-server");
+    artifact.linkSystemLibrary("xkbcommon");
+    artifact.linkSystemLibrary("pixman-1");
+    artifact.linkSystemLibrary("wlroots");
   }
 
   artifact.step.dependOn(&self.step);
@@ -181,15 +216,35 @@ pub fn linkLibraries(self: *Self, artifact: *Build.CompileStep) void {
   self.artifacts.append(artifact) catch @panic("OOM");
 }
 
+fn access(path: []const u8) bool {
+  std.fs.accessAbsolute(path, .{}) catch return false;
+  return true;
+}
+
 fn getBuild(self: *Self) ?[]const u8 {
   var build: ?[]const u8 = null;
-  if (self.builder.findProgram(&.{}, &.{}) catch null) |git| {
+  if (self.builder.findProgram(&.{ "git" }, &.{}) catch null) |git| {
     var out_code: u8 = 0;
     build = self.builder.execAllowFail(&.{
       git, "-C", getPath(&.{}), "rev-parse", "HEAD"
     }, &out_code, .Inherit) catch null;
   }
-  return build;
+
+  if (access(getPath(&.{ ".commit-hash" }))) {
+    var file = std.fs.openFileAbsolute(getPath(&.{ ".commit-hash" }), .{}) catch null;
+    defer if (file) |f| f.close();
+
+    const meta = if (file) |f| f.metadata() catch null else null;
+
+    if (file) |f| {
+      if (meta) |m| {
+        const value = self.builder.allocator.alloc(u8, m.size()) catch @panic("OOM");
+        const size = f.readAll(value) catch 0;
+        if (size > 0) build = value;
+      }
+    }
+  }
+  return if (build) |value| std.mem.trim(u8, value, &std.ascii.whitespace) else null;
 }
 
 pub fn getSemver(self: *Self) std.SemanticVersion {

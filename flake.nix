@@ -38,7 +38,7 @@
         };
 
         zig = pkgs.writeShellScriptBin "zig" ''
-          export PKG_CONFIG_PATH="${pkgs.wayland.dev}/lib/pkgconfig:${pkgs.wayland.bin}/lib/pkgconfig:${pkgs.wayland-protocols}/share/pkgconfig"
+          export PKG_CONFIG_PATH="${pkgs.wayland.dev}/lib/pkgconfig:${pkgs.wayland.bin}/lib/pkgconfig:${pkgs.wayland-protocols}/share/pkgconfig:${pkgs.wlroots}/lib/pkgconfig:${pkgs.pixman}/lib/pkgconfig:${pkgs.libxkbcommon.dev}/lib/pkgconfig"
           unset NIX_CFLAGS_COMPILE
           exec ${pkgs.buildPackages.zig}/bin/zig $@
         '';
@@ -105,6 +105,9 @@
             buildFlags = with pkgs; [
               wayland
               wayland-protocols
+              wlroots
+              pixman
+              libxkbcommon
             ];
 
             configurePhase = ''
