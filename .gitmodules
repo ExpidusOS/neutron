@@ -1,33 +1,18 @@
 [submodule "vendor/third-party/zig/zig-clap"]
 	path = vendor/third-party/zig/zig-clap
 	url = https://github.com/Hejsil/zig-clap
-[submodule "vendor/os-specific/linux/zig/zig-wayland"]
-	path = vendor/os-specific/linux/zig/zig-wayland
-	url = https://github.com/ExpidusOS/zig-wayland
-[submodule "vendor/os-specific/linux/libs/wayland"]
-	path = vendor/os-specific/linux/libs/wayland
-	url = https://gitlab.freedesktop.org/wayland/wayland
-[submodule "vendor/os-specific/linux/libs/wayland-protocols"]
-	path = vendor/os-specific/linux/libs/wayland-protocols
-	url = https://gitlab.freedesktop.org/wayland/wayland-protocols.git
-[submodule "vendor/third-party/libs/libffi"]
-	path = vendor/third-party/libs/libffi
-	url = https://github.com/libffi/libffi
-[submodule "vendor/third-party/libs/expat"]
-	path = vendor/third-party/libs/expat
-	url = https://github.com/libexpat/libexpat
-[submodule "vendor/os-specific/linux/libs/drm"]
-	path = vendor/os-specific/linux/libs/drm
-	url = https://gitlab.freedesktop.org/mesa/drm
-[submodule "vendor/third-party/libs/libdisplay-info"]
-	path = vendor/third-party/libs/libdisplay-info
-	url = https://gitlab.freedesktop.org/emersion/libdisplay-info.git
-[submodule "vendor/third-party/libs/hwdata"]
-	path = vendor/third-party/libs/hwdata
-	url = https://github.com/vcrhonek/hwdata
 [submodule "vendor/third-party/zig/libxev"]
 	path = vendor/third-party/zig/libxev
 	url = https://github.com/mitchellh/libxev
 [submodule "vendor/third-party/zig/s2s"]
 	path = vendor/third-party/zig/s2s
 	url = https://github.com/ziglibs/s2s
+[submodule "vendor/bindings/zig-wlroots"]
+	path = vendor/bindings/zig-wlroots
+	url = https://github.com/ExpidusOS/zig-wlroots
+[submodule "vendor/bindings/zig-flutter"]
+	path = vendor/bindings/zig-flutter
+	url = https://github.com/ExpidusOS/zig-flutter
+[submodule "vendor/bindings/zig-wayland"]
+	path = vendor/bindings/zig-wayland
+	url = https://github.com/ExpidusOS/zig-wayland

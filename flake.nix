@@ -37,7 +37,36 @@
           inherit (pkgs) zig;
         };
 
-        vendorOverride = {
+        zig = pkgs.writeShellScriptBin "zig" ''
+          export PKG_CONFIG_PATH="${pkgs.wayland.dev}/lib/pkgconfig:${pkgs.wayland.bin}/lib/pkgconfig:${pkgs.wayland-protocols}/share/pkgconfig"
+          unset NIX_CFLAGS_COMPILE
+          exec ${pkgs.buildPackages.zig}/bin/zig $@
+        '';
+
+        fhsEnv = pkgs.buildFHSUserEnv {
+          name = "expidus-neutron";
+
+          targetPkgs = pkgs:
+            (with pkgs.buildPackages; [
+              zig
+              (python3.withPackages (p: [ p.httplib2 p.six ]))
+              ninja
+              zlib
+              git
+              curl
+              pkg-config
+              wayland-scanner
+            ]);
+
+          runScript = "${zig}/bin/zig";
+        };
+
+        vendor = {
+          "bindings/zig-flutter" = pkgs.fetchFromGitHub {
+            owner = "ExpidusOS";
+            repo = "zig-flutter";
+            rev = "b090d9d37cfb0ccb2cb55fab4208ee6ffe9e3007";
+          };
           "third-party/zig/s2s" = pkgs.fetchFromGitHub {
             owner = "ziglibs";
             repo = "s2s";
@@ -50,31 +79,63 @@
             rev = "aab505ffca04117ef8eeeb8dc3c64c87d80dfe6d";
             sha256 = "sha256-a7caowEsonavStCG5qNLDh/Ij6JIYJ9NS1DNFPr2Mrk=";
           };
+          "third-party/zig/zig-clap" = fetchFromGitHub {
+            owner = "Hejsil";
+            repo = "zig-clap";
+            rev = "cb13519431b916c05c6c783cb0ce3b232be5e400";
+            sha256 = "sha256-ej4r5LGsTqhQkw490yqjiTOGk+jPMJfUH1b/eUmvt20=";
+          };
         };
 
         packages = {
-          default = mkPackage {
-            rev = "${self.shortRev or "dirty"}";
-            src = cleanSource self;
-            inherit vendorOverride;
+          default = pkgs.stdenv.mkDerivation {
+            pname = "expidus-neutron";
+            version = "git+${self.shortRev or "dirty"}";
+
+            src = cleanSource src;
+
+            strictDeps = true;
+            depsBuildBuild = [ pkgs.buildPackages.pkg-config ];
+
+            nativeBuildInputs = with pkgs.buildPackages; [
+              pkg-config
+              wayland-scanner
+            ];
+
+            buildFlags = with pkgs; [
+              wayland
+              wayland-protocols
+            ];
+
+            configurePhase = ''
+              ${concatStrings (attrValues (mapAttrs (path: src: ''
+                echo "Linking ${src} -> $NIX_BUILD_TOP/source/vendor/${path}"
+                rm -rf $NIX_BUILD_TOP/source/vendor/${path}
+                cp -r -P --no-preserve=ownership,mode ${src} $NIX_BUILD_TOP/source/vendor/${path}
+              '') vendor))}
+            '';
+
+            buildPhase = ''
+              export XDG_CACHE_HOME=$NIX_BUILD_TOP/.cache
+
+              ${fhsEnv}/bin/${fhsEnv.name} build --prefix $out \
+                --prefix-lib-dir $out/lib \
+                $buildFlags
+            '';
           };
         };
 
         mkDevShell = name: mkShell {
           inherit (packages.${name}) pname version name buildFlags;
 
-          packages = packages.${name}.buildInputs ++ packages.${name}.nativeBuildInputs;
+          packages = packages.${name}.nativeBuildInputs ++ packages.${name}.buildInputs;
 
           shellHook = ''
             export rootOut=$(dirname $out)
             export devdocs=$rootOut/devdocs
             export src=$(dirname $rootOut)
 
-            function installPhase {
-              export NIX_BUILD_TOP=$HOME
-              rm -rf $rootOut
-              ${packages.${name}.installPhase}
-            }
+            alias zig=${fhsEnv}/bin/${fhsEnv.name}
           '';
         };
 
