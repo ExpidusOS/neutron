@@ -33,6 +33,9 @@ const Impl = struct {
     try self.renderer.initServer(self.wl_server);
     self.backend.events.new_output.add(&self.output_new);
     try self.backend.start();
+
+    var buff: [11]u8 = undefined;
+    self.socket = try self.wl_server.addSocketAuto(&buff);
     // TODO: wl_server.run() in a new thread
   }
 
@@ -72,6 +75,7 @@ allocator: *wlr.Allocator,
 output_layout: *wlr.OutputLayout,
 outputs: elemental.TypedList(*Output),
 output_new: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init(output_new),
+socket: [:0]const u8 = undefined,
 
 fn output_new(listener: *wl.Listener(*wlr.Output), wlr_output: *wlr.Output) void {
   const self = @fieldParentPtr(Self, "output_new", listener);

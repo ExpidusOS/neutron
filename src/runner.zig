@@ -85,5 +85,5 @@ pub fn main() !void {
     try neutron.elemental.formatter.format(fmt_output, stdout, "{}\n", .{ ipc });
   }
 
-  try neutron.elemental.formatter.format(fmt_output, stdout, "{}\n", .{ runtime.displaykit.wlroots.compositor });
+  try neutron.elemental.formatter.format(fmt_output, stdout, "{s}\n", .{ runtime.displaykit.wlroots.compositor.socket });
 }
