@@ -1,5 +1,6 @@
 const std = @import("std");
 const elemental = @import("../elemental.zig");
+const displaykit = @import("../displaykit.zig");
 const ipc = @import("ipc.zig");
 const Self = @This();
 
@@ -18,7 +19,8 @@ pub const Mode = enum {
 pub const Params = struct {
   mode: Mode = .application,
   dir: ?[]const u8,
-  ipc: ?ipc.Params = null,
+  ipcs: ?[]ipc.Params = null,
+  display: ?displaykit.Params,
 };
 
 const Impl = struct {
@@ -31,7 +33,11 @@ const Impl = struct {
   }
 
   pub fn unref(self: *Self) !void {
-    try self.ipc.unref();
+    for (self.ipcs.items) |ipc_obj| {
+      try @constCast(&ipc_obj).unref();
+    }
+
+    self.ipcs.deinit();
     self.type.allocator.free(self.dir);
   }
 };
@@ -40,7 +46,8 @@ pub const Type = elemental.Type(Self, Params, Impl);
 
 @"type": Type,
 dir: []const u8,
-ipc: ipc.Ipc,
+ipcs: std.ArrayList(ipc.Ipc),
+displaykit: displaykit.Backend,
 mode: Mode,
 
 pub fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
@@ -51,23 +58,27 @@ pub fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) 
     .mode = params.mode,
     .dir = try (if (params.dir) |value| t.allocator.dupe(u8, value)
       else (if (std.os.getenv("XDG_RUNTIME_DIR")) |xdg_runtime_dir| t.allocator.dupe(u8, xdg_runtime_dir) else std.process.getCwdAlloc(t.allocator))),
-    .ipc = undefined,
+    .ipcs = std.ArrayList(ipc.Ipc).init(t.allocator),
+    .displaykit = undefined,
   };
 
   errdefer t.allocator.free(self.dir);
+  errdefer self.ipcs.deinit();
 
-  self.ipc = try ipc.Ipc.init(
-    if (params.ipc) |value| value
-    else .{
-      // TODO: maybe we should determine per-platform
-      .socket = .{
-        .base = .{
-          .type = params.mode.getIpcType(),
-        },
-        .path = null,
+  if (params.ipcs) |ipcs| {
+    for (ipcs) |ipc_params| {
+      try self.ipcs.append(try ipc.Ipc.init(ipc_params, &self, allocator));
+    }
+  }
+
+  // TODO: determine a compatible displaykit backend based on the OS
+  self.displaykit = try displaykit.Backend.init(if (params.display) |value| value else .{
+    .wlroots = .{
+      .base = .{
+        .type = .compositor,
       },
     },
-    &self, allocator);
+  }, &self, t.allocator);
   return self;
 }
 

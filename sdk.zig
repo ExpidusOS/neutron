@@ -82,6 +82,16 @@ pub fn new(builder: *Build, target: std.zig.CrossTarget, optimize: std.builtin.M
 
   if (target.isLinux()) {
     const scanner = ScanProtocolsStep.create(builder, if (options.wayland) |value| value else ScanProtocolsStep.Options.auto(builder));
+    scanner.addSystemProtocol("stable/xdg-shell/xdg-shell.xml");
+
+    scanner.generate("wl_compositor", 4);
+    scanner.generate("wl_subcompositor", 1);
+    scanner.generate("wl_shm", 1);
+    scanner.generate("wl_output", 4);
+    scanner.generate("wl_seat", 7);
+    scanner.generate("wl_data_device_manager", 3);
+    scanner.generate("xdg_wm_base", 2);
+
     self.wl_scan_protocols = scanner;
     self.step.dependOn(&self.wl_scan_protocols.?.step);
   }
@@ -135,45 +145,65 @@ fn getDependencies(self: *Self) ![]Build.ModuleDependency {
   });
 
   if (self.wl_scan_protocols) |scanner| {
-    try deps.append(.{
-      .name = "wlroots",
-      .module = self.builder.addModule("wlroots", .{
-        .source_file = .{
-          .path = getPath(&.{
-            "vendor", "bindings", "zig-wlroots", "src", "wlroots.zig",
-          }),
-        },
-        .dependencies = &.{
-          .{
-            .name = "wayland",
-            .module = self.builder.addModule("wayland", .{
-              .source_file = .{
-                .generated = &scanner.result,
-              },
+    const wayland = self.builder.addModule("wayland", .{
+      .source_file = .{
+        .generated = &scanner.result,
+      },
+    });
+
+    const xkbcommon = self.builder.addModule("xkbcommon", .{
+      .source_file = .{
+        .path = getPath(&.{
+          "vendor", "bindings", "zig-xkbcommon", "src", "xkbcommon.zig",
+        }),
+      },
+    });
+
+    const pixman = self.builder.addModule("pixman", .{
+      .source_file = .{
+        .path = getPath(&.{
+          "vendor", "bindings", "zig-pixman", "pixman.zig",
+        }),
+      },
+    });
+
+    try deps.appendSlice(&.{
+      .{
+        .name = "wayland",
+        .module = wayland,
+      },
+      .{
+        .name = "xkbcommon",
+        .module = xkbcommon,
+      },
+      .{
+        .name = "pixman",
+        .module = pixman,
+      },
+      .{
+        .name = "wlroots",
+        .module = self.builder.addModule("wlroots", .{
+          .source_file = .{
+            .path = getPath(&.{
+              "vendor", "bindings", "zig-wlroots", "src", "wlroots.zig",
             }),
           },
-          .{
-            .name = "xkbcommon",
-            .module = self.builder.addModule("xkbcommon", .{
-              .source_file = .{
-                .path = getPath(&.{
-                  "vendor", "bindings", "zig-xkbcommon", "src", "xkbcommon.zig",
-                }),
-              },
-            }),
+          .dependencies = &.{
+            .{
+              .name = "wayland",
+              .module = wayland,
+            },
+            .{
+              .name = "xkbcommon",
+              .module = xkbcommon,
+            },
+            .{
+              .name = "pixman",
+              .module = pixman,
+            },
           },
-          .{
-            .name = "pixman",
-            .module = self.builder.addModule("pixman", .{
-              .source_file = .{
-                .path = getPath(&.{
-                  "vendor", "bindings", "zig-pixman", "pixman.zig",
-                }),
-              },
-            }),
-          },
-        },
-      }),
+        }),
+      },
     });
   }
 

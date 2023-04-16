@@ -1,14 +1,12 @@
 const std = @import("std");
-const Runtime = @import("../runtime.zig");
 
-pub const Base = @import("base/base.zig");
+pub const Context = @import("base/context.zig");
 pub const Client = @import("base/client.zig");
-pub const Server = @import("base/server.zig");
+pub const Compositor = @import("base/compositor.zig");
 
-/// Type of IPC instance
 pub const Type = enum {
   client,
-  server,
+  compositor,
 };
 
 pub const Params = struct {
@@ -27,7 +25,7 @@ pub const Params = struct {
 
       if (std.mem.eql(u8, key, "type")) {
         if (std.mem.eql(u8, value, "client")) params.type = .client
-        else if (std.mem.eql(u8, value, "server")) params.type = .server
+        else if (std.mem.eql(u8, value, "compositor")) params.type = .compositor
         else return error.InvalidType;
       } else {
         return error.InvalidKey;
@@ -43,43 +41,43 @@ pub const Params = struct {
     try writer.writeAll("type=");
     try writer.writeAll(switch (self.type) {
       .client => "client",
-      .server => "server",
+      .compositor => "compositor",
     });
   }
 };
 
-pub const Ipc = union(Type) {
+pub const Backend = union(Type) {
   client: *Client,
-  server: *Server,
+  compositor: *Compositor,
 
-  pub fn init(_: Params, runtime: *Runtime, allocator: ?std.mem.Allocator) !Ipc {
-    _ = runtime;
+  pub fn init(_: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Backend {
+    _ = parent;
     _ = allocator;
     @compileError("Not implemented!");
   }
 
-  pub fn ref(self: *Ipc, allocator: ?std.mem.Allocator) !Ipc {
+  pub fn ref(self: *Backend, allocator: ?std.mem.Allocator) !Backend {
     return switch (self.*) {
       .client => |client| .{
         .client = try client.ref(allocator),
       },
-      .server => |server| .{
-        .server = try server.ref(allocator),
+      .compositor => |compositor| .{
+        .compositor = try compositor.ref(allocator),
       },
     };
   }
 
-  pub fn unref(self: *Ipc) !void {
+  pub fn unref(self: *Backend) !void {
     return switch (self.*) {
       .client => |client| client.unref(),
-      .server => |server| server.unref()
+      .compositor => |compositor| compositor.unref(),
     };
   }
 
-  pub fn toBase(self: *Ipc) *Base {
+  pub fn toContext(self: *Backend) *Context {
     return switch (self.*) {
-      .client => |client| &client.base,
-      .server => |server| &server.base,
+      .client => |client| &client.context,
+      .compositor => |compositor| &compositor.context,
     };
   }
 };

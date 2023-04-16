@@ -9,25 +9,33 @@
     http2 = false;
   };
 
-  inputs = {
-    nixpkgs.url = github:ExpidusOS/nixpkgs;
-    expidus-sdk = {
-      url = github:ExpidusOS/sdk/feat/refactor-neutron;
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-  };
+  inputs.expidus-sdk.url = github:ExpidusOS/sdk/feat/refactor-neutron;
 
-  outputs = { self, nixpkgs, expidus-sdk }:
+  outputs = { self, expidus-sdk }:
     with expidus-sdk.lib;
     flake-utils.eachSystem flake-utils.allSystems (system:
       let
         pkgs = expidus-sdk.legacyPackages.${system}.appendOverlays [
           (final: prev: {
             zig = prev.zigpkgs.master;
+
+            wlroots = prev.wlroots.overrideAttrs (self: super: {
+              version = "0.16.2";
+
+              src = prev.fetchFromGitLab {
+                domain = "gitlab.freedesktop.org";
+                owner = "wlroots";
+                repo = "wlroots";
+                rev = super.version;
+                sha256 = "sha256-JeDDYinio14BOl6CbzAPnJDOnrk4vgGNMN++rcy2ItQ=";
+              };
+
+              nativeBuildInputs = super.nativeBuildInputs ++ [ prev.hwdata ];
+            });
           })
         ];
 
-        stdenv = pkgs.clang15Stdenv;
+        stdenv = pkgs.clang14Stdenv;
         mkShell = pkgs.mkShell.override {
           inherit stdenv;
         };
@@ -137,6 +145,7 @@
             export rootOut=$(dirname $out)
             export devdocs=$rootOut/devdocs
             export src=$(dirname $rootOut)
+            export VK_LAYER_PATH=${pkgs.vulkan-validation-layers}/share/vulkan/explicit_layer.d
 
             alias zig=${fhsEnv}/bin/${fhsEnv.name}
           '';
