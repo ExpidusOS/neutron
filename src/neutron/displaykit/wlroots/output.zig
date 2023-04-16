@@ -29,7 +29,6 @@ const Impl = struct {
     errdefer self.base_output.unref();
 
     const compositor = self.getCompositor();
-    std.debug.print("{}\n", .{ compositor });
     if (!self.value.initRender(compositor.allocator, compositor.renderer)) return error.RenderFailed;
 
     if (self.value.preferredMode()) |mode| {
@@ -78,5 +77,5 @@ pub inline fn unref(self: *Self) void {
 }
 
 pub inline fn getCompositor(self: *Self) *Compositor {
-  return Compositor.Type.fromOpaque(self.base_output.context.toCompositor().type.parent.?);
+  return Compositor.Type.fromOpaque(self.type.parent.?);
 }

@@ -79,11 +79,11 @@ fn output_new(listener: *wl.Listener(*wlr.Output), wlr_output: *wlr.Output) void
   const output = Output.new(.{
     .context = &self.base_compositor.context,
     .value = wlr_output,
-  }, null, self.type.allocator) catch {
+  }, self, self.type.allocator) catch {
     // TODO: use the logger
     return;
   };
-  errdefer _ = output.unref();
+  errdefer output.unref();
 
   self.outputs.append(output) catch {
     // TODO: use the logger
