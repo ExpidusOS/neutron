@@ -79,11 +79,11 @@ pub fn main() !void {
     .ipcs = @constCast(res.args.ipc),
     .display = res.args.display,
   }, null, allocator);
-  defer runtime.unref() catch @panic("Failed to unref");
+  defer runtime.unref();
 
   for (res.args.ipc) |ipc| {
     try neutron.elemental.formatter.format(fmt_output, stdout, "{}\n", .{ ipc });
   }
 
-  try neutron.elemental.formatter.format(fmt_output, stdout, "{}\n", .{ runtime });
+  try neutron.elemental.formatter.format(fmt_output, stdout, "{}\n", .{ runtime.displaykit.wlroots.compositor });
 }

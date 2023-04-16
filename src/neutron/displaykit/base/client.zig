@@ -1,5 +1,5 @@
 const std = @import("std");
-const elemental = @import("../../../elemental.zig");
+const elemental = @import("../../elemental.zig");
 const Self = @This();
 const Context = @import("context.zig");
 
@@ -13,16 +13,27 @@ pub const Params = struct {
 };
 
 const Impl = struct {
-  pub fn ref(self: *Self, t: Type) !Self {
-    return .{
+  pub fn construct(self: *Self, params: Params, t: Type) !void {
+    self.* = .{
+      .type = t,
+      .vtable = params.vtable,
+      .context = try Context.init(.{
+        .vtable = &params.vtable.context,
+        .type = .client,
+      }, self, t.allocator),
+    };
+  }
+
+  pub fn ref(self: *Self, dest: *Self, t: Type) !Self {
+    dest.* = .{
       .type = t,
       .vtable = self.vtable,
       .context = try self.context.ref(t.allocator),
     };
   }
 
-  pub fn unref(self: *Self) !void {
-    try self.context.unref();
+  pub fn unref(self: *Self) void {
+    self.context.unref();
   }
 };
 
@@ -33,24 +44,17 @@ vtable: *const VTable,
 context: Context,
 
 pub fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
-  var self = Self {
-    .type = Type.init(parent, allocator),
-    .vtable = params.vtable,
-    .context = undefined,
-  };
-
-  self.context = try Context.init(.{}, &self, allocator);
-  return self;
+  return Type.init(params, parent, allocator);
 }
 
 pub inline fn new(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !*Self {
   return Type.new(params, parent, allocator);
 }
 
-pub inline fn ref(self: *Self) !*Self {
-  return self.type.refNew();
+pub inline fn ref(self: *Self, allocator: ?std.mem.Allocator) !*Self {
+  return self.type.refNew(allocator);
 }
 
-pub inline fn unref(self: *Self) !void {
+pub inline fn unref(self: *Self) void {
   return self.type.unref();
 }

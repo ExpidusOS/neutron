@@ -73,14 +73,14 @@ pub fn ref(self: *Reference) Error!Reference {
   };
 }
 
-pub fn unref(self: *Reference) Error!void {
+pub fn unref(self: *Reference) void {
   const top = self.getTop();
 
   if (top.blocking) {
     Mutex.lock(&top.lock);
   } else {
     if (!Mutex.tryLock(&top.lock)) {
-      return error.Locked;
+      @panic("Cannot fail in unref due to lock error");
     }
   }
 

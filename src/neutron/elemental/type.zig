@@ -5,15 +5,16 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
   return struct {
     const Self = @This();
 
-    const RefFunc = fn (self: *T, t: Self) anyerror!T;
-    const UnrefFunc = fn (self: *T) anyerror!void;
+    const ConstructFunc = fn (self: *T, params: P, t: Self) anyerror!void;
+    const RefFunc = fn (self: *T, dest: *T, t: Self) anyerror!void;
+    const UnrefFunc = fn (self: *T) void;
 
     allocated: bool = false,
     allocator: std.mem.Allocator = std.heap.page_allocator,
     parent: ?*anyopaque = null,
     ref: Reference = .{},
 
-    pub fn init(parent: ?*anyopaque, allocator: ?std.mem.Allocator) Self {
+    fn type_init(parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
       if (allocator) |alloc| {
         var self = Self {
           .allocated = false,
@@ -25,21 +26,38 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
         self.ref.value = &self;
         return self;
       }
-      return Self.init(parent, std.heap.page_allocator);
+      return type_init(parent, std.heap.page_allocator);
+    }
+
+    pub fn init(params: P, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !T {
+      const type_inst = try type_init(parent, allocator);
+
+      var self: T = undefined;
+      if (@hasDecl(impl, "construct")) {
+        try @as(ConstructFunc, impl.construct)(&self, params, type_inst);
+      } else {
+        self = .{
+          .type = type_inst,
+        };
+      }
+      return self;
     }
 
     pub fn new(params: P, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !*T {
-      const type_inst = Self.init(parent, allocator);
+      var type_inst = try type_init(parent, allocator);
 
       const self = try type_inst.allocator.create(T);
       errdefer type_inst.allocator.destroy(self);
 
-      if (@hasDecl(T, "init")) {
-        self.* = try T.init(params, parent, allocator);
-      }
+      type_inst.allocated = true;
 
-      self.type = type_inst;
-      self.type.allocated = true;
+      if (@hasDecl(impl, "construct")) {
+        try @as(ConstructFunc, impl.construct)(self, params, type_inst);
+      } else {
+        self.* = .{
+          .type = type_inst,
+        };
+      }
       return self;
     }
 
@@ -64,34 +82,50 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
           .ref = try self.ref.ref(),
         };
 
-        return if (@hasDecl(impl, "ref"))
-          try @as(RefFunc, impl.ref)(self.getInstance(), ref_type)
-        else
-          T {
+        var dest: T = undefined;
+
+        if (@hasDecl(impl, "ref")) {
+          try @as(RefFunc, impl.ref)(self.getInstance(), &dest, ref_type);
+        } else {
+          dest = .{
             .type = ref_type,
           };
+        }
+        return dest;
       }
       return self.refInit(self.allocator);
     }
 
     pub fn refNew(self: *Self, allocator: ?std.mem.Allocator) !*T {
       if (allocator) |alloc| {
-        const self_ref = try alloc.create(T);
-        errdefer alloc.destroy(self_ref);
+        const dest = try alloc.create(T);
+        errdefer alloc.destroy(dest);
 
-        self_ref.* = try self.refInit(alloc);
-        self_ref.type.allocated = true;
-        return self_ref;
+        const ref_type = Self {
+          .allocated = false,
+          .allocator = alloc,
+          .parent = self.parent,
+          .ref = try self.ref.ref(),
+        };
+
+        if (@hasDecl(impl, "ref")) {
+          try @as(RefFunc, impl.ref)(self.getInstance(), dest, ref_type);
+        } else {
+          dest.* = .{
+            .type = ref_type,
+          };
+        }
+        return dest;
       }
 
       return self.refNew(self.allocator);
     }
 
-    pub fn unref(self: *Self) !void {
-      try self.ref.unref();
+    pub fn unref(self: *Self) void {
+      self.ref.unref();
 
       if (@hasDecl(impl, "unref")) {
-        try @as(UnrefFunc, impl.unref)(self.getInstance());
+        @as(UnrefFunc, impl.unref)(self.getInstance());
       }
 
       if (self.allocated) {

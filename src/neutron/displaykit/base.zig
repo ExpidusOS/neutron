@@ -1,13 +1,11 @@
 const std = @import("std");
 
 pub const Context = @import("base/context.zig");
-pub const Client = @import("base/client.zig");
 pub const Compositor = @import("base/compositor.zig");
-
-pub const Type = enum {
-  client,
-  compositor,
-};
+pub const Client = @import("base/client.zig");
+pub const Output = @import("base/output.zig");
+pub const View = @import("base/view.zig");
+pub const Type = @import("base/base.zig").Type;
 
 pub const Params = struct {
   @"type": Type,

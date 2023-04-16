@@ -67,7 +67,7 @@ pub const Ipc = union(Kind) {
     };
   }
 
-  pub fn unref(self: *Ipc) !void {
+  pub fn unref(self: *Ipc) void {
     return switch (self.*) {
       .socket => self.socket.unref(),
     };

@@ -127,7 +127,7 @@ pub const Ipc = union(base.Type) {
     };
   }
 
-  pub fn unref(self: *Ipc) !void {
+  pub fn unref(self: *Ipc) void {
     return switch (self.*) {
       .client => |client| client.unref(),
       .server => |server| server.unref()

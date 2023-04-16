@@ -9,6 +9,16 @@ pub const Params = struct {
 };
 
 const Impl = struct {
+  pub fn construct(self: *Self, params: Params, t: Type) !void {
+    self.* = .{
+      .type = t,
+      .base = try Base.init(.{
+        .vtable = &.{},
+        .runtime = params.runtime,
+      }, self, self.type.allocator),
+    };
+  }
+
   pub fn ref(self: *Self, t: Type) !Self {
     return .{
       .type = t,
@@ -16,8 +26,8 @@ const Impl = struct {
     };
   }
 
-  pub fn unref(self: *Self) !void {
-    try self.base.unref();
+  pub fn unref(self: *Self) void {
+    self.base.unref();
   }
 };
 
@@ -26,17 +36,8 @@ pub const Type = elemental.Type(Self, Params, Impl);
 @"type": Type,
 base: Base,
 
-pub fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
-  var self = Self {
-    .type = Type.init(parent, allocator),
-    .base = undefined,
-  };
-
-  self.base = try Base.init(.{
-    .vtable = &.{},
-    .runtime = params.runtime,
-  }, &self, self.type.allocator);
-  return self;
+pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
+  return Type.init(params, parent, allocator);
 }
 
 pub inline fn new(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !*Self {
@@ -47,6 +48,6 @@ pub inline fn ref(self: *Self, allocator: ?std.mem.Allocator) !*Self {
   return self.type.refNew(allocator);
 }
 
-pub inline fn unref(self: *Self) !void {
+pub inline fn unref(self: *Self) void {
   return self.type.unref();
 }

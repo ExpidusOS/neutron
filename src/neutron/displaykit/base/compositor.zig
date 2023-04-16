@@ -1,40 +1,47 @@
 const std = @import("std");
-const elemental = @import("../../../elemental.zig");
-const Runtime = @import("../../runtime.zig");
-const Base = @import("base.zig");
+const elemental = @import("../../elemental.zig");
 const Self = @This();
+const Context = @import("context.zig");
+
+/// Virtual function table
+pub const VTable = struct {
+  context: Context.VTable,
+};
 
 pub const Params = struct {
-  runtime: *Runtime,
+  vtable: *const VTable,
 };
 
 const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
     self.* = .{
       .type = t,
-      .base = try Base.init(.{
-        .vtable = &.{},
-        .runtime = params.runtime,
-      }, self, self.type.allocator),
+      .vtable = params.vtable,
+      .context = try Context.init(.{
+        .vtable = &params.vtable.context,
+        .type = .compositor,
+      }, self, t.allocator),
     };
   }
 
-  pub fn ref(self: *Self, t: Type) !Self {
-    return .{
+  pub fn ref(self: *Self, dest: *Self, t: Type) !void {
+    dest.* = .{
       .type = t,
-      .base = try self.base.type.refInit(t.allocator),
+      .vtable = self.vtable,
+      .context = try self.context.ref(t.allocator),
     };
   }
 
   pub fn unref(self: *Self) void {
-    self.base.unref();
+    self.context.unref();
   }
 };
 
 pub const Type = elemental.Type(Self, Params, Impl);
 
 @"type": Type,
-base: Base,
+vtable: *const VTable,
+context: Context,
 
 pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
   return Type.init(params, parent, allocator);

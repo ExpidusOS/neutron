@@ -24,17 +24,46 @@ pub const Params = struct {
 };
 
 const Impl = struct {
-  pub fn ref(self: *Self, t: Type) !Self {
-    return .{
+  pub fn construct(self: *Self, params: Params, t: Type) !void {
+    self.* = .{
+      .type = t,
+      .mode = params.mode,
+      .dir = try (if (params.dir) |value| t.allocator.dupe(u8, value)
+        else (if (std.os.getenv("XDG_RUNTIME_DIR")) |xdg_runtime_dir| t.allocator.dupe(u8, xdg_runtime_dir) else std.process.getCwdAlloc(t.allocator))),
+      .ipcs = std.ArrayList(ipc.Ipc).init(t.allocator),
+      .displaykit = undefined,
+    };
+
+    errdefer t.allocator.free(self.dir);
+    errdefer self.ipcs.deinit();
+
+    if (params.ipcs) |ipcs| {
+      for (ipcs) |ipc_params| {
+        try self.ipcs.append(try ipc.Ipc.init(ipc_params, self, self.type.allocator));
+      }
+    }
+
+    // TODO: determine a compatible displaykit backend based on the OS
+    self.displaykit = try displaykit.Backend.init(if (params.display) |value| value else .{
+      .wlroots = .{
+        .base = .{
+          .type = .compositor,
+        },
+      },
+    }, self, t.allocator);
+  }
+
+  pub fn ref(self: *Self, dest: *Self, t: Type) !void {
+    dest.* = .{
       .type = t,
       .mode = self.mode,
       .ipc = try self.ipc.ref(t.allocator),
     };
   }
 
-  pub fn unref(self: *Self) !void {
+  pub fn unref(self: *Self) void {
     for (self.ipcs.items) |ipc_obj| {
-      try @constCast(&ipc_obj).unref();
+      @constCast(&ipc_obj).unref();
     }
 
     self.ipcs.deinit();
@@ -50,36 +79,8 @@ ipcs: std.ArrayList(ipc.Ipc),
 displaykit: displaykit.Backend,
 mode: Mode,
 
-pub fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
-  const t = Type.init(parent, allocator);
-
-  var self = Self {
-    .type = t,
-    .mode = params.mode,
-    .dir = try (if (params.dir) |value| t.allocator.dupe(u8, value)
-      else (if (std.os.getenv("XDG_RUNTIME_DIR")) |xdg_runtime_dir| t.allocator.dupe(u8, xdg_runtime_dir) else std.process.getCwdAlloc(t.allocator))),
-    .ipcs = std.ArrayList(ipc.Ipc).init(t.allocator),
-    .displaykit = undefined,
-  };
-
-  errdefer t.allocator.free(self.dir);
-  errdefer self.ipcs.deinit();
-
-  if (params.ipcs) |ipcs| {
-    for (ipcs) |ipc_params| {
-      try self.ipcs.append(try ipc.Ipc.init(ipc_params, &self, allocator));
-    }
-  }
-
-  // TODO: determine a compatible displaykit backend based on the OS
-  self.displaykit = try displaykit.Backend.init(if (params.display) |value| value else .{
-    .wlroots = .{
-      .base = .{
-        .type = .compositor,
-      },
-    },
-  }, &self, t.allocator);
-  return self;
+pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
+  return Type.init(params, parent, allocator);
 }
 
 pub inline fn new(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !*Self {
@@ -90,6 +91,6 @@ pub inline fn ref(self: *Self, allocator: ?std.mem.Allocator) !*Self {
   return self.type.refNew(allocator);
 }
 
-pub inline fn unref(self: *Self) !void {
+pub inline fn unref(self: *Self) void {
   return self.type.unref();
 }

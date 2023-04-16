@@ -1,6 +1,9 @@
 const std = @import("std");
 const base = @import("base.zig");
 
+pub const Compositor = @import("wlroots/compositor.zig");
+pub const Output = @import("wlroots/output.zig");
+
 pub const Params = struct {
   base: base.Params,
 
@@ -28,8 +31,6 @@ pub const Params = struct {
     try self.base.format(fmt, options, writer);
   }
 };
-
-pub const Compositor = @import("wlroots/compositor.zig");
 
 pub const Backend = union(base.Type) {
   client: void,

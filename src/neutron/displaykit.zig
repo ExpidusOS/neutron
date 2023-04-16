@@ -1,7 +1,7 @@
 const std = @import("std");
 
-pub const base = @import("displaykit/backend/base.zig");
-pub const wlroots = @import("displaykit/backend/wlroots.zig");
+pub const base = @import("displaykit/base.zig");
+pub const wlroots = @import("displaykit/wlroots.zig");
 
 pub const Type = enum {
   wlroots,

@@ -13,8 +13,19 @@ pub const Params = struct {
 };
 
 const Impl = struct {
-  pub fn ref(self: *Self, t: Type) !Self {
-    var dest = Self {
+  pub fn construct(self: *Self, params: Params, t: Type) !void {
+    self.* = .{
+      .type = t,
+      .vtable = params.vtable,
+      .runtime = params.runtime,
+      .loop = try xev.Loop.init(.{}),
+      .thread = null,
+    };
+    errdefer self.loop.deinit();
+  }
+
+  pub fn ref(self: *Self, dest: *Self, t: Type) !void {
+    dest.* = .{
       .type = t,
       .vtable = self.vtable,
       .runtime = self.runtime,
@@ -23,11 +34,10 @@ const Impl = struct {
     };
 
     if (self.running) try dest.start();
-    return dest;
   }
 
-  pub fn unref(self: *Self) !void {
-    if (self.running) try self.stop();
+  pub fn unref(self: *Self) void {
+    if (self.running) self.stop() catch unreachable;
     self.loop.deinit();
   }
 };
@@ -41,16 +51,8 @@ loop: xev.Loop,
 running: bool = false,
 thread: ?std.Thread,
 
-pub fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
-  var self = Self {
-    .type = Type.init(parent, allocator),
-    .vtable = params.vtable,
-    .runtime = params.runtime,
-    .loop = try xev.Loop.init(.{}),
-    .thread = null,
-  };
-  errdefer self.loop.deinit();
-  return self;
+pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
+  return Type.init(params, parent, allocator);
 }
 
 pub inline fn new(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !*Self {
@@ -61,7 +63,7 @@ pub inline fn ref(self: *Self, allocator: ?std.mem.Allocator) !*Self {
   return self.type.refNew(allocator);
 }
 
-pub inline fn unref(self: *Self) !void {
+pub inline fn unref(self: *Self) void {
   return self.type.unref();
 }
 

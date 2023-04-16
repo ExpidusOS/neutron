@@ -1,49 +1,42 @@
 const std = @import("std");
-const elemental = @import("../../../elemental.zig");
-const Runtime = @import("../../runtime.zig");
-const base = @import("../base.zig");
+const elemental = @import("../../elemental.zig");
+const Compositor = @import("compositor.zig");
+const Client = @import("client.zig");
+const base = @import("base.zig");
 const Self = @This();
 
+/// Virtual function table
 pub const VTable = struct {
-  get_fd: *const fn (self: *anyopaque) std.os.socket_t,
 };
 
 pub const Params = struct {
+  @"type": base.Type,
   vtable: *const VTable,
-  base: *base.Base,
-  runtime: *Runtime,
 };
 
 const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
     self.* = .{
       .type = t,
-      .base = try params.base.ref(t.allocator),
+      ._type = params.type,
       .vtable = params.vtable,
-      .runtime = params.runtime,
     };
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
     dest.* = .{
       .type = t,
-      .base = try self.base.ref(t.allocator),
+      ._type = self._type,
       .vtable = self.vtable,
-      .runtime = self.runtime,
     };
-  }
-
-  pub fn unref(self: *Self) void {
-    self.base.unref();
   }
 };
 
 pub const Type = elemental.Type(Self, Params, Impl);
 
 @"type": Type,
-base: *base.Base,
+_type: base.Type,
 vtable: *const VTable,
-runtime: *Runtime,
 
 pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
   return Type.init(params, parent, allocator);
@@ -61,6 +54,12 @@ pub inline fn unref(self: *Self) void {
   return self.type.unref();
 }
 
-pub inline fn getFd(self: *Self) std.os.socket_t {
-  return self.vtable.get_fd(self.type.toOpaque());
+pub fn toCompositor(self: *Self) *Compositor {
+  if (self._type != .compositor) @panic("Cannot cast a client to a compositor");
+  return Compositor.Type.fromOpaque(self.type.parent.?);
+}
+
+pub fn toClient(self: *Client) *Client {
+  if (self._type != .client) @panic("Cannot cast a compositor to a client");
+  return Client.Type.fromOpaque(self.type.parent.?);
 }
