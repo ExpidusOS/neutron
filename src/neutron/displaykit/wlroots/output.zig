@@ -15,6 +15,32 @@ pub const Params = struct {
 const vtable = Output.VTable {
 };
 
+fn effectiveResTry(self: *Self) bool {
+  var width: c_int = undefined;
+  var height: c_int = undefined;
+  self.value.effectiveResolution(&width, &height);
+
+  const rates = [_]i32 { 64, 32, 24, 16, 8, 4, 2 };
+  for (rates) |rate| {
+    self.value.setCustomMode(width, height, rate);
+    self.value.enable(true);
+    self.value.commit() catch continue;
+    return true;
+  }
+  return false;
+}
+
+fn iterateResTry(self: *Self) bool {
+  var it = self.value.modes.iterator(.forward);
+  while (it.next()) |mode| {
+    self.value.setMode(mode);
+    self.value.enable(true);
+    self.value.commit() catch continue;
+    return true;
+  }
+  return false;
+}
+
 const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
     self.* = .{
@@ -31,12 +57,21 @@ const Impl = struct {
     const compositor = self.getCompositor();
     if (!self.value.initRender(compositor.allocator, compositor.renderer)) return error.RenderFailed;
 
-    if (self.value.preferredMode()) |mode| {
-      self.value.setMode(mode);
+    if (self.value.preferredMode()) |preferred_mode| {
+      self.value.setMode(preferred_mode);
       self.value.enable(true);
-      try self.value.commit();
+      self.value.commit() catch {
+        if (!iterateResTry(self)) {
+          _ = effectiveResTry(self);
+        }
+      };
+    } else {
+      if (!iterateResTry(self)) {
+        _ = effectiveResTry(self);
+      }
     }
 
+    self.value.events.frame.add(&self.frame);
     compositor.output_layout.addAuto(self.value);
   }
 
@@ -59,6 +94,18 @@ pub const Type = elemental.Type(Self, Params, Impl);
 @"type": Type,
 base_output: Output,
 value: *wlr.Output,
+frame: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
+  pub fn callback(listener: *wl.Listener(*wlr.Output), _: *wlr.Output) void {
+    const self = @fieldParentPtr(Self, "frame", listener);
+
+    const scene_output = self.getCompositor().scene.getSceneOutput(self.value).?;
+    _ = scene_output.commit();
+
+    var now: std.os.timespec = undefined;
+    std.os.clock_gettime(std.os.CLOCK.MONOTONIC, &now) catch @panic("CLOCK_MONOTONIC not supported");
+    scene_output.sendFrameDone(&now);
+  }
+}).callback),
 
 pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
   return Type.init(params, parent, allocator);

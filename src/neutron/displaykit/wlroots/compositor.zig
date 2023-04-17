@@ -1,7 +1,9 @@
+const builtin = @import("builtin");
 const std = @import("std");
 const elemental = @import("../../elemental.zig");
 const Compositor = @import("../base/compositor.zig");
 const Output = @import("output.zig");
+const Input = @import("input.zig").Input;
 const Self = @This();
 
 const wl = @import("wayland").server.wl;
@@ -17,6 +19,8 @@ const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
     _ = params;
 
+    wlr.log.init(if (builtin.mode == .Debug) .debug else .err);
+
     self.* = .{
       .type = t,
       .base_compositor = try Compositor.init(.{
@@ -26,17 +30,34 @@ const Impl = struct {
       .backend = try wlr.Backend.autocreate(self.wl_server),
       .renderer = try wlr.Renderer.autocreate(self.backend),
       .allocator = try wlr.Allocator.autocreate(self.backend, self.renderer),
+      .seat = try wlr.Seat.create(self.wl_server, "default"),
+      .cursor_mngr = try wlr.XcursorManager.create(null, 24),
+      .scene = try wlr.Scene.create(),
       .output_layout = try wlr.OutputLayout.create(),
       .outputs = try elemental.TypedList(*Output).init(.{}, self, t.allocator),
+      .inputs = try elemental.TypedList(*Input).init(.{}, self, t.allocator),
+      .thread = try std.Thread.spawn(.{}, (struct {
+        fn callback(compositor: *Self) !void {
+          compositor.wl_server.run();
+        }
+      }).callback, .{ self }),
     };
 
     try self.renderer.initServer(self.wl_server);
+    try self.scene.attachOutputLayout(self.output_layout);
+
     self.backend.events.new_output.add(&self.output_new);
-    try self.backend.start();
+    self.backend.events.new_input.add(&self.input_new);
 
     var buff: [11]u8 = undefined;
-    self.socket = try self.wl_server.addSocketAuto(&buff);
-    // TODO: wl_server.run() in a new thread
+    self.socket = try self.type.allocator.dupeZ(u8, try self.wl_server.addSocketAuto(&buff));
+
+    _ = try wlr.Compositor.create(self.wl_server, self.renderer);
+    _ = try wlr.Subcompositor.create(self.wl_server);
+    _ = try wlr.DataDeviceManager.create(self.wl_server);
+    try self.cursor_mngr.load(1);
+
+    try self.backend.start();
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
@@ -47,13 +68,26 @@ const Impl = struct {
       .backend = self.backend,
       .renderer = self.renderer,
       .allocator = self.allocator,
-      .outputs = try self.outputs.clone(),
+      .seat = self.seat,
+      .cursor_mngr = self.cursor_mngr,
+      .scene = self.scene,
+      .output_layout = self.output_layout,
+      .outputs = try self.outputs.type.refInit(t.allocator),
+      .inputs = try self.inputs.type.refInit(t.allocator),
+      .socket = try t.allocator.dupeZ(u8, self.socket),
+      .thread = self.thread,
     };
   }
 
   pub fn unref(self: *Self) void {
+    self.thread.join();
+
     self.base_compositor.unref();
+
     self.outputs.deinit();
+    self.inputs.deinit();
+
+    self.type.allocator.free(self.socket);
 
     self.wl_server.destroyClients();
     self.wl_server.destroy();
@@ -72,10 +106,16 @@ wl_server: *wl.Server,
 backend: *wlr.Backend,
 renderer: *wlr.Renderer,
 allocator: *wlr.Allocator,
+seat: *wlr.Seat,
+cursor_mngr: *wlr.XcursorManager,
 output_layout: *wlr.OutputLayout,
+scene: *wlr.Scene,
 outputs: elemental.TypedList(*Output),
 output_new: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init(output_new),
+inputs: elemental.TypedList(*Input),
+input_new: wl.Listener(*wlr.InputDevice) = wl.Listener(*wlr.InputDevice).init(input_new),
 socket: [:0]const u8 = undefined,
+thread: std.Thread,
 
 fn output_new(listener: *wl.Listener(*wlr.Output), wlr_output: *wlr.Output) void {
   const self = @fieldParentPtr(Self, "output_new", listener);
@@ -83,8 +123,9 @@ fn output_new(listener: *wl.Listener(*wlr.Output), wlr_output: *wlr.Output) void
   const output = Output.new(.{
     .context = &self.base_compositor.context,
     .value = wlr_output,
-  }, self, self.type.allocator) catch {
+  }, self, self.type.allocator) catch |err| {
     // TODO: use the logger
+    std.debug.print("Failed to initialize output: {s}\n", .{ @errorName(err) });
     return;
   };
   errdefer output.unref();
@@ -93,6 +134,25 @@ fn output_new(listener: *wl.Listener(*wlr.Output), wlr_output: *wlr.Output) void
     // TODO: use the logger
     return;
   };
+
+  std.debug.print("{}\n", .{ output });
+}
+
+fn input_new(listener: *wl.Listener(*wlr.InputDevice), wlr_input: *wlr.InputDevice) void {
+  const self = @fieldParentPtr(Self, "input_new", listener);
+
+  const input = Input.new(wlr_input, self, self.type.allocator) catch {
+    // TODO: use the logger
+    return;
+  };
+  errdefer input.unref();
+
+  self.inputs.append(input) catch {
+    // TODO: use the logger
+    return;
+  };
+
+  //std.debug.print("{}\n", .{ input });
 }
 
 pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {

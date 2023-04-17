@@ -31,7 +31,6 @@ pub fn main() !void {
   const params = comptime clap.parseParamsComptime(
     \\-h, --help                  Display this help and exit.
     \\-p, --path <str>            An optional parameter which sets the Flutter application base path.
-    \\-f, --format <format_type>  An optional parameter which sets the format to print messages in (json, xml, std).
     \\-m, --mode <runtime_mode>   An optional parameter which sets the runtime mode (compositor, application).
     \\-r, --runtime-dir <str>     An optional parameter set the runtime directory.
     \\-d, --display <displaykit>  Sets the display configuration for the runtime.
@@ -61,8 +60,6 @@ pub fn main() !void {
     return clap.help(stdout, clap.Help, &params, .{});
   }
 
-  const fmt_output = res.args.format orelse neutron.elemental.formatter.Type.std;
-
   const allocator = std.heap.page_allocator;
   var path = if (res.args.path == null) try std.fs.selfExeDirPathAlloc(allocator) else res.args.path.?;
 
@@ -81,9 +78,5 @@ pub fn main() !void {
   }, null, allocator);
   defer runtime.unref();
 
-  for (res.args.ipc) |ipc| {
-    try neutron.elemental.formatter.format(fmt_output, stdout, "{}\n", .{ ipc });
-  }
-
-  try neutron.elemental.formatter.format(fmt_output, stdout, "{s}\n", .{ runtime.displaykit.wlroots.compositor.socket });
+  runtime.run();
 }

@@ -22,3 +22,6 @@
 [submodule "vendor/bindings/zig-pixman"]
 	path = vendor/bindings/zig-pixman
 	url = https://github.com/ifreund/zig-pixman
+[submodule "vendor/bindings/vulkan-zig"]
+	path = vendor/bindings/vulkan-zig
+	url = https://github.com/Snektron/vulkan-zig

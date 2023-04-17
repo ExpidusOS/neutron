@@ -4,6 +4,7 @@ pub const Context = @import("base/context.zig");
 pub const Compositor = @import("base/compositor.zig");
 pub const Client = @import("base/client.zig");
 pub const Output = @import("base/output.zig");
+pub const input = @import("base/input.zig");
 pub const View = @import("base/view.zig");
 pub const Type = @import("base/base.zig").Type;
 

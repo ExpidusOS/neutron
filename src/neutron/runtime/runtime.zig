@@ -94,3 +94,9 @@ pub inline fn ref(self: *Self, allocator: ?std.mem.Allocator) !*Self {
 pub inline fn unref(self: *Self) void {
   return self.type.unref();
 }
+
+pub fn run(self: *Self) void {
+  _ = self;
+  // TODO: run the flutter engine
+  while (true) {}
+}

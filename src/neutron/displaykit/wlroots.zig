@@ -3,6 +3,7 @@ const base = @import("base.zig");
 
 pub const Compositor = @import("wlroots/compositor.zig");
 pub const Output = @import("wlroots/output.zig");
+pub const input = @import("wlroots/input.zig");
 
 pub const Params = struct {
   base: base.Params,

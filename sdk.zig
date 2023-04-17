@@ -232,6 +232,7 @@ pub fn linkLibraries(self: *Self, artifact: *Build.CompileStep) void {
     artifact.linkSystemLibrary("xkbcommon");
     artifact.linkSystemLibrary("pixman-1");
     artifact.linkSystemLibrary("wlroots");
+    artifact.linkSystemLibrary("drm");
   }
 
   artifact.step.dependOn(&self.step);
