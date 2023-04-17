@@ -23,15 +23,30 @@ const Impl = struct {
 
     wlr.log.init(if (builtin.mode == .Debug) .debug else .err);
 
+    const wl_server = try wl.Server.create();
+    const backend = try wlr.Backend.autocreate(wl_server);
+    const renderer = try wlr.Renderer.autocreate(backend);
+    const allocator = try wlr.Allocator.autocreate(backend, renderer);
+
+    try renderer.initServer(wl_server);
+
+    _ = try wlr.Compositor.create(wl_server, renderer);
+    _ = try wlr.Subcompositor.create(wl_server);
+    _ = try wlr.DataDeviceManager.create(wl_server);
+
     self.* = .{
       .type = t,
+      .wl_server = wl_server,
+      .backend = backend,
+      .renderer = renderer,
+      .gpu = hardware.device.Gpu.init(.{
+        .fd = backend.getDrmFd(),
+      }, self, t.allocator) catch null,
       .base_compositor = try Compositor.init(.{
         .vtable = &vtable,
+        .gpu = if (self.gpu) |gpu| @constCast(&gpu) else null,
       }, self, self.type.allocator),
-      .wl_server = try wl.Server.create(),
-      .backend = try wlr.Backend.autocreate(self.wl_server),
-      .renderer = try wlr.Renderer.autocreate(self.backend),
-      .allocator = try wlr.Allocator.autocreate(self.backend, self.renderer),
+      .allocator = allocator,
       .seat = try wlr.Seat.create(self.wl_server, "default"),
       .cursor_mngr = try wlr.XcursorManager.create(null, 24),
       .scene = try wlr.Scene.create(),
@@ -43,12 +58,8 @@ const Impl = struct {
           compositor.wl_server.run();
         }
       }).callback, .{ self }),
-      .gpu = try hardware.device.Gpu.init(.{
-        .fd = self.backend.getDrmFd(),
-      }, self, t.allocator),
     };
 
-    try self.renderer.initServer(self.wl_server);
     try self.scene.attachOutputLayout(self.output_layout);
 
     self.backend.events.new_output.add(&self.output_new);
@@ -57,14 +68,7 @@ const Impl = struct {
     var buff: [11]u8 = undefined;
     self.socket = try self.type.allocator.dupeZ(u8, try self.wl_server.addSocketAuto(&buff));
 
-    _ = try wlr.Compositor.create(self.wl_server, self.renderer);
-    _ = try wlr.Subcompositor.create(self.wl_server);
-    _ = try wlr.DataDeviceManager.create(self.wl_server);
     try self.cursor_mngr.load(1);
-
-    const egl = self.gpu.getEglDisplay();
-    _ = egl;
-
     try self.backend.start();
   }
 
@@ -127,7 +131,7 @@ inputs: elemental.TypedList(*Input),
 input_new: wl.Listener(*wlr.InputDevice) = wl.Listener(*wlr.InputDevice).init(input_new),
 socket: [:0]const u8 = undefined,
 thread: std.Thread,
-gpu: hardware.device.Gpu,
+gpu: ?hardware.device.Gpu,
 
 fn output_new(listener: *wl.Listener(*wlr.Output), wlr_output: *wlr.Output) void {
   const self = @fieldParentPtr(Self, "output_new", listener);

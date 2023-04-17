@@ -1,5 +1,6 @@
 const std = @import("std");
 const elemental = @import("../../elemental.zig");
+const hardware = @import("../../hardware.zig");
 const Self = @This();
 const Context = @import("context.zig");
 
@@ -10,6 +11,7 @@ pub const VTable = struct {
 
 pub const Params = struct {
   vtable: *const VTable,
+  gpu: ?*hardware.device.Gpu,
 };
 
 const Impl = struct {
@@ -19,6 +21,7 @@ const Impl = struct {
       .vtable = params.vtable,
       .context = try Context.init(.{
         .vtable = &params.vtable.context,
+        .gpu = params.gpu,
         .type = .compositor,
       }, self, t.allocator),
     };
