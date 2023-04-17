@@ -1,6 +1,8 @@
 const builtin = @import("builtin");
 const std = @import("std");
 const elemental = @import("../../elemental.zig");
+const hardware = @import("../../hardware.zig");
+const Runtime = @import("../../runtime/runtime.zig");
 const Compositor = @import("../base/compositor.zig");
 const Output = @import("output.zig");
 const Input = @import("input.zig").Input;
@@ -41,6 +43,9 @@ const Impl = struct {
           compositor.wl_server.run();
         }
       }).callback, .{ self }),
+      .gpu = try hardware.device.Gpu.init(.{
+        .fd = self.backend.getDrmFd(),
+      }, self, t.allocator),
     };
 
     try self.renderer.initServer(self.wl_server);
@@ -56,6 +61,9 @@ const Impl = struct {
     _ = try wlr.Subcompositor.create(self.wl_server);
     _ = try wlr.DataDeviceManager.create(self.wl_server);
     try self.cursor_mngr.load(1);
+
+    const egl = self.gpu.getEglDisplay();
+    _ = egl;
 
     try self.backend.start();
   }
@@ -76,6 +84,7 @@ const Impl = struct {
       .inputs = try self.inputs.type.refInit(t.allocator),
       .socket = try t.allocator.dupeZ(u8, self.socket),
       .thread = self.thread,
+      .gpu = try self.gpu.type.refInit(t.allocator),
     };
   }
 
@@ -86,6 +95,8 @@ const Impl = struct {
 
     self.outputs.deinit();
     self.inputs.deinit();
+
+    self.gpu.unref();
 
     self.type.allocator.free(self.socket);
 
@@ -116,6 +127,7 @@ inputs: elemental.TypedList(*Input),
 input_new: wl.Listener(*wlr.InputDevice) = wl.Listener(*wlr.InputDevice).init(input_new),
 socket: [:0]const u8 = undefined,
 thread: std.Thread,
+gpu: hardware.device.Gpu,
 
 fn output_new(listener: *wl.Listener(*wlr.Output), wlr_output: *wlr.Output) void {
   const self = @fieldParentPtr(Self, "output_new", listener);
@@ -123,9 +135,8 @@ fn output_new(listener: *wl.Listener(*wlr.Output), wlr_output: *wlr.Output) void
   const output = Output.new(.{
     .context = &self.base_compositor.context,
     .value = wlr_output,
-  }, self, self.type.allocator) catch |err| {
+  }, self, self.type.allocator) catch {
     // TODO: use the logger
-    std.debug.print("Failed to initialize output: {s}\n", .{ @errorName(err) });
     return;
   };
   errdefer output.unref();
@@ -134,8 +145,6 @@ fn output_new(listener: *wl.Listener(*wlr.Output), wlr_output: *wlr.Output) void
     // TODO: use the logger
     return;
   };
-
-  std.debug.print("{}\n", .{ output });
 }
 
 fn input_new(listener: *wl.Listener(*wlr.InputDevice), wlr_input: *wlr.InputDevice) void {
@@ -151,8 +160,6 @@ fn input_new(listener: *wl.Listener(*wlr.InputDevice), wlr_input: *wlr.InputDevi
     // TODO: use the logger
     return;
   };
-
-  //std.debug.print("{}\n", .{ input });
 }
 
 pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
@@ -169,4 +176,8 @@ pub inline fn ref(self: *Self, allocator: ?std.mem.Allocator) !*Self {
 
 pub inline fn unref(self: *Self) void {
   return self.type.unref();
+}
+
+pub inline fn getRuntime(self: *Self) *Runtime {
+  return Runtime.Type.fromOpaque(self.type.parent.?);
 }

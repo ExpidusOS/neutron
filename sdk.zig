@@ -96,6 +96,10 @@ pub fn new(builder: *Build, target: std.zig.CrossTarget, optimize: std.builtin.M
     self.step.dependOn(&self.wl_scan_protocols.?.step);
   }
 
+  self.config.addOption(bool, "has_wlroots", self.wl_scan_protocols != null);
+  self.config.addOption(bool, "has_gbm", target.isLinux());
+  self.config.addOption(bool, "has_libdrm", target.isLinux());
+
   for (try self.getDependencies()) |dep| {
     self.docs.addModule(dep.name, dep.module);
   }
@@ -223,6 +227,12 @@ pub fn createModule(self: *Self) !*Build.Module {
 
 pub fn linkLibraries(self: *Self, artifact: *Build.CompileStep) void {
   artifact.linkLibC();
+  artifact.linkSystemLibrary("egl");
+
+  if (self.target.isLinux()) {
+    artifact.linkSystemLibrary("gbm");
+    artifact.linkSystemLibrary("libdrm");
+  }
 
   if (self.wl_scan_protocols) |scanner| {
     scanner.addCSource(artifact);
@@ -232,7 +242,6 @@ pub fn linkLibraries(self: *Self, artifact: *Build.CompileStep) void {
     artifact.linkSystemLibrary("xkbcommon");
     artifact.linkSystemLibrary("pixman-1");
     artifact.linkSystemLibrary("wlroots");
-    artifact.linkSystemLibrary("drm");
   }
 
   artifact.step.dependOn(&self.step);

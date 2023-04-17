@@ -55,9 +55,9 @@ pub const Backend = union(base.Type) {
     };
   }
 
-  pub fn unref(self: *Backend) !void {
+  pub fn unref(self: *Backend) void {
     return switch (self.*) {
-      .client => error.Unimplemented,
+      .client => @panic("Wlroots does not have a client backend, please use Wayland or X11"),
       .compositor => |compositor| compositor.unref(),
     };
   }

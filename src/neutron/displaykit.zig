@@ -1,7 +1,9 @@
 const std = @import("std");
+const config = @import("neutron-config");
+const Mock = @import("displaykit/mock.zig");
 
 pub const base = @import("displaykit/base.zig");
-pub const wlroots = @import("displaykit/wlroots.zig");
+pub const wlroots = if (config.has_wlroots) @import("displaykit/wlroots.zig") else Mock("wlroots");
 
 pub const Type = enum {
   wlroots,

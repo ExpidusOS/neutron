@@ -8,6 +8,7 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
     const ConstructFunc = fn (self: *T, params: P, t: Self) anyerror!void;
     const RefFunc = fn (self: *T, dest: *T, t: Self) anyerror!void;
     const UnrefFunc = fn (self: *T) void;
+    const DestroyFunc = fn (self: *T) void;
 
     allocated: bool = false,
     allocator: std.mem.Allocator = std.heap.page_allocator,
@@ -62,11 +63,11 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
     }
 
     pub fn fromOpaque(op: *anyopaque) *T {
-      return @ptrCast(*T, @alignCast(@alignOf(*T), op));
+      return @ptrCast(*T, @alignCast(@alignOf(T), op));
     }
 
     pub fn toOpaque(self: *Self) *anyopaque {
-      return @ptrCast(*anyopaque, @alignCast(@alignOf(*T), self.getInstance()));
+      return @ptrCast(*anyopaque, @alignCast(@alignOf(T), self.getInstance()));
     }
 
     pub fn getInstance(self: *Self) *T {
@@ -126,6 +127,10 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
 
       if (@hasDecl(impl, "unref")) {
         @as(UnrefFunc, impl.unref)(self.getInstance());
+      }
+
+      if (self.ref.count == 0 and @hasDecl(impl, "destroy")) {
+        @as(DestroyFunc, impl.destroy)(self.getInstance());
       }
 
       if (self.allocated) {
