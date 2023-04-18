@@ -9,7 +9,7 @@ const c = @cImport({
 
 pub const VTable = struct {
   base: Base.VTable,
-  get_egl_display: *const fn (self: *anyopaque) c.EGLDisplay,
+  get_egl_display: *const fn (self: *anyopaque) anyerror!c.EGLDisplay,
 };
 
 pub const Params = struct {
@@ -62,6 +62,6 @@ pub inline fn unref(self: *Self) void {
   return self.type.unref();
 }
 
-pub inline fn getEglDisplay(self: *Self) c.EGLDisplay {
+pub inline fn getEglDisplay(self: *Self) !c.EGLDisplay {
   return self.vtable.get_egl_display(self.type.toOpaque());
 }

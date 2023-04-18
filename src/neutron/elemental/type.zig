@@ -15,7 +15,7 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
     parent: ?*anyopaque = null,
     ref: Reference = .{},
 
-    fn type_init(parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
+    pub fn typeInit(parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
       if (allocator) |alloc| {
         var self = Self {
           .allocated = false,
@@ -27,11 +27,11 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
         self.ref.value = &self;
         return self;
       }
-      return type_init(parent, std.heap.page_allocator);
+      return typeInit(parent, std.heap.page_allocator);
     }
 
     pub fn init(params: P, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !T {
-      const type_inst = try type_init(parent, allocator);
+      const type_inst = try typeInit(parent, allocator);
 
       var self: T = undefined;
       if (@hasDecl(impl, "construct")) {
@@ -45,7 +45,7 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
     }
 
     pub fn new(params: P, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !*T {
-      var type_inst = try type_init(parent, allocator);
+      var type_inst = try typeInit(parent, allocator);
 
       const self = try type_inst.allocator.create(T);
       errdefer type_inst.allocator.destroy(self);

@@ -3,10 +3,15 @@ const std = @import("std");
 const elemental = @import("../../elemental.zig");
 const hardware = @import("../../hardware.zig");
 const Runtime = @import("../../runtime/runtime.zig");
+const Context = @import("../base/context.zig");
 const Compositor = @import("../base/compositor.zig");
 const Output = @import("output.zig");
 const Input = @import("input.zig").Input;
 const Self = @This();
+
+const c = @cImport({
+  @cInclude("gbm.h");
+});
 
 const wl = @import("wayland").server.wl;
 const wlr = @import("wlroots");
@@ -14,7 +19,34 @@ const wlr = @import("wlroots");
 pub const Params = struct {};
 
 const vtable = Compositor.VTable {
-  .context = .{},
+  .context = .{
+    .create_render_surface = (struct {
+      fn callback(_base_context: *anyopaque, res: @Vector(2, i32), visual: u32) !*anyopaque {
+        const base_context = Context.Type.fromOpaque(_base_context);
+        const gpu = base_context.gpu.?;
+
+        if (@hasDecl(c, "gbm_surface_create_with_modifiers")) {
+          return if (c.gbm_surface_create_with_modifiers(@ptrCast(*c.struct_gbm_device, gpu.gbm_dev), @intCast(u32, res[0]), @intCast(u32, res[1]), visual, &[_]u64 { 0 }, 1)) |value| value else error.InvalidGbm;
+        }
+
+        return if (c.gbm_surface_create(@ptrCast(*c.struct_gbm_device, gpu.gbm_dev), @intCast(u32, res[0]), @intCast(u32, res[1]), visual, c.GBM_BO_USE_SCANOUT | c.GBM_BO_USE_RENDERING)) |value| value else error.InvalidGbm;
+      }
+    }).callback,
+    .resize_render_surface = (struct {
+      fn callback(_base_context: *anyopaque, surf: *anyopaque, res: @Vector(2, i32)) !void {
+        _ = _base_context;
+        _ = surf;
+        _ = res;
+        return error.InvalidSurface;
+      }
+    }).callback,
+    .destroy_render_surface = (struct {
+      fn callback(_base_context: *anyopaque, surf: *anyopaque) void {
+        _ = _base_context;
+        c.gbm_surface_destroy(@ptrCast(*c.struct_gbm_surface, surf));
+      }
+    }).callback,
+  },
 };
 
 const Impl = struct {
@@ -139,8 +171,9 @@ fn output_new(listener: *wl.Listener(*wlr.Output), wlr_output: *wlr.Output) void
   const output = Output.new(.{
     .context = &self.base_compositor.context,
     .value = wlr_output,
-  }, self, self.type.allocator) catch {
+  }, self, self.type.allocator) catch |err| {
     // TODO: use the logger
+    std.debug.print("Failed to create output: {s}\n", .{ @errorName(err) });
     return;
   };
   errdefer output.unref();

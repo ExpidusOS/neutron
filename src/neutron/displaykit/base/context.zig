@@ -7,13 +7,11 @@ const base = @import("base.zig");
 const Runtime = @import("../../runtime/runtime.zig");
 const Self = @This();
 
-const c = @cImport({
-  @cInclude("EGL/egl.h");
-  @cInclude("EGL/eglext.h");
-});
-
 /// Virtual function table
 pub const VTable = struct {
+  create_render_surface: *const fn (self: *anyopaque, res: @Vector(2, i32), visual: u32) anyerror!*anyopaque,
+  resize_render_surface: *const fn (self: *anyopaque, surf: *anyopaque, res: @Vector(2, i32)) anyerror!void,
+  destroy_render_surface: *const fn (self: *anyopaque, surf: *anyopaque) void,
 };
 
 pub const Params = struct {
@@ -21,17 +19,6 @@ pub const Params = struct {
   gpu: ?*hardware.device.Gpu,
   vtable: *const VTable,
 };
-
-fn egl_init(self: *Self) !void {
-  // TODO: move this to DisplayKit renderer type
-  std.debug.assert(self.gpu != null);
-  const display = self.gpu.?.getEglDisplay();
-
-  if (c.eglInitialize(display, null, null) == c.EGL_FALSE) return error.EglInitialize;
-  if (c.eglBindAPI(c.EGL_OPENGL_API) == c.EGL_FALSE) {
-    if (c.eglBindAPI(c.EGL_OPENGL_ES_API) == c.EGL_FALSE) return error.EglBind;
-  }
-}
 
 const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
@@ -41,11 +28,6 @@ const Impl = struct {
       .vtable = params.vtable,
       .gpu = if (params.gpu) |gpu| try gpu.ref(t.allocator) else null,
     };
-
-    if (self.gpu != null) {
-      // TODO: move this to DisplayKit renderer type
-      try egl_init(self);
-    }
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
@@ -95,4 +77,16 @@ pub fn toCompositor(self: *Self) *Compositor {
 pub fn toClient(self: *Self) *Client {
   if (self._type != .client) @panic("Cannot cast a compositor to a client");
   return Client.Type.fromOpaque(self.type.parent.?);
+}
+
+pub fn createRenderSurface(self: *Self, res: @Vector(2, i32), visual: u32) !*anyopaque {
+  return self.vtable.create_render_surface(self.type.toOpaque(), res, visual);
+}
+
+pub fn resizeRenderSurface(self: *Self, surf: *anyopaque, res: @Vector(2, i32)) !void {
+  return self.vtable.resize_render_surface(self.type.toOpaque(), surf, res);
+}
+
+pub fn destroyRenderSurface(self: *Self, surf: *anyopaque) void {
+  return self.vtable.destroy_render_surface(self.type.toOpaque(), surf);
 }

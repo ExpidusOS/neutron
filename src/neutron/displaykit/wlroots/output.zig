@@ -13,6 +13,17 @@ pub const Params = struct {
 };
 
 const vtable = Output.VTable {
+  .get_resolution = (struct {
+    fn callback(_base: *anyopaque) @Vector(2, i32) {
+      const base = Output.Type.fromOpaque(_base);
+      const self = Type.fromOpaque(base.type.parent.?);
+
+      if (self.value.current_mode) |mode| {
+        return @Vector(2, i32) { mode.width, mode.height };
+      }
+      return @Vector(2, i32) { self.value.width, self.value.height };
+    }
+  }).callback,
 };
 
 fn effectiveResTry(self: *Self) bool {
@@ -43,19 +54,11 @@ fn iterateResTry(self: *Self) bool {
 
 const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
-    self.* = .{
-      .type = t,
-      .base_output = try Output.init(.{
-        .context = params.context,
-        .vtable = &vtable,
-      }, self, self.type.allocator),
-      .value = params.value,
-    };
-
-    errdefer self.base_output.unref();
+    self.type = t;
+    self.value = params.value;
 
     const compositor = self.getCompositor();
-    if (!self.value.initRender(compositor.allocator, compositor.renderer)) return error.RenderFailed;
+    if (!params.value.initRender(compositor.allocator, compositor.renderer)) return error.RenderFailed;
 
     if (self.value.preferredMode()) |preferred_mode| {
       self.value.setMode(preferred_mode);
@@ -71,7 +74,19 @@ const Impl = struct {
       }
     }
 
+    self.* = .{
+      .type = t,
+      .base_output = try Output.init(.{
+        .context = params.context,
+        .vtable = &vtable,
+      }, self, self.type.allocator),
+      .value = params.value,
+    };
+
+    errdefer self.base_output.unref();
+
     self.value.events.frame.add(&self.frame);
+    self.value.events.mode.add(&self.mode);
     compositor.output_layout.addAuto(self.value);
   }
 
@@ -95,7 +110,7 @@ pub const Type = elemental.Type(Self, Params, Impl);
 base_output: Output,
 value: *wlr.Output,
 frame: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
-  pub fn callback(listener: *wl.Listener(*wlr.Output), _: *wlr.Output) void {
+  fn callback(listener: *wl.Listener(*wlr.Output), _: *wlr.Output) void {
     const self = @fieldParentPtr(Self, "frame", listener);
 
     const scene_output = self.getCompositor().scene.getSceneOutput(self.value).?;
@@ -104,6 +119,14 @@ frame: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
     var now: std.os.timespec = undefined;
     std.os.clock_gettime(std.os.CLOCK.MONOTONIC, &now) catch @panic("CLOCK_MONOTONIC not supported");
     scene_output.sendFrameDone(&now);
+  }
+}).callback),
+mode: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
+  fn callback(listener: *wl.Listener(*wlr.Output), _: *wlr.Output) void {
+    const self = @fieldParentPtr(Self, "mode", listener);
+    const res = self.base_output.getResolution();
+    _ = res;
+    // TODO: tell base's renderer to resize the surface
   }
 }).callback),
 

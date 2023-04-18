@@ -24,7 +24,7 @@ const Impl = struct {
         .vtable = &.{
           .base = .{},
           .get_egl_display = (struct {
-            fn callback(_gpu: *anyopaque) c.EGLDisplay {
+            fn callback(_gpu: *anyopaque) !c.EGLDisplay {
               const gpu = Gpu.Type.fromOpaque(_gpu);
               const that = Type.fromOpaque(gpu.type.parent.?);
               return that.getEglDisplay();
@@ -61,7 +61,7 @@ pub const Type = elemental.Type(Self, Params, Impl);
 @"type": Type,
 base: Gpu,
 fd: std.os.fd_t,
-gbm_dev: *c.struct_gbm_device,
+gbm_dev: *anyopaque,
 
 pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
   return Type.init(params, parent, allocator);
@@ -79,7 +79,7 @@ pub inline fn unref(self: *Self) void {
   return self.type.unref();
 }
 
-pub fn getEglDisplay(self: *Self) c.EGLDisplay {
+pub fn getEglDisplay(self: *Self) !c.EGLDisplay {
   const _clients = c.eglQueryString(c.EGL_NO_DISPLAY, c.EGL_EXTENSIONS);
   var clients: []const u8 = undefined;
   clients.ptr = _clients;
@@ -87,7 +87,12 @@ pub fn getEglDisplay(self: *Self) c.EGLDisplay {
 
   if (std.mem.containsAtLeast(u8, clients, 1, "EGL_EXT_platform_base")) {
     const eglGetPlatformDisplayEXT = @ptrCast(c.PFNEGLGETPLATFORMDISPLAYEXTPROC, c.eglGetProcAddress("eglGetPlatformDisplayEXT"));
-    return eglGetPlatformDisplayEXT.?(c.EGL_PLATFORM_GBM_KHR, self.gbm_dev, null);
+    const display = eglGetPlatformDisplayEXT.?(c.EGL_PLATFORM_GBM_KHR, self.gbm_dev, null);
+    if (display == c.EGL_NO_DISPLAY) return error.NoEglDisplay;
+    return display;
   }
-  return c.eglGetDisplay(self.gbm_dev);
+
+  const display = c.eglGetDisplay(self.gbm_dev);
+  if (display == c.EGL_NO_DISPLAY) return error.NoEglDisplay;
+  return display;
 }
