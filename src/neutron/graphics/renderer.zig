@@ -12,7 +12,6 @@ pub const Type = enum {
 pub const Params = struct {
   gpu: ?*hardware.device.Gpu,
   displaykit: ?*displaykit.base.Context,
-  resolution: @Vector(2, i32),
 };
 
 pub const Renderer = union(Type) {
@@ -23,7 +22,6 @@ pub const Renderer = union(Type) {
       if (Egl.new(.{
         .gpu = gpu,
         .displaykit = params.displaykit,
-        .resolution = params.resolution,
       }, parent, allocator) catch |err| blk: {
         std.debug.print("Failed to create EGL renderer: {s}\n", .{ @errorName(err) });
         break :blk null;
@@ -45,6 +43,12 @@ pub const Renderer = union(Type) {
   pub fn unref(self: *Renderer) void {
     return switch (self.*) {
       .egl => |egl| egl.unref(),
+    };
+  }
+
+  pub fn toBase(self: *Renderer) *Base {
+    return switch (self.*) {
+      .egl => |egl| &egl.base,
     };
   }
 };

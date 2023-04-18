@@ -1,17 +1,13 @@
 const std = @import("std");
 const elemental = @import("../../elemental.zig");
-const graphics = @import("../../graphics.zig");
+const Renderer = @import("../renderer/base.zig");
 const Self = @This();
-const Context = @import("context.zig");
 
-/// Virtual function table
-pub const VTable = struct {
-  get_resolution: *const fn (self: *anyopaque) @Vector(2, i32),
-};
+pub const VTable = struct {};
 
 pub const Params = struct {
   vtable: *const VTable,
-  context: *Context,
+  renderer: *Renderer,
 };
 
 const Impl = struct {
@@ -19,8 +15,7 @@ const Impl = struct {
     self.* = .{
       .type = t,
       .vtable = params.vtable,
-      .context = try params.context.ref(t.allocator),
-      .subrenderer = try params.context.renderer.toBase().createSubrenderer(self.getResolution()),
+      .renderer = try params.renderer.ref(t.allocator),
     };
   }
 
@@ -28,14 +23,12 @@ const Impl = struct {
     dest.* = .{
       .type = t,
       .vtable = self.vtable,
-      .context = try self.context.ref(t.allocator),
-      .subrenderer = try self.subrenderer.ref(t.allocator),
+      .renderer = try self.renderer.ref(t.allocator),
     };
   }
 
   pub fn unref(self: *Self) void {
     self.renderer.unref();
-    self.context.unref();
   }
 };
 
@@ -43,8 +36,7 @@ pub const Type = elemental.Type(Self, Params, Impl);
 
 @"type": Type,
 vtable: *const VTable,
-context: *Context,
-subrenderer: graphics.subrenderer.Subrenderer,
+renderer: *Renderer,
 
 pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
   return Type.init(params, parent, allocator);
@@ -60,8 +52,4 @@ pub inline fn ref(self: *Self, allocator: ?std.mem.Allocator) !*Self {
 
 pub inline fn unref(self: *Self) void {
   return self.type.unref();
-}
-
-pub fn getResolution(self: *Self) @Vector(2, i32) {
-  return self.vtable.get_resolution(self.type.toOpaque());
 }

@@ -1,5 +1,6 @@
 const std = @import("std");
 const elemental = @import("../../elemental.zig");
+const graphics = @import("../../graphics.zig");
 const hardware = @import("../../hardware.zig");
 const Compositor = @import("compositor.zig");
 const Client = @import("client.zig");
@@ -27,6 +28,10 @@ const Impl = struct {
       ._type = params.type,
       .vtable = params.vtable,
       .gpu = if (params.gpu) |gpu| try gpu.ref(t.allocator) else null,
+      .renderer = try graphics.renderer.Renderer.init(.{
+        .gpu = params.gpu,
+        .displaykit = self,
+      }, self, t.allocator),
     };
   }
 
@@ -36,6 +41,7 @@ const Impl = struct {
       ._type = self._type,
       .vtable = self.vtable,
       .gpu = if (self.gpu) |gpu| try gpu.ref(t.allocator) else null,
+      .renderer = self.renderer,
     };
   }
 
@@ -43,6 +49,10 @@ const Impl = struct {
     if (self.gpu) |gpu| {
       gpu.unref();
     }
+  }
+
+  pub fn destroy(self: *Self) void {
+    self.renderer.unref();
   }
 };
 
@@ -52,6 +62,7 @@ pub const Type = elemental.Type(Self, Params, Impl);
 _type: base.Type,
 vtable: *const VTable,
 gpu: ?*hardware.device.Gpu,
+renderer: graphics.renderer.Renderer,
 
 pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
   return Type.init(params, parent, allocator);

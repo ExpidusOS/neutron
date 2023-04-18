@@ -1,8 +1,11 @@
 const std = @import("std");
 const elemental = @import("../../elemental.zig");
+const subrenderer = @import("../subrenderer.zig");
 const Self = @This();
 
-pub const VTable = struct {};
+pub const VTable = struct {
+  create_subrenderer: *const fn (self: *anyopaque, res: @Vector(2, i32)) anyerror!subrenderer.Subrenderer,
+};
 
 pub const Params = struct {
   vtable: *const VTable,
@@ -43,4 +46,8 @@ pub inline fn ref(self: *Self, allocator: ?std.mem.Allocator) !*Self {
 
 pub inline fn unref(self: *Self) void {
   return self.type.unref();
+}
+
+pub fn createSubrenderer(self: *Self, res: @Vector(2, i32)) !subrenderer.Subrenderer {
+  return self.vtable.create_subrenderer(self.type.toOpaque(), res);
 }

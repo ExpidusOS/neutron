@@ -2,47 +2,32 @@ const std = @import("std");
 const elemental = @import("../../elemental.zig");
 const hardware = @import("../../hardware.zig");
 const displaykit = @import("../../displaykit.zig");
+const api = @import("../api/egl.zig");
+const subrenderer = @import("../subrenderer.zig");
 const Base = @import("base.zig");
 const Self = @This();
 
-const c = @cImport({
-  @cInclude("EGL/egl.h");
-  @cInclude("EGL/eglext.h");
-});
+const c = api.c;
 
 const vtable = Base.VTable {
+  .create_subrenderer = (struct {
+    fn callback(_base: *anyopaque, res: @Vector(2, i32)) !subrenderer.Subrenderer {
+      const base = Base.Type.fromOpaque(_base);
+      const self = Type.fromOpaque(base.type.parent.?);
+      return .{
+        .egl = try subrenderer.Egl.new(.{
+          .renderer = self,
+          .resolution = res,
+        }, self, null),
+      };
+    }
+  }).callback,
 };
 
 pub const Params = struct {
   gpu: *hardware.device.Gpu,
   displaykit: ?*displaykit.base.Context,
-  resolution: @Vector(2, i32),
 };
-
-fn hasExtension(_clients: [*c]const u8, name: []const u8) bool {
-  var clients: []const u8 = undefined;
-  clients.ptr = _clients;
-  clients.len = std.mem.len(_clients);
-  return std.mem.containsAtLeast(u8, clients, 1, name);
-}
-
-fn hasDisplayExtension(self: *Self, name: []const u8) bool {
-  return hasExtension(c.eglQueryString(self.display, c.EGL_EXTENSIONS), name);
-}
-
-fn hasClientExtension(name: []const u8) bool {
-  return hasExtension(c.eglQueryString(c.EGL_NO_DISPLAY, c.EGL_EXTENSIONS), name);
-}
-
-fn eglWrap(r: c_uint) !void {
-  if (r == c.EGL_FALSE) return error.Unknown;
-  if (r == c.EGL_BAD_PARAMETER) return error.BadParameter;
-}
-
-fn eglWrapBool(r: c_uint) bool {
-  eglWrap(r) catch return false;
-  return true;
-}
 
 const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
@@ -55,13 +40,11 @@ const Impl = struct {
       .displaykit = if (params.displaykit) |dk| try dk.ref(t.allocator) else null,
       .display = try self.gpu.getEglDisplay(),
       .context = undefined,
-      .surface = undefined,
-      .window = null,
     };
     errdefer self.base.unref();
 
-    try eglWrap(c.eglInitialize(self.display, null, null));
-    try eglWrap(c.eglBindAPI(c.EGL_OPENGL_ES_API));
+    try api.wrap(c.eglInitialize(self.display, null, null));
+    try api.wrap(c.eglBindAPI(c.EGL_OPENGL_ES_API));
 
     const IMG_context_priority = self.hasDisplayExtension("EGL_IMG_context_priority");
 
@@ -74,8 +57,6 @@ const Impl = struct {
 
     const config = try self.getConfig();
     self.context = try (if (c.eglCreateContext(self.display, config, c.EGL_NO_CONTEXT, attribs)) |value| value else error.InvalidContext);
-
-    try self.updateSurface(params.resolution);
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
@@ -86,8 +67,6 @@ const Impl = struct {
       .displaykit = if (self.displaykit) |dk| try dk.ref(t.allocator) else null,
       .display = self.display,
       .context = self.context,
-      .surface = self.surface,
-      .window = self.window,
     };
   }
 
@@ -102,12 +81,6 @@ const Impl = struct {
     _ = c.eglDestroySurface(self.display, self.surface);
     _ = c.eglDestroyContext(self.display, self.context);
     _ = c.eglTerminate(self.display);
-
-    if (self.window) |win| {
-      if (self.displaykit) |context| {
-        context.destroyRenderSurface(win);
-      }
-    }
   }
 };
 
@@ -119,8 +92,6 @@ gpu: *hardware.device.Gpu,
 displaykit: ?*displaykit.base.Context,
 display: c.EGLDisplay,
 context: c.EGLContext,
-surface: c.EGLSurface,
-window: ?*anyopaque,
 
 pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
   return Type.init(params, parent, allocator);
@@ -138,37 +109,8 @@ pub inline fn unref(self: *Self) void {
   return self.type.unref();
 }
 
-pub fn updateSurface(self: *Self, res: @Vector(2, i32)) !void {
-  const config = try self.getConfig();
-
-  var surface_type: c.EGLint = undefined;
-  if (c.eglGetConfigAttrib(self.display, config, c.EGL_SURFACE_TYPE, &surface_type) == c.EGL_FALSE) return error.InvalidAttrib;
-
-  var visual: c.EGLint = undefined;
-  if (c.eglGetConfigAttrib(self.display, config, c.EGL_NATIVE_VISUAL_ID, &visual) == c.EGL_FALSE) return error.InvalidAttrib;
-
-  if (surface_type == c.EGL_WINDOW_BIT) {
-    if (self.displaykit) |context| {
-      if (self.window == null) {
-        const win = try context.createRenderSurface(res, @intCast(u32, visual));
-        self.window = win;
-      } else {
-        var win = self.window.?;
-        context.resizeRenderSurface(win, res) catch {
-          context.destroyRenderSurface(win);
-          _ = c.eglDestroySurface(self.display, self.surface);
-          win = try context.createRenderSurface(res, @intCast(u32, visual));
-        };
-
-        self.window = win;
-      }
-
-      self.surface = try (if (c.eglCreateWindowSurface(self.display, config, @intCast(c_ulong, @ptrToInt(self.window.?)), null)) |value| value else error.InvalidSurface);
-      return;
-    }
-    return error.RequiresDisplayKit;
-  }
-  return error.InvalidConfig;
+pub fn hasDisplayExtension(self: *Self, name: []const u8) bool {
+  return api.hasExtension(c.eglQueryString(self.display, c.EGL_EXTENSIONS), name);
 }
 
 pub fn getConfig(self: *Self) !c.EGLConfig {
