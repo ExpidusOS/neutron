@@ -52,6 +52,54 @@ fn iterateResTry(self: *Self) bool {
   return false;
 }
 
+pub fn updateBuffer(self: *Self) !void {
+  const res = self.base_output.getResolution();
+  self.buffer.init(&.{
+    .destroy = (struct {
+      fn callback(_: *wlr.Buffer) callconv(.C) void {}
+    }).callback,
+    .get_dmabuf = (struct {
+      fn callback(buffer: *wlr.Buffer, attribs: *wlr.DmabufAttributes) callconv(.C) bool {
+        _ = buffer;
+        _ = attribs;
+        return false;
+      }
+    }).callback,
+    .get_shm = (struct {
+      fn callback(buffer: *wlr.Buffer, attribs: *wlr.ShmAttributes) callconv(.C) bool {
+        _ = buffer;
+        _ = attribs;
+        return false;
+      }
+    }).callback,
+    .begin_data_ptr_access = (struct {
+      fn callback(buffer: *wlr.Buffer, flags: u32, data: **anyopaque, format: *u32, stride: *usize) callconv(.C) bool {
+        _ = flags;
+
+        const that = @fieldParentPtr(Self, "buffer", buffer);
+        const fb = that.base_output.subrenderer.toBase().getFrameBuffer() catch {
+          return false;
+        };
+
+        data.* = fb.getBuffer();
+        format.* = fb.getFormat();
+        stride.* = fb.getStride();
+        return true;
+      }
+    }).callback,
+    .end_data_ptr_access = (struct {
+      fn callback(buffer: *wlr.Buffer) callconv(.C) void {
+        const that = @fieldParentPtr(Self, "buffer", buffer);
+        that.base_output.subrenderer.toBase().commitFrameBuffer() catch |err| {
+          std.debug.print("Failed to commit: {}\n", .{ err });
+        };
+      }
+    }).callback,
+  }, res[0], res[1]);
+
+  self.scene_buffer.setBuffer(&self.buffer);
+}
+
 const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
     self.type = t;
@@ -81,10 +129,13 @@ const Impl = struct {
         .vtable = &vtable,
       }, self, self.type.allocator),
       .value = params.value,
+      .buffer = undefined,
+      .scene_buffer = try compositor.scene.tree.createSceneBuffer(null),
     };
 
     errdefer self.base_output.unref();
-
+    try self.updateBuffer();
+    
     self.value.events.frame.add(&self.frame);
     self.value.events.mode.add(&self.mode);
     compositor.output_layout.addAuto(self.value);
@@ -95,6 +146,8 @@ const Impl = struct {
       .type = t,
       .base_output = try self.base_output.type.refInit(t.allocator),
       .value = self.value,
+      .buffer = self.buffer,
+      .scene_buffer = self.scene_buffer,
     };
   }
 
@@ -102,13 +155,20 @@ const Impl = struct {
     self.base_output.unref();
     self.value.destroy();
   }
+
+  pub fn destroy(self: *Self) void {
+    self.scene_buffer.destroy();
+    self.buffer.drop();
+  }
 };
 
 pub const Type = elemental.Type(Self, Params, Impl);
 
 @"type": Type,
 base_output: Output,
+buffer: wlr.Buffer,
 value: *wlr.Output,
+scene_buffer: *wlr.SceneBuffer,
 frame: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
   fn callback(listener: *wl.Listener(*wlr.Output), _: *wlr.Output) void {
     const self = @fieldParentPtr(Self, "frame", listener);
@@ -125,8 +185,17 @@ mode: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
   fn callback(listener: *wl.Listener(*wlr.Output), _: *wlr.Output) void {
     const self = @fieldParentPtr(Self, "mode", listener);
     const res = self.base_output.getResolution();
-    _ = res;
-    // TODO: tell base's renderer to resize the surface
+
+    self.base_output.subrenderer.toBase().resize(res) catch |err| {
+      std.debug.print("Failed to resize the subrenderer: {s}\n", .{ @errorName(err) });
+      return;
+      // TODO: use the logger
+    };
+
+    self.updateBuffer() catch |err| {
+      std.debug.print("Failed to update the buffer: {s}\n", .{ @errorName(err) });
+      return;
+    };
   }
 }).callback),
 

@@ -2,6 +2,7 @@ const builtin = @import("builtin");
 const std = @import("std");
 const elemental = @import("../../elemental.zig");
 const hardware = @import("../../hardware.zig");
+const graphics = @import("../../graphics.zig");
 const Runtime = @import("../../runtime/runtime.zig");
 const Context = @import("../base/context.zig");
 const Compositor = @import("../base/compositor.zig");
@@ -9,9 +10,7 @@ const Output = @import("output.zig");
 const Input = @import("input.zig").Input;
 const Self = @This();
 
-const c = @cImport({
-  @cInclude("gbm.h");
-});
+const c = hardware.device.Gpu.c;
 
 const wl = @import("wayland").server.wl;
 const wlr = @import("wlroots");
@@ -38,6 +37,21 @@ const vtable = Compositor.VTable {
         _ = surf;
         _ = res;
         return error.InvalidSurface;
+      }
+    }).callback,
+    .get_render_surface_buffer = (struct {
+      fn callback(_base_context: *anyopaque, surf: *anyopaque) !*graphics.FrameBuffer {
+        const base_context = Context.Type.fromOpaque(_base_context);
+        const gpu = base_context.gpu.?;
+        return if (c.gbm_surface_lock_front_buffer(@ptrCast(*c.struct_gbm_surface, surf))) |bo| gpu.getGBMFrameBuffer(bo) else error.GbmFailure;
+      }
+    }).callback,
+    .commit_render_surface_buffer = (struct {
+      fn callback(_base_context: *anyopaque, surf: *anyopaque, _fb: *graphics.FrameBuffer) !void {
+        _ = _base_context;
+        const fb = hardware.device.Gpu.FrameBuffer.Type.fromOpaque(_fb);
+
+        c.gbm_surface_release_buffer(@ptrCast(*c.struct_gbm_surface, surf), fb.gbm_bo);
       }
     }).callback,
     .destroy_render_surface = (struct {

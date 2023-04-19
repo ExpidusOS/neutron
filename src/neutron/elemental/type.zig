@@ -31,9 +31,10 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
     }
 
     pub fn init(params: P, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !T {
-      const type_inst = try typeInit(parent, allocator);
+      var type_inst = try typeInit(parent, allocator);
 
       var self: T = undefined;
+      type_inst.ref.value = @ptrCast(*anyopaque, @alignCast(@alignOf(*anyopaque), &self));
       if (@hasDecl(impl, "construct")) {
         try @as(ConstructFunc, impl.construct)(&self, params, type_inst);
       } else {
@@ -51,6 +52,7 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
       errdefer type_inst.allocator.destroy(self);
 
       type_inst.allocated = true;
+      type_inst.ref.value = @ptrCast(*anyopaque, @alignCast(@alignOf(*anyopaque), self));
 
       if (@hasDecl(impl, "construct")) {
         try @as(ConstructFunc, impl.construct)(self, params, type_inst);
@@ -63,11 +65,11 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
     }
 
     pub fn fromOpaque(op: *anyopaque) *T {
-      return @ptrCast(*T, @alignCast(@alignOf(T), op));
+      return @ptrCast(*T, @alignCast(@alignOf(*T), op));
     }
 
     pub fn toOpaque(self: *Self) *anyopaque {
-      return @ptrCast(*anyopaque, @alignCast(@alignOf(T), self.getInstance()));
+      return @ptrCast(*anyopaque, @alignCast(@alignOf(*anyopaque), self.getInstance()));
     }
 
     pub fn getInstance(self: *Self) *T {
@@ -76,7 +78,7 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
 
     pub fn refInit(self: *Self, allocator: ?std.mem.Allocator) !T {
       if (allocator) |alloc| {
-        const ref_type = Self {
+        var ref_type = Self {
           .allocated = false,
           .allocator = alloc,
           .parent = self.parent,
@@ -84,6 +86,7 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
         };
 
         var dest: T = undefined;
+        ref_type.ref.value = @ptrCast(*anyopaque, @alignCast(@alignOf(*anyopaque), &dest));
 
         if (@hasDecl(impl, "ref")) {
           try @as(RefFunc, impl.ref)(self.getInstance(), &dest, ref_type);
@@ -102,12 +105,14 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
         const dest = try alloc.create(T);
         errdefer alloc.destroy(dest);
 
-        const ref_type = Self {
+        var ref_type = Self {
           .allocated = false,
           .allocator = alloc,
           .parent = self.parent,
           .ref = try self.ref.ref(),
         };
+
+        ref_type.ref.value = @ptrCast(*anyopaque, @alignCast(@alignOf(*anyopaque), dest));
 
         if (@hasDecl(impl, "ref")) {
           try @as(RefFunc, impl.ref)(self.getInstance(), dest, ref_type);

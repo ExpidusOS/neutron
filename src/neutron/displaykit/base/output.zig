@@ -34,7 +34,7 @@ const Impl = struct {
   }
 
   pub fn unref(self: *Self) void {
-    self.renderer.unref();
+    self.subrenderer.unref();
     self.context.unref();
   }
 };

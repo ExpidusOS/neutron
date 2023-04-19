@@ -21,4 +21,10 @@ pub const Subrenderer = union(Type) {
       .egl => |egl| egl.unref(),
     };
   }
+
+  pub fn toBase(self: *Subrenderer) *Base {
+    return switch (self.*) {
+      .egl => |egl| &egl.base,
+    };
+  }
 };

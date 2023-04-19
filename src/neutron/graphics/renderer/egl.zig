@@ -37,7 +37,7 @@ const Impl = struct {
         .vtable = &vtable,
       }, self, t.allocator),
       .gpu = try params.gpu.ref(t.allocator),
-      .displaykit = if (params.displaykit) |dk| try dk.ref(t.allocator) else null,
+      .displaykit = if (params.displaykit) |ctx| try ctx.ref(t.allocator) else null,
       .display = try self.gpu.getEglDisplay(),
       .context = undefined,
     };
@@ -64,7 +64,7 @@ const Impl = struct {
       .type = t,
       .base = try self.base.type.refInit(t.allocator),
       .gpu = try self.gpu.ref(t.allocator),
-      .displaykit = if (self.displaykit) |dk| try dk.ref(t.allocator) else null,
+      .displaykit = if (self.displaykit) |ctx| try ctx.ref(t.allocator) else null,
       .display = self.display,
       .context = self.context,
     };
@@ -73,12 +73,10 @@ const Impl = struct {
   pub fn unref(self: *Self) void {
     self.base.unref();
     self.gpu.unref();
-
-    if (self.displaykit) |dk| dk.unref();
+    self.displaykit.unref();
   }
 
   pub fn destroy(self: *Self) void {
-    _ = c.eglDestroySurface(self.display, self.surface);
     _ = c.eglDestroyContext(self.display, self.context);
     _ = c.eglTerminate(self.display);
   }

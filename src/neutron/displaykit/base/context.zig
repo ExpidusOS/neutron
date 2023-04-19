@@ -12,6 +12,8 @@ const Self = @This();
 pub const VTable = struct {
   create_render_surface: *const fn (self: *anyopaque, res: @Vector(2, i32), visual: u32) anyerror!*anyopaque,
   resize_render_surface: *const fn (self: *anyopaque, surf: *anyopaque, res: @Vector(2, i32)) anyerror!void,
+  get_render_surface_buffer: *const fn (self: *anyopaque, surf: *anyopaque) anyerror!*graphics.FrameBuffer,
+  commit_render_surface_buffer: *const fn (self: *anyopaque, surf: *anyopaque, fb: *graphics.FrameBuffer) anyerror!void,
   destroy_render_surface: *const fn (self: *anyopaque, surf: *anyopaque) void,
 };
 
@@ -61,7 +63,7 @@ pub const Type = elemental.Type(Self, Params, Impl);
 @"type": Type,
 _type: base.Type,
 vtable: *const VTable,
-gpu: ?*hardware.device.Gpu,
+gpu: ?*hardware.device.Gpu = null,
 renderer: graphics.renderer.Renderer,
 
 pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
@@ -96,6 +98,14 @@ pub fn createRenderSurface(self: *Self, res: @Vector(2, i32), visual: u32) !*any
 
 pub fn resizeRenderSurface(self: *Self, surf: *anyopaque, res: @Vector(2, i32)) !void {
   return self.vtable.resize_render_surface(self.type.toOpaque(), surf, res);
+}
+
+pub fn getRenderSurfaceBuffer(self: *Self, surf: *anyopaque) !*graphics.FrameBuffer {
+  return self.vtable.get_render_surface_buffer(self.type.toOpaque(), surf);
+}
+
+pub fn commitRenderSurfaceBuffer(self: *Self, surf: *anyopaque, fb: *graphics.FrameBuffer) !void {
+  return self.vtable.commit_render_surface_buffer(self.type.toOpaque(), surf, fb);
 }
 
 pub fn destroyRenderSurface(self: *Self, surf: *anyopaque) void {
