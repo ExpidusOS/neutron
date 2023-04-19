@@ -91,21 +91,7 @@ displaykit: ?*displaykit.base.Context,
 display: c.EGLDisplay,
 context: c.EGLContext,
 
-pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
-  return Type.init(params, parent, allocator);
-}
-
-pub inline fn new(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !*Self {
-  return Type.new(params, parent, allocator);
-}
-
-pub inline fn ref(self: *Self, allocator: ?std.mem.Allocator) !*Self {
-  return self.type.refNew(allocator);
-}
-
-pub inline fn unref(self: *Self) void {
-  return self.type.unref();
-}
+pub usingnamespace Type.Impl;
 
 pub fn hasDisplayExtension(self: *Self, name: []const u8) bool {
   return api.hasExtension(c.eglQueryString(self.display, c.EGL_EXTENSIONS), name);

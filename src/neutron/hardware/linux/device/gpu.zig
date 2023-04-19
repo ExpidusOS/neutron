@@ -106,22 +106,6 @@ pub const FrameBuffer = struct {
   stride: u32,
   gbm_bo: *c.struct_gbm_bo,
   buffer: *anyopaque,
-
-  pub inline fn init(params: FrameBuffer.Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !FrameBuffer {
-    return FrameBuffer.Type.init(params, parent, allocator);
-  }
-
-  pub inline fn new(params: FrameBuffer.Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !*FrameBuffer {
-    return FrameBuffer.Type.new(params, parent, allocator);
-  }
-
-  pub inline fn ref(self: *FrameBuffer, allocator: ?std.mem.Allocator) !*FrameBuffer {
-    return self.type.refNew(allocator);
-  }
-
-  pub inline fn unref(self: *FrameBuffer) void {
-    return self.type.unref();
-  }
 };
 
 pub const Params = union(enum) {
@@ -176,21 +160,7 @@ base: Gpu,
 fd: std.os.fd_t,
 gbm_dev: *anyopaque,
 
-pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
-  return Type.init(params, parent, allocator);
-}
-
-pub inline fn new(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !*Self {
-  return Type.new(params, parent, allocator);
-}
-
-pub inline fn ref(self: *Self, allocator: ?std.mem.Allocator) !*Self {
-  return self.type.refNew(allocator);
-}
-
-pub inline fn unref(self: *Self) void {
-  return self.type.unref();
-}
+pub usingnamespace Type.Impl;
 
 pub fn getEglDisplay(self: *Self) !c.EGLDisplay {
   const _clients = c.eglQueryString(c.EGL_NO_DISPLAY, c.EGL_EXTENSIONS);
@@ -212,13 +182,13 @@ pub fn getEglDisplay(self: *Self) !c.EGLDisplay {
 
 fn gbm_bo_unref(gbm_bo: ?*c.struct_gbm_bo, userdata: ?*anyopaque) callconv(.C) void {
   _ = gbm_bo;
-  FrameBuffer.Type.fromOpaque(userdata.?).unref();
+  FrameBuffer.Type.fromOpaque(userdata.?).type.unref();
 }
 
 pub fn getGBMFrameBuffer(self: *Self, gbm_bo: *c.struct_gbm_bo) !*graphics.FrameBuffer {
   return if (c.gbm_bo_get_user_data(gbm_bo)) |value| &(@ptrCast(*FrameBuffer, @alignCast(@alignOf(*FrameBuffer), value))).base
     else blk: {
-      const value = try FrameBuffer.new(.{
+      const value = try FrameBuffer.Type.new(.{
         .gbm_bo = gbm_bo,
       }, self, self.type.allocator);
       c.gbm_bo_set_user_data(gbm_bo, value, gbm_bo_unref);

@@ -26,8 +26,16 @@ pub const Params = struct {
 };
 
 const Impl = struct {
-  pub fn ref(self: *Self, t: Type) !Self {
-    return .{
+  pub fn init(self: *Self, params: Params, t: Type) !void {
+    self.* = .{
+      .type = t,
+      .vtable = params.vtable,
+      .mutex = .{},
+    };
+  }
+
+  pub fn ref(self: *Self, dest: *Self, t: Type) !Self {
+    dest.* = .{
       .type = t,
       .vtable = self.vtable,
       .mutex = .{},
@@ -41,25 +49,7 @@ pub const Type = elemental.Type(Self, Params, Impl);
 vtable: *const VTable,
 mutex: std.Thread.Mutex,
 
-pub fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
-  return .{
-    .type = Type.init(parent, allocator),
-    .vtable = params.vtable,
-    .mutex = .{},
-  };
-}
-
-pub inline fn new(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !*Self {
-  return Type.new(params, parent, allocator);
-}
-
-pub inline fn ref(self: *Self) !*Self {
-  return self.type.refNew();
-}
-
-pub inline fn unref(self: *Self) !void {
-  return self.type.unref();
-}
+pub usingnamespace Type.Impl;
 
 pub fn write(self: *Self, level: std.log.Level, message: []const u8) !void {
   self.mutex.lock();

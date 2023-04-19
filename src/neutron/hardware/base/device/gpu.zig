@@ -46,21 +46,7 @@ pub const Type = elemental.Type(Self, Params, Impl);
 vtable: *const VTable,
 base: Base,
 
-pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
-  return Type.init(params, parent, allocator);
-}
-
-pub inline fn new(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !*Self {
-  return Type.new(params, parent, allocator);
-}
-
-pub inline fn ref(self: *Self, allocator: ?std.mem.Allocator) !*Self {
-  return self.type.refNew(allocator);
-}
-
-pub inline fn unref(self: *Self) void {
-  return self.type.unref();
-}
+pub usingnamespace Type.Impl;
 
 pub inline fn getEglDisplay(self: *Self) !c.EGLDisplay {
   return self.vtable.get_egl_display(self.type.toOpaque());

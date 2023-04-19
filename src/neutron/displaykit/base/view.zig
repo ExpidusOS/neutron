@@ -40,18 +40,4 @@ pub const Type = elemental.Type(Self, Params, Impl);
 vtable: *const VTable,
 context: *Context,
 
-pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
-  return Type.init(params, parent, allocator);
-}
-
-pub inline fn new(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !*Self {
-  return Type.new(params, parent, allocator);
-}
-
-pub inline fn ref(self: *Self) !*Self {
-  return self.type.refNew();
-}
-
-pub inline fn unref(self: *Self) void {
-  return self.type.unref();
-}
+pub usingnamespace Type.Impl;

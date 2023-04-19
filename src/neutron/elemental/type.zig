@@ -15,6 +15,24 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
     parent: ?*anyopaque = null,
     ref: Reference = .{},
 
+    pub const Impl = struct {
+      pub fn init(params: P, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !T {
+        return Self.init(params, parent, allocator);
+      }
+
+      pub fn new(params: P, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !*T {
+        return Self.new(params, parent, allocator);
+      }
+
+      pub fn ref(self: *T, allocator: ?std.mem.Allocator) !*T {
+        return Self.refNew(@constCast(&self.type), allocator);
+      }
+
+      pub fn unref(self: *T) void {
+        return Self.unref(@constCast(&self.type));
+      }
+    };
+
     pub fn typeInit(parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
       if (allocator) |alloc| {
         var self = Self {

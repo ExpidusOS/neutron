@@ -39,21 +39,7 @@ pub const Type = elemental.Type(Self, Params, Impl);
 base: *Base,
 device: *wlr.InputDevice,
 
-pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
-  return Type.init(params, parent, allocator);
-}
-
-pub inline fn new(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !*Self {
-  return Type.new(params, parent, allocator);
-}
-
-pub inline fn ref(self: *Self, allocator: ?std.mem.Allocator) !*Self {
-  return self.type.refNew(allocator);
-}
-
-pub inline fn unref(self: *Self) void {
-  return self.type.unref();
-}
+pub usingnamespace Type.Impl;
 
 pub inline fn getCompositor(self: *Self, comptime T: type) *Compositor {
   return Compositor.Type.fromOpaque(T.Type.fromOpaque(self.type.parent.?).type.parent.?);

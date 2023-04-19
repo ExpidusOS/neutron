@@ -32,21 +32,7 @@ pub const Type = elemental.Type(Self, Params, Impl);
 @"type": Type,
 vtable: *const VTable,
 
-pub inline fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Self {
-  return Type.init(params, parent, allocator);
-}
-
-pub inline fn new(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !*Self {
-  return Type.new(params, parent, allocator);
-}
-
-pub inline fn ref(self: *Self, allocator: ?std.mem.Allocator) !*Self {
-  return self.type.refNew(allocator);
-}
-
-pub inline fn unref(self: *Self) void {
-  return self.type.unref();
-}
+pub usingnamespace Type.Impl;
 
 pub fn createSubrenderer(self: *Self, res: @Vector(2, i32)) !subrenderer.Subrenderer {
   return self.vtable.create_subrenderer(self.type.toOpaque(), res);
