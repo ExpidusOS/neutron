@@ -123,7 +123,7 @@ const Impl = struct {
           .get_egl_display = (struct {
             fn callback(_gpu: *anyopaque) !c.EGLDisplay {
               const gpu = Gpu.Type.fromOpaque(_gpu);
-              const that = Type.fromOpaque(gpu.type.parent.?);
+              const that = Type.fromOpaque(gpu.type.parent.?.getValue());
               return that.getEglDisplay();
             }
           }).callback,

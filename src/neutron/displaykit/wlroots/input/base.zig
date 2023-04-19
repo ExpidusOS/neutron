@@ -42,5 +42,5 @@ device: *wlr.InputDevice,
 pub usingnamespace Type.Impl;
 
 pub inline fn getCompositor(self: *Self, comptime T: type) *Compositor {
-  return Compositor.Type.fromOpaque(T.Type.fromOpaque(self.type.parent.?).type.parent.?);
+  return Compositor.Type.fromOpaque(T.Type.fromOpaque(self.type.parent.?.getValue()).type.parent.?.getValue());
 }

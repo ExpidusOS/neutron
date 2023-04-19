@@ -16,7 +16,7 @@ const vtable = Output.VTable {
   .get_resolution = (struct {
     fn callback(_base: *anyopaque) @Vector(2, i32) {
       const base = Output.Type.fromOpaque(_base);
-      const self = Type.fromOpaque(base.type.parent.?);
+      const self = Type.fromOpaque(base.type.parent.?.getValue());
 
       if (self.value.current_mode) |mode| {
         return @Vector(2, i32) { mode.width, mode.height };
@@ -202,5 +202,5 @@ mode: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
 pub usingnamespace Type.Impl;
 
 pub inline fn getCompositor(self: *Self) *Compositor {
-  return Compositor.Type.fromOpaque(self.type.parent.?);
+  return Compositor.Type.fromOpaque(self.type.parent.?.getValue());
 }

@@ -14,7 +14,7 @@ const vtable = Base.VTable {
   .get_frame_buffer = (struct {
     fn callback(_base: *anyopaque) !*FrameBuffer {
       const base = Base.Type.fromOpaque(_base);
-      const self = Type.fromOpaque(base.type.parent.?);
+      const self = Type.fromOpaque(base.type.parent.?.getValue());
       const renderer = self.getRenderer();
 
       if (self.window != null and renderer.displaykit != null) {
@@ -32,7 +32,7 @@ const vtable = Base.VTable {
   .commit_frame_buffer = (struct {
     fn callback(_base: *anyopaque) !void {
       const base = Base.Type.fromOpaque(_base);
-      const self = Type.fromOpaque(base.type.parent.?);
+      const self = Type.fromOpaque(base.type.parent.?.getValue());
       const renderer = self.getRenderer();
 
       if (self.window != null and renderer.displaykit != null and self.fb != null) {
@@ -47,7 +47,7 @@ const vtable = Base.VTable {
   .resize = (struct {
     fn callback(_base: *anyopaque, res: @Vector(2, i32)) !void {
       const base = Base.Type.fromOpaque(_base);
-      const self = Type.fromOpaque(base.type.parent.?);
+      const self = Type.fromOpaque(base.type.parent.?.getValue());
       const renderer = self.getRenderer();
       const config = try renderer.getConfig();
 
@@ -147,5 +147,5 @@ mutex: std.Thread.Mutex,
 pub usingnamespace Type.Impl;
 
 pub fn getRenderer(self: *Self) *Renderer {
-  return Renderer.Type.fromOpaque(self.type.parent.?);
+  return Renderer.Type.fromOpaque(self.type.parent.?.getValue());
 }

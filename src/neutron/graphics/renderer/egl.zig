@@ -13,7 +13,7 @@ const vtable = Base.VTable {
   .create_subrenderer = (struct {
     fn callback(_base: *anyopaque, res: @Vector(2, i32)) !subrenderer.Subrenderer {
       const base = Base.Type.fromOpaque(_base);
-      const self = Type.fromOpaque(base.type.parent.?);
+      const self = Type.fromOpaque(base.type.parent.?.getValue());
       return .{
         .egl = try subrenderer.Egl.new(.{
           .renderer = self,
