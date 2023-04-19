@@ -116,8 +116,6 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
           .parent = Parent.init(parent),
           .ref = .{},
         };
-
-        self.ref.value = &self;
         return self;
       }
       return typeInit(parent, std.heap.page_allocator);
@@ -127,7 +125,6 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
       var type_inst = try typeInit(parent, allocator);
 
       var self: T = undefined;
-      type_inst.ref.value = @ptrCast(*anyopaque, @alignCast(@alignOf(*anyopaque), &self));
       if (@hasDecl(impl, "construct")) {
         try @as(ConstructFunc, impl.construct)(&self, params, type_inst);
       } else {
@@ -162,7 +159,7 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
     }
 
     pub fn toOpaque(self: *Self) *anyopaque {
-      return @ptrCast(*anyopaque, @alignCast(@alignOf(*anyopaque), self.getInstance()));
+      return self.ref.value orelse @ptrCast(*anyopaque, @alignCast(@alignOf(*anyopaque), self.getInstance()));
     }
 
     pub fn getInstance(self: *Self) *T {
@@ -177,6 +174,8 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
           .parent = self.parent,
           .ref = try self.ref.ref(),
         };
+
+        if (self.allocated) return error.MustAllocate;
 
         var dest: T = undefined;
         ref_type.ref.value = null;

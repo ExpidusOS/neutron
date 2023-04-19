@@ -24,20 +24,15 @@ const vtable = Base.VTable {
   }).callback,
 };
 
-pub const Params = struct {
-  gpu: *hardware.device.Gpu,
-  displaykit: ?*displaykit.base.Context,
-};
 
 const Impl = struct {
-  pub fn construct(self: *Self, params: Params, t: Type) !void {
+  pub fn construct(self: *Self, gpu: *hardware.device.Gpu, t: Type) !void {
     self.* = .{
       .type = t,
       .base = try Base.init(.{
         .vtable = &vtable,
       }, self, t.allocator),
-      .gpu = try params.gpu.ref(t.allocator),
-      .displaykit = if (params.displaykit) |ctx| try ctx.ref(t.allocator) else null,
+      .gpu = try gpu.ref(t.allocator),
       .display = try self.gpu.getEglDisplay(),
       .context = undefined,
     };
@@ -64,7 +59,6 @@ const Impl = struct {
       .type = t,
       .base = try self.base.type.refInit(t.allocator),
       .gpu = try self.gpu.ref(t.allocator),
-      .displaykit = if (self.displaykit) |ctx| try ctx.ref(t.allocator) else null,
       .display = self.display,
       .context = self.context,
     };
@@ -73,7 +67,6 @@ const Impl = struct {
   pub fn unref(self: *Self) void {
     self.base.unref();
     self.gpu.unref();
-    self.displaykit.unref();
   }
 
   pub fn destroy(self: *Self) void {
@@ -82,12 +75,11 @@ const Impl = struct {
   }
 };
 
-pub const Type = elemental.Type(Self, Params, Impl);
+pub const Type = elemental.Type(Self, *hardware.device.Gpu, Impl);
 
 @"type": Type,
 base: Base,
 gpu: *hardware.device.Gpu,
-displaykit: ?*displaykit.base.Context,
 display: c.EGLDisplay,
 context: c.EGLContext,
 
@@ -119,4 +111,10 @@ pub fn getConfig(self: *Self) !c.EGLConfig {
 
   configs.len = @intCast(usize, matches);
   return configs[0];
+}
+
+pub fn getDisplayKit(self: *Self) ?*displaykit.base.Context {
+  return if (self.type.parent) |p|
+    displaykit.base.Context.Type.fromOpaque(@constCast(&p).getValue())
+  else null;
 }

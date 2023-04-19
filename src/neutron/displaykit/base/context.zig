@@ -30,10 +30,7 @@ const Impl = struct {
       ._type = params.type,
       .vtable = params.vtable,
       .gpu = if (params.gpu) |gpu| try gpu.ref(t.allocator) else null,
-      .renderer = try graphics.renderer.Renderer.init(.{
-        .gpu = params.gpu,
-        .displaykit = self,
-      }, self, t.allocator),
+      .renderer = try graphics.renderer.Renderer.init(params.gpu, self, t.allocator),
     };
   }
 

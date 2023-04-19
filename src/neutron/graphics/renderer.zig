@@ -9,20 +9,12 @@ pub const Type = enum {
   egl,
 };
 
-pub const Params = struct {
-  gpu: ?*hardware.device.Gpu,
-  displaykit: ?*displaykit.base.Context,
-};
-
 pub const Renderer = union(Type) {
   egl: *Egl,
 
-  pub fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Renderer {
-    if (params.gpu) |gpu| {
-      if (Egl.new(.{
-        .gpu = gpu,
-        .displaykit = params.displaykit,
-      }, parent, allocator) catch |err| blk: {
+  pub fn init(_gpu: ?*hardware.device.Gpu, ctx: ?*displaykit.base.Context, allocator: ?std.mem.Allocator) !Renderer {
+    if (_gpu) |gpu| {
+      if (Egl.new(gpu, ctx, allocator) catch |err| blk: {
         std.debug.print("Failed to create EGL renderer: {s}\n", .{ @errorName(err) });
         break :blk null;
       }) |egl| return .{ .egl = egl };
@@ -37,6 +29,20 @@ pub const Renderer = union(Type) {
       .egl => |egl| .{
         .egl = try egl.ref(allocator),
       },
+    };
+  }
+
+  pub fn setDisplayKit(self: *Renderer, ctx: ?*displaykit.base.Context) void {
+    switch (self.*) {
+      .egl => |egl| {
+        egl.type.parent = Egl.Type.Parent.init(ctx);
+      },
+    }
+  }
+
+  pub fn getDisplayKit(self: *Renderer) ?*displaykit.base.Context {
+    return switch (self.*) {
+      .egl => |egl| egl.getDisplayKit(),
     };
   }
 

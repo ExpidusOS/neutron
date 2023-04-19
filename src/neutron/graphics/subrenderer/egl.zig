@@ -17,9 +17,9 @@ const vtable = Base.VTable {
       const self = Type.fromOpaque(base.type.parent.?.getValue());
       const renderer = self.getRenderer();
 
-      if (self.window != null and renderer.displaykit != null) {
+      if (self.window != null and renderer.getDisplayKit() != null) {
         const win = self.window.?;
-        const context = renderer.displaykit.?;
+        const context = renderer.getDisplayKit().?;
 
         // FIXME: segment faults with 0x0
         const fb = try context.getRenderSurfaceBuffer(win);
@@ -35,9 +35,10 @@ const vtable = Base.VTable {
       const self = Type.fromOpaque(base.type.parent.?.getValue());
       const renderer = self.getRenderer();
 
-      if (self.window != null and renderer.displaykit != null and self.fb != null) {
+      if (self.window != null and renderer.getDisplayKit() != null and self.fb != null) {
         const win = self.window.?;
-        const context = renderer.displaykit.?;
+        const context = renderer.getDisplayKit().?;
+
         defer self.fb = null;
         return context.commitRenderSurfaceBuffer(win, self.fb.?);
       }
@@ -61,7 +62,7 @@ const vtable = Base.VTable {
       defer self.mutex.unlock();
 
       if (surface_type == c.EGL_WINDOW_BIT) {
-        if (renderer.displaykit) |context| {
+        if (renderer.getDisplayKit()) |context| {
           if (self.window == null) {
             const win = try context.createRenderSurface(res, @intCast(u32, visual));
             self.window = win;

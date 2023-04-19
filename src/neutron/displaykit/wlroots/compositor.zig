@@ -36,7 +36,7 @@ const vtable = Compositor.VTable {
         _ = _base_context;
         _ = surf;
         _ = res;
-        return error.InvalidSurface;
+        return error.NotImplemented;
       }
     }).callback,
     .get_render_surface_buffer = (struct {
@@ -105,6 +105,9 @@ const Impl = struct {
         }
       }).callback, .{ self }),
     };
+
+    self.base_compositor.context.type.ref.value = &self.base_compositor.context;
+    self.base_compositor.context.renderer.setDisplayKit(&self.base_compositor.context);
 
     try self.scene.attachOutputLayout(self.output_layout);
 
