@@ -12,11 +12,24 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
 
     pub const ParentType = struct {
       name: []const u8,
+      field: ?[]const u8,
+      offset: ?usize,
       ptr: *anyopaque,
 
       pub fn init(value: anytype) ParentType {
+        const field: ?[]const u8 = comptime blk: {
+          inline for (std.meta.fields(@TypeOf(value.*))) |f| {
+            if (f.type == T) {
+              break :blk f.name;
+            }
+          }
+          break :blk null;
+        };
+
         return .{
           .name = @typeName(@TypeOf(value)),
+          .field = field,
+          .offset = if (field) |f| @offsetOf(@TypeOf(value.*), f) else null,
           .ptr = @ptrCast(*anyopaque, @alignCast(@alignOf(*anyopaque), value)),
         };
       }
@@ -26,7 +39,12 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
 
         try writer.writeAll(self.name);
         try writer.writeByte('@');
-        try writer.print("{}", .{ self.ptr });
+
+        if (self.field != null and self.offset != null) {
+          try writer.print("{s}:{}=", .{ self.field.?, self.offset.? });
+        }
+
+        try writer.print("{x}", .{ @ptrToInt(self.ptr) });
       }
     };
 
@@ -36,16 +54,19 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
 
       pub fn init(value: anytype) ?Parent {
         const t = @typeInfo(@TypeOf(value));
-        return switch (t) {
-          .Null, .Undefined => null,
-          .Pointer => .{
-            .ty = ParentType.init(value),
-          },
+
+        if (t == .Null or t == .Undefined) return null;
+        if (t == .Optional) return if (value) |v| Parent.init(v) else null;
+        if (t != .Pointer) @compileError("Must be a pointer");
+
+        return switch (@typeInfo(t.Pointer.child)) {
           .Opaque => .{
             .op = value,
           },
-          .Optional => if (value) |v| Parent.init(v) else null,
-          else => @compileError("Invalid type " ++ @tagName(t)),
+          .Struct => .{
+            .ty = ParentType.init(value),
+          },
+          else => @compileError("Invalid type " ++ @tagName(@typeInfo(t.Pointer.child))),
         };
       }
 
@@ -59,7 +80,7 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
       pub fn format(self: Parent, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
         return switch (self) {
           .ty => |t| t.format(fmt, options, writer),
-          .op => |o| writer.print("{}", .{ o }),
+          .op => |o| writer.print("{x}", .{ @ptrToInt(o) }),
         };
       }
     };
@@ -158,7 +179,7 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
         };
 
         var dest: T = undefined;
-        ref_type.ref.value = @ptrCast(*anyopaque, @alignCast(@alignOf(*anyopaque), &dest));
+        ref_type.ref.value = null;
 
         if (@hasDecl(impl, "ref")) {
           try @as(RefFunc, impl.ref)(self.getInstance(), &dest, ref_type);
@@ -178,7 +199,7 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
         errdefer alloc.destroy(dest);
 
         var ref_type = Self {
-          .allocated = false,
+          .allocated = true,
           .allocator = alloc,
           .parent = self.parent,
           .ref = try self.ref.ref(),
