@@ -61,7 +61,7 @@ pub const Params = struct {
       }
     }
 
-    if (std.mem.indexOf(u8, arg, ":") != null) return error.InvalidKind;
+    if (std.mem.indexOf(u8, arg, ",") == null) return error.InvalidKind;
     return parseSubarguments(null, arg);
   }
 };
