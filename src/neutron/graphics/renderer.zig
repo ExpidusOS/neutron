@@ -1,12 +1,16 @@
 const std = @import("std");
+const config = @import("neutron-config");
 const hardware = @import("../hardware.zig");
 const displaykit = @import("../displaykit.zig");
 
 pub const Base = @import("renderer/base.zig");
+pub const Mock = @import("renderer/mock.zig");
 pub const Egl = @import("renderer/egl.zig");
+pub const OsMesa = if (config.has_osmesa) @import("renderer/osmesa.zig") else Mock;
 
 pub const Type = enum {
   egl,
+  osmesa,
 };
 
 pub const Kind = enum {
@@ -68,11 +72,14 @@ pub const Params = struct {
 
 pub const Renderer = union(Type) {
   egl: *Egl,
+  osmesa: *OsMesa,
 
   pub fn initGL(software: ?bool, _gpu: ?*hardware.device.Gpu, ctx: ?*displaykit.base.Context, allocator: ?std.mem.Allocator) !Renderer {
     if (software) |sw| {
       if (sw) {
-        return error.NotSupported;
+        return .{
+          .osmesa = try OsMesa.new(.{}, ctx, allocator),
+        };
       } else {
         if (_gpu) |gpu| {
           return .{
@@ -89,7 +96,10 @@ pub const Renderer = union(Type) {
         break :blk null;
       }) |egl| return .{ .egl = egl };
     }
-    return error.NotSupported;
+
+    return .{
+      .osmesa = try OsMesa.new(.{}, ctx, allocator),
+    };
   }
 
   pub fn init(params: ?Params, _gpu: ?*hardware.device.Gpu, ctx: ?*displaykit.base.Context, allocator: ?std.mem.Allocator) !Renderer {
@@ -112,6 +122,9 @@ pub const Renderer = union(Type) {
       .egl => |egl| .{
         .egl = try egl.ref(allocator),
       },
+      .osmesa => |osmesa| .{
+        .osmesa = try osmesa.ref(allocator),
+      },
     };
   }
 
@@ -120,24 +133,30 @@ pub const Renderer = union(Type) {
       .egl => |egl| {
         egl.type.parent = Egl.Type.Parent.init(ctx);
       },
+      .osmesa => |osmesa| {
+        osmesa.type.parent = OsMesa.Type.Parent.init(ctx);
+      },
     }
   }
 
   pub fn getDisplayKit(self: *Renderer) ?*displaykit.base.Context {
     return switch (self.*) {
       .egl => |egl| egl.getDisplayKit(),
+      .osmesa => |osmesa| osmesa.getDisplayKit(),
     };
   }
 
   pub fn unref(self: *Renderer) void {
     return switch (self.*) {
       .egl => |egl| egl.unref(),
+      .osmesa => |osmesa| osmesa.unref(),
     };
   }
 
   pub fn toBase(self: *Renderer) *Base {
     return switch (self.*) {
       .egl => |egl| &egl.base,
+      .osmesa => |osmesa| &osmesa.base,
     };
   }
 };

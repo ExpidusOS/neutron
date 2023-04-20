@@ -24,7 +24,6 @@ const vtable = Base.VTable {
   }).callback,
 };
 
-
 const Impl = struct {
   pub fn construct(self: *Self, gpu: *hardware.device.Gpu, t: Type) !void {
     self.* = .{

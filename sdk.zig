@@ -99,6 +99,7 @@ pub fn new(builder: *Build, target: std.zig.CrossTarget, optimize: std.builtin.M
   self.config.addOption(bool, "has_wlroots", self.wl_scan_protocols != null);
   self.config.addOption(bool, "has_gbm", target.isLinux());
   self.config.addOption(bool, "has_libdrm", target.isLinux());
+  self.config.addOption(bool, "has_osmesa", target.isLinux());
 
   for (try self.getDependencies()) |dep| {
     self.docs.addModule(dep.name, dep.module);
@@ -232,6 +233,7 @@ pub fn linkLibraries(self: *Self, artifact: *Build.CompileStep) void {
   if (self.target.isLinux()) {
     artifact.linkSystemLibrary("gbm");
     artifact.linkSystemLibrary("libdrm");
+    artifact.linkSystemLibrary("osmesa");
   }
 
   if (self.wl_scan_protocols) |scanner| {

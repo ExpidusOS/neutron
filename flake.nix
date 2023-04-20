@@ -118,6 +118,7 @@
               libxkbcommon
               libdrm
               mesa
+              mesa.osmesa
               libglvnd
             ];
 
