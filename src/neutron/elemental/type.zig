@@ -1,6 +1,30 @@
 const std = @import("std");
 const Reference = @import("ref.zig");
 
+pub const OpaqueType = struct {
+  pub const ParentType = struct {
+    name: []const u8,
+    field: ?[]const u8,
+    offset: ?usize,
+    ptr: *anyopaque,
+  };
+
+  pub const Parent = union(enum) {
+    ty: ParentType,
+    op: *anyopaque,
+  };
+
+  name: []const u8,
+  allocated: bool = false,
+  allocator: std.mem.Allocator = std.heap.page_allocator,
+  parent: ?Parent = null,
+  ref: Reference = .{},
+
+  pub fn from(value: *anyopaque) *OpaqueType {
+    return @ptrCast(*OpaqueType, value);
+  }
+};
+
 pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
   return struct {
     const Self = @This();
@@ -85,6 +109,7 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
       }
     };
 
+    name: []const u8 = @typeName(T),
     allocated: bool = false,
     allocator: std.mem.Allocator = std.heap.page_allocator,
     parent: ?Parent = null,
@@ -100,7 +125,7 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
       }
 
       pub fn ref(self: *T, allocator: ?std.mem.Allocator) !*T {
-        return Self.refNew(@constCast(&self.type), allocator);
+        return Self.refAlloc(@constCast(&self.type), allocator);
       }
 
       pub fn unref(self: *T) void {
@@ -114,7 +139,9 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
           .allocated = false,
           .allocator = alloc,
           .parent = Parent.init(parent),
-          .ref = .{},
+          .ref = .{
+            .children = std.ArrayList(*Reference).init(alloc),
+          },
         };
         return self;
       }
@@ -125,6 +152,7 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
       var type_inst = try typeInit(parent, allocator);
 
       var self: T = undefined;
+      self.type = type_inst;
       if (@hasDecl(impl, "construct")) {
         try @as(ConstructFunc, impl.construct)(&self, params, type_inst);
       } else {
@@ -143,6 +171,7 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
 
       type_inst.allocated = true;
       type_inst.ref.value = @ptrCast(*anyopaque, @alignCast(@alignOf(*anyopaque), self));
+      self.type = type_inst;
 
       if (@hasDecl(impl, "construct")) {
         try @as(ConstructFunc, impl.construct)(self, params, type_inst);
@@ -168,6 +197,8 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
 
     pub fn refInit(self: *Self, allocator: ?std.mem.Allocator) !T {
       if (allocator) |alloc| {
+        if (self.allocated) return error.MustAllocate;
+
         var ref_type = Self {
           .allocated = false,
           .allocator = alloc,
@@ -175,10 +206,11 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
           .ref = try self.ref.ref(),
         };
 
-        if (self.allocated) return error.MustAllocate;
-
         var dest: T = undefined;
         ref_type.ref.value = null;
+        dest.type = ref_type;
+
+        try self.ref.getTop().children.?.append(&dest.type.ref);
 
         if (@hasDecl(impl, "ref")) {
           try @as(RefFunc, impl.ref)(self.getInstance(), &dest, ref_type);
@@ -192,7 +224,7 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
       return self.refInit(self.allocator);
     }
 
-    pub fn refNew(self: *Self, allocator: ?std.mem.Allocator) !*T {
+    pub fn refAlloc(self: *Self, allocator: ?std.mem.Allocator) !*T {
       if (allocator) |alloc| {
         const dest = try alloc.create(T);
         errdefer alloc.destroy(dest);
@@ -205,6 +237,8 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
         };
 
         ref_type.ref.value = @ptrCast(*anyopaque, @alignCast(@alignOf(*anyopaque), dest));
+        dest.type = ref_type;
+        try self.ref.getTop().children.?.append(&dest.type.ref);
 
         if (@hasDecl(impl, "ref")) {
           try @as(RefFunc, impl.ref)(self.getInstance(), dest, ref_type);
@@ -216,7 +250,7 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
         return dest;
       }
 
-      return self.refNew(self.allocator);
+      return self.refAlloc(self.allocator);
     }
 
     pub fn unref(self: *Self) void {

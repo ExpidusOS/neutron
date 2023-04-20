@@ -88,10 +88,7 @@ const Impl = struct {
       .gpu = hardware.device.Gpu.init(.{
         .fd = backend.getDrmFd(),
       }, self, t.allocator) catch null,
-      .base_compositor = try Compositor.init(.{
-        .vtable = &vtable,
-        .gpu = if (self.gpu) |gpu| @constCast(&gpu) else null,
-      }, self, self.type.allocator),
+      .base_compositor = undefined,
       .allocator = allocator,
       .seat = try wlr.Seat.create(self.wl_server, "default"),
       .cursor_mngr = try wlr.XcursorManager.create(null, 24),
@@ -105,6 +102,11 @@ const Impl = struct {
         }
       }).callback, .{ self }),
     };
+
+    self.base_compositor = try Compositor.init(.{
+      .vtable = &vtable,
+      .gpu = if (self.gpu) |*gpu| gpu else null,
+    }, self, self.type.allocator);
 
     self.base_compositor.context.type.ref.value = &self.base_compositor.context;
     self.base_compositor.context.renderer.setDisplayKit(&self.base_compositor.context);

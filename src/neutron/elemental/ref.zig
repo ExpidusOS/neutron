@@ -9,6 +9,7 @@ pub const Error = error {
 };
 
 parent: ?*Reference = null,
+children: ?std.ArrayList(*Reference) = null,
 blocking: bool = true,
 count: i32 = 0,
 lock: Mutex = .{},
@@ -50,7 +51,7 @@ pub inline fn toRequired(self: *Reference, comptime T: type) Error!*T {
   return self.toRequiredValueError(T);
 }
 
-pub fn ref(self: *Reference) Error!Reference {
+pub fn runLock(self: *Reference) Error!void {
   const top = self.getTop();
 
   if (top.blocking) {
@@ -60,7 +61,11 @@ pub fn ref(self: *Reference) Error!Reference {
       return error.Locked;
     }
   }
+}
 
+pub fn ref(self: *Reference) Error!Reference {
+  const top = self.getTop();
+  try top.runLock();
   defer Mutex.unlock(&top.lock);
 
   top.count += 1;
@@ -75,16 +80,13 @@ pub fn ref(self: *Reference) Error!Reference {
 
 pub fn unref(self: *Reference) void {
   const top = self.getTop();
+  top.runLock() catch @panic("Cannot fail in unref due to lock error");
 
-  if (top.blocking) {
-    Mutex.lock(&top.lock);
-  } else {
-    if (!Mutex.tryLock(&top.lock)) {
-      @panic("Cannot fail in unref due to lock error");
-    }
+  if (top.count == 0 and self.children != null) {
+    self.children.?.deinit();
   }
 
-  top.count -= 1;
+  if (top.count > 0) top.count -= 1;
   Mutex.unlock(&top.lock);
 
   self.value = null;

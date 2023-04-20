@@ -17,6 +17,9 @@ const vtable = Base.VTable {
       const self = Type.fromOpaque(base.type.parent.?.getValue());
       const renderer = self.getRenderer();
 
+      self.mutex.lock();
+      defer self.mutex.unlock();
+
       if (self.window != null and renderer.getDisplayKit() != null) {
         const win = self.window.?;
         const context = renderer.getDisplayKit().?;
@@ -34,6 +37,9 @@ const vtable = Base.VTable {
       const base = Base.Type.fromOpaque(_base);
       const self = Type.fromOpaque(base.type.parent.?.getValue());
       const renderer = self.getRenderer();
+
+      self.mutex.lock();
+      defer self.mutex.unlock();
 
       if (self.window != null and renderer.getDisplayKit() != null and self.fb != null) {
         const win = self.window.?;
@@ -64,17 +70,14 @@ const vtable = Base.VTable {
       if (surface_type == c.EGL_WINDOW_BIT) {
         if (renderer.getDisplayKit()) |context| {
           if (self.window == null) {
-            const win = try context.createRenderSurface(res, @intCast(u32, visual));
-            self.window = win;
+            self.window = try context.createRenderSurface(res, @intCast(u32, visual));
           } else {
-            var win = self.window.?;
-            context.resizeRenderSurface(win, res) catch {
-              context.destroyRenderSurface(win);
+            var win = &self.window.?;
+            context.resizeRenderSurface(win.*, res) catch {
+              context.destroyRenderSurface(win.*);
               _ = c.eglDestroySurface(renderer.display, self.surface);
-              win = try context.createRenderSurface(res, @intCast(u32, visual));
+              win.* = try context.createRenderSurface(res, @intCast(u32, visual));
             };
-
-            self.window = win;
           }
 
           self.surface = try (if (c.eglCreateWindowSurface(renderer.display, config, @intCast(c_ulong, @ptrToInt(self.window.?)), null)) |value| value else error.InvalidSurface);
