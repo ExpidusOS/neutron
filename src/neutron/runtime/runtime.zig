@@ -64,8 +64,8 @@ const Impl = struct {
   }
 
   pub fn unref(self: *Self) void {
-    for (self.ipcs.items) |ipc_obj| {
-      @constCast(&ipc_obj).unref();
+    for (self.ipcs.items) |*ipc_obj| {
+      ipc_obj.unref();
     }
 
     self.ipcs.deinit();

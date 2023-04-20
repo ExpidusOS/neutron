@@ -113,7 +113,7 @@ pub fn getConfig(self: *Self) !c.EGLConfig {
 }
 
 pub fn getDisplayKit(self: *Self) ?*displaykit.base.Context {
-  return if (self.type.parent) |p|
-    displaykit.base.Context.Type.fromOpaque(@constCast(&p).getValue())
+  return if (self.type.parent) |*p|
+    displaykit.base.Context.Type.fromOpaque(p.getValue())
   else null;
 }

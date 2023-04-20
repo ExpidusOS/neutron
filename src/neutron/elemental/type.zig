@@ -125,11 +125,11 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
       }
 
       pub fn ref(self: *T, allocator: ?std.mem.Allocator) !*T {
-        return Self.refAlloc(@constCast(&self.type), allocator);
+        return Self.refAlloc(&self.type, allocator);
       }
 
       pub fn unref(self: *T) void {
-        return Self.unref(@constCast(&self.type));
+        return Self.unref(&self.type);
       }
     };
 
