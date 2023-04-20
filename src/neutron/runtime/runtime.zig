@@ -1,6 +1,7 @@
 const std = @import("std");
 const elemental = @import("../elemental.zig");
 const displaykit = @import("../displaykit.zig");
+const graphics = @import("../graphics.zig");
 const ipc = @import("ipc.zig");
 const Self = @This();
 
@@ -20,7 +21,8 @@ pub const Params = struct {
   mode: Mode = .application,
   dir: ?[]const u8,
   ipcs: ?[]ipc.Params = null,
-  display: ?displaykit.Params,
+  display: ?displaykit.Params = null,
+  renderer: ?graphics.renderer.Params = null,
 };
 
 const Impl = struct {
@@ -50,7 +52,7 @@ const Impl = struct {
           .type = .compositor,
         },
       },
-    }, self, t.allocator);
+    }, params.renderer, self, t.allocator);
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {

@@ -1,6 +1,7 @@
 const std = @import("std");
 const config = @import("neutron-config");
 const Mock = @import("displaykit/mock.zig");
+const graphics = @import("graphics.zig");
 
 pub const base = @import("displaykit/base.zig");
 pub const wlroots = if (config.has_wlroots) @import("displaykit/wlroots.zig") else Mock("wlroots");
@@ -49,10 +50,10 @@ pub const Params = union(Type) {
 pub const Backend = union(Type) {
   wlroots: wlroots.Backend,
 
-  pub fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Backend {
+  pub fn init(params: Params, renderer: ?graphics.renderer.Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Backend {
     return switch (params) {
       .wlroots => |params_wlroots| .{
-        .wlroots = try wlroots.Backend.init(params_wlroots, parent, allocator),
+        .wlroots = try wlroots.Backend.init(params_wlroots, renderer, parent, allocator),
       },
     };
   }

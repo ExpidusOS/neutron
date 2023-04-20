@@ -1,5 +1,6 @@
 const std = @import("std");
 const base = @import("base.zig");
+const graphics = @import("../graphics.zig");
 
 pub const Compositor = @import("wlroots/compositor.zig");
 pub const Output = @import("wlroots/output.zig");
@@ -37,11 +38,13 @@ pub const Backend = union(base.Type) {
   client: void,
   compositor: *Compositor,
 
-  pub fn init(params: Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Backend {
+  pub fn init(params: Params, renderer: ?graphics.renderer.Params, parent: ?*anyopaque, allocator: ?std.mem.Allocator) !Backend {
     return switch (params.base.type) {
       .client => error.Unimplemented,
       .compositor => .{
-        .compositor = try Compositor.new(.{}, parent, allocator),
+        .compositor = try Compositor.new(.{
+          .renderer = renderer,
+        }, parent, allocator),
       },
     };
   }

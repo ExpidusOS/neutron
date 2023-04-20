@@ -22,6 +22,7 @@ const parser = .{
   .runtime_mode = clap.parsers.enumeration(neutron.runtime.Runtime.Mode),
   .ipc = neutron.runtime.ipc.Params.parseArgument,
   .displaykit = neutron.displaykit.Params.parseArgument,
+  .renderer = neutron.graphics.renderer.Params.parseArgument,
 };
 
 pub fn main() !void {
@@ -35,6 +36,7 @@ pub fn main() !void {
     \\-r, --runtime-dir <str>     An optional parameter set the runtime directory.
     \\-d, --display <displaykit>  Sets the display configuration for the runtime.
     \\-i, --ipc <ipc>...          Adds an IPC client or server to the runtime.
+    \\-g, --renderer <renderer>   Sets the graphics rendering backend.
     \\
   );
 
@@ -75,6 +77,7 @@ pub fn main() !void {
     .mode = runtime_mode,
     .ipcs = @constCast(res.args.ipc),
     .display = res.args.display,
+    .renderer = res.args.renderer,
   }, null, allocator);
   defer runtime.unref();
 

@@ -19,6 +19,7 @@ pub const VTable = struct {
 
 pub const Params = struct {
   @"type": base.Type,
+  renderer: ?graphics.renderer.Params,
   gpu: ?*hardware.device.Gpu,
   vtable: *const VTable,
 };
@@ -30,7 +31,7 @@ const Impl = struct {
       ._type = params.type,
       .vtable = params.vtable,
       .gpu = if (params.gpu) |gpu| try gpu.ref(t.allocator) else null,
-      .renderer = try graphics.renderer.Renderer.init(params.gpu, self, t.allocator),
+      .renderer = try graphics.renderer.Renderer.init(params.renderer, params.gpu, self, t.allocator),
     };
   }
 

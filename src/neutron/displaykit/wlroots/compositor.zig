@@ -15,7 +15,9 @@ const c = hardware.device.Gpu.c;
 const wl = @import("wayland").server.wl;
 const wlr = @import("wlroots");
 
-pub const Params = struct {};
+pub const Params = struct {
+  renderer: ?graphics.renderer.Params,
+};
 
 const vtable = Compositor.VTable {
   .context = .{
@@ -65,8 +67,6 @@ const vtable = Compositor.VTable {
 
 const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
-    _ = params;
-
     wlr.log.init(if (builtin.mode == .Debug) .debug else .err);
 
     const wl_server = try wl.Server.create();
@@ -105,6 +105,7 @@ const Impl = struct {
 
     self.base_compositor = try Compositor.init(.{
       .vtable = &vtable,
+      .renderer = params.renderer,
       .gpu = if (self.gpu) |*gpu| gpu else null,
     }, self, self.type.allocator);
 
