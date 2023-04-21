@@ -150,6 +150,11 @@ frame: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
   fn callback(listener: *wl.Listener(*wlr.Output), _: *wlr.Output) void {
     const self = @fieldParentPtr(Self, "frame", listener);
 
+    self.base_output.subrenderer.toBase().render() catch |err| {
+      std.debug.print("Failed to render: {s}\n", .{ @errorName(err) });
+      return;
+    };
+
     const scene_output = self.getCompositor().scene.getSceneOutput(self.value).?;
     _ = scene_output.commit();
 

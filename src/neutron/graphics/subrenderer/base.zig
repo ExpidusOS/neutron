@@ -7,6 +7,7 @@ const Self = @This();
 pub const VTable = struct {
   update_frame_buffer: ?*const fn (self: *anyopaque, fb: *FrameBuffer) anyerror!void = null,
   update_surface: ?*const fn (self: *anyopaque, surf: *anyopaque, res: @Vector(2, i32)) anyerror!void = null,
+  render: *const fn (self: *anyopaque) anyerror!void,
 };
 
 pub const Params = struct {
@@ -56,4 +57,8 @@ pub fn updateSurface(self: *Self, surf: *anyopaque, res: @Vector(2, i32)) !void 
     return update_surface(self.type.toOpaque(), surf, res);
   }
   return error.NotImplemented;
+}
+
+pub fn render(self: *Self) !void {
+  return self.vtable.render(self.type.toOpaque());
 }

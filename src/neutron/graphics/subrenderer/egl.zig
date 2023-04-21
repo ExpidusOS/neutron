@@ -14,10 +14,32 @@ const FbRenderable = struct {
   image_khr: c.EGLImageKHR,
   rbo: c.GLuint,
   fbo: c.GLuint,
+
+  pub fn use(self: FbRenderable) void {
+    c.glBindFramebuffer(c.GL_FRAMEBUFFER, self.fbo);
+  }
+
+  pub fn unuse(self: FbRenderable) void {
+    _ = self;
+
+    c.glBindFramebuffer(c.GL_FRAMEBUFFER, 0);
+  }
 };
 
 const Renderable = union(enum) {
   fb: FbRenderable,
+
+  pub fn use(self: Renderable) void {
+    return switch (self) {
+      .fb => |fb| fb.use(),
+    };
+  }
+
+  pub fn unuse(self: Renderable) void {
+    return switch (self) {
+      .fb => |fb| fb.unuse(),
+    };
+  }
 };
 
 pub const Params = struct {
@@ -135,12 +157,6 @@ vtable: Base.VTable = .{
               };
 
               self.fb = try fb.ref(self.type.allocator);
-
-              c.glBindFramebuffer(c.GL_FRAMEBUFFER, renderable.fbo);
-              c.glClearColor(0, 1, 1, 1);
-              c.glClear(c.GL_COLOR_BUFFER_BIT);
-              c.glFlush();
-              c.glBindFramebuffer(c.GL_FRAMEBUFFER, 0);
             } else {
               return error.MissingDisplayKit;
             }
@@ -148,6 +164,31 @@ vtable: Base.VTable = .{
           return;
         }
         return error.MissingExtension;
+      }
+    }
+  }).callback,
+  .render = (struct {
+    fn callback(_base: *anyopaque) !void {
+      const base = Base.Type.fromOpaque(_base);
+      const self = @constCast(@fieldParentPtr(Self, "vtable", base.vtable));
+      const renderer = self.getRenderer();
+
+      self.mutex.lock();
+      defer self.mutex.unlock();
+
+      if (c.eglMakeCurrent(renderer.display, c.EGL_NO_SURFACE, c.EGL_NO_SURFACE, renderer.context) == c.EGL_FALSE) return error.ContextError;
+      defer _ = c.eglMakeCurrent(renderer.display, c.EGL_NO_SURFACE, c.EGL_NO_SURFACE, c.EGL_NO_CONTEXT);
+
+      if (self.renderable) |renderable| {
+        renderable.use();
+      }
+
+      c.glClearColor(1, 0, 0, 1);
+      c.glClear(c.GL_COLOR_BUFFER_BIT);
+      c.glFlush();
+
+      if (self.renderable) |renderable| {
+        renderable.unuse();
       }
     }
   }).callback,
