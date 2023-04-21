@@ -6,7 +6,6 @@ pub const Data = struct {
   resolution: @Vector(2, i32),
   stride: u32,
   format: u32,
-  bpp: u32,
   buffer: *anyopaque,
 };
 
@@ -14,8 +13,8 @@ pub const VTable = struct {
   get_resolution: *const fn (self: *anyopaque) @Vector(2, i32),
   get_stride: *const fn (self: *anyopaque) u32,
   get_format: *const fn (self: *anyopaque) u32,
-  get_bpp: *const fn (self: *anyopaque) u32,
-  get_buffer: *const fn (self: *anyopaque) *anyopaque,
+  get_buffer: *const fn (self: *anyopaque) anyerror!*anyopaque,
+  commit: *const fn (self: *anyopaque) anyerror!void,
 };
 
 pub const Params = union(enum) {
@@ -65,10 +64,16 @@ pub fn getFormat(self: *Self) u32 {
   return self.getData(u32, "format");
 }
 
-pub fn getBpp(self: *Self) u32 {
-  return self.getData(u32, "bpp");
+pub fn getBuffer(self: *Self) !*anyopaque {
+  return self.getData(*anyopaque, "buffer");
 }
 
-pub fn getBuffer(self: *Self) *anyopaque {
-  return self.getData(*anyopaque, "buffer");
+pub fn commit(self: *Self) !bool {
+  return switch (self.value) {
+    .data => false,
+    .vtable => |vtable| blk: {
+      try vtable.commit();
+      break :blk true;
+    },
+  };
 }

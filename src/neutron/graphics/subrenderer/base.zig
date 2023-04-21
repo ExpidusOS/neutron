@@ -5,9 +5,8 @@ const Renderer = @import("../renderer/base.zig");
 const Self = @This();
 
 pub const VTable = struct {
-  get_frame_buffer: *const fn (self: *anyopaque) anyerror!*FrameBuffer,
-  commit_frame_buffer: *const fn (self: *anyopaque) anyerror!void,
-  resize: *const fn (self: *anyopaque, res: @Vector(2, i32)) anyerror!void,
+  update_frame_buffer: ?*const fn (self: *anyopaque, fb: *FrameBuffer) anyerror!void = null,
+  update_surface: ?*const fn (self: *anyopaque, surf: *anyopaque, res: @Vector(2, i32)) anyerror!void = null,
 };
 
 pub const Params = struct {
@@ -45,14 +44,16 @@ renderer: *Renderer,
 
 pub usingnamespace Type.Impl;
 
-pub fn getFrameBuffer(self: *Self) !*FrameBuffer {
-  return self.vtable.get_frame_buffer(self.type.toOpaque());
+pub fn updateFrameBuffer(self: *Self, fb: *FrameBuffer) !void {
+  if (self.vtable.update_frame_buffer) |update_frame_buffer| {
+    return update_frame_buffer(self.type.toOpaque(), fb);
+  }
+  return error.NotImplemented;
 }
 
-pub fn commitFrameBuffer(self: *Self) !void {
-  return self.vtable.commit_frame_buffer(self.type.toOpaque());
-}
-
-pub fn resize(self: *Self, res: @Vector(2, i32)) !void {
-  return self.vtable.resize(self.type.toOpaque(), res);
+pub fn updateSurface(self: *Self, surf: *anyopaque, res: @Vector(2, i32)) !void {
+  if (self.vtable.update_surface) |update_surface| {
+    return update_surface(self.type.toOpaque(), surf, res);
+  }
+  return error.NotImplemented;
 }

@@ -1,6 +1,10 @@
 const std = @import("std");
 
 pub const c = @cImport({
+  @cInclude("GL/gl.h");
+  @cInclude("GL/glext.h");
+  @cInclude("GLES2/gl2.h");
+  @cInclude("GLES2/gl2ext.h");
   @cInclude("EGL/egl.h");
   @cInclude("EGL/eglext.h");
 });
@@ -24,4 +28,14 @@ pub fn wrap(r: c_uint) !void {
 pub fn wrapBool(r: c_uint) bool {
   wrap(r) catch return false;
   return true;
+}
+
+pub fn resolve(comptime T: type, name: []const u8) ?@typeInfo(T).Optional.child {
+  return if (c.eglGetProcAddress(name.ptr)) |proc|
+    @ptrCast(T, proc)
+  else null;
+}
+
+pub fn tryResolve(comptime T: type, name: []const u8) !@typeInfo(T).Optional.child {
+  return resolve(T, name) orelse error.NoProc;
 }

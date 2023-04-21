@@ -184,7 +184,7 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
     }
 
     pub fn fromOpaque(op: *anyopaque) *T {
-      return @ptrCast(*T, @alignCast(@alignOf(*T), op));
+      return @ptrCast(*T, @alignCast(@alignOf(T), op));
     }
 
     pub fn toOpaque(self: *Self) *anyopaque {

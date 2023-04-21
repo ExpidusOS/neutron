@@ -8,6 +8,7 @@ const Context = @import("../base/context.zig");
 const Compositor = @import("../base/compositor.zig");
 const Output = @import("output.zig");
 const Input = @import("input.zig").Input;
+const FrameBuffer = @import("fb.zig");
 const Self = @This();
 
 const c = hardware.device.Gpu.c;
@@ -21,45 +22,9 @@ pub const Params = struct {
 
 const vtable = Compositor.VTable {
   .context = .{
-    .create_render_surface = (struct {
-      fn callback(_base_context: *anyopaque, res: @Vector(2, i32), visual: u32) !*anyopaque {
-        const base_context = Context.Type.fromOpaque(_base_context);
-        const gpu = base_context.gpu.?;
-
-        if (@hasDecl(c, "gbm_surface_create_with_modifiers")) {
-          return if (c.gbm_surface_create_with_modifiers(@ptrCast(*c.struct_gbm_device, gpu.gbm_dev), @intCast(u32, res[0]), @intCast(u32, res[1]), visual, &[_]u64 { 0 }, 1)) |value| value else error.InvalidGbm;
-        }
-
-        return if (c.gbm_surface_create(@ptrCast(*c.struct_gbm_device, gpu.gbm_dev), @intCast(u32, res[0]), @intCast(u32, res[1]), visual, c.GBM_BO_USE_SCANOUT | c.GBM_BO_USE_RENDERING)) |value| value else error.InvalidGbm;
-      }
-    }).callback,
-    .resize_render_surface = (struct {
-      fn callback(_base_context: *anyopaque, surf: *anyopaque, res: @Vector(2, i32)) !void {
-        _ = _base_context;
-        _ = surf;
-        _ = res;
-        return error.NotImplemented;
-      }
-    }).callback,
-    .get_render_surface_buffer = (struct {
-      fn callback(_base_context: *anyopaque, surf: *anyopaque) !*graphics.FrameBuffer {
-        const base_context = Context.Type.fromOpaque(_base_context);
-        const gpu = base_context.gpu.?;
-        return if (c.gbm_surface_lock_front_buffer(@ptrCast(*c.struct_gbm_surface, surf))) |bo| gpu.getGBMFrameBuffer(bo) else error.GbmFailure;
-      }
-    }).callback,
-    .commit_render_surface_buffer = (struct {
-      fn callback(_base_context: *anyopaque, surf: *anyopaque, _fb: *graphics.FrameBuffer) !void {
-        _ = _base_context;
-        const fb = hardware.device.Gpu.FrameBuffer.Type.fromOpaque(_fb);
-
-        c.gbm_surface_release_buffer(@ptrCast(*c.struct_gbm_surface, surf), fb.gbm_bo);
-      }
-    }).callback,
-    .destroy_render_surface = (struct {
-      fn callback(_base_context: *anyopaque, surf: *anyopaque) void {
-        _ = _base_context;
-        c.gbm_surface_destroy(@ptrCast(*c.struct_gbm_surface, surf));
+    .get_egl_image_khr_parameters = (struct {
+      fn callback(_: *anyopaque, _fb: *graphics.FrameBuffer) !Context.EGLImageKHRParameters {
+        return @fieldParentPtr(FrameBuffer, "base", _fb).getEGLImageKHRParameters();
       }
     }).callback,
   },

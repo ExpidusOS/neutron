@@ -8,13 +8,15 @@ const base = @import("base.zig");
 const Runtime = @import("../../runtime/runtime.zig");
 const Self = @This();
 
+pub const EGLImageKHRParameters = struct {
+  target: c_uint,
+  buffer: ?*anyopaque,
+  attribs: []i32,
+};
+
 /// Virtual function table
 pub const VTable = struct {
-  create_render_surface: *const fn (self: *anyopaque, res: @Vector(2, i32), visual: u32) anyerror!*anyopaque,
-  resize_render_surface: *const fn (self: *anyopaque, surf: *anyopaque, res: @Vector(2, i32)) anyerror!void,
-  get_render_surface_buffer: *const fn (self: *anyopaque, surf: *anyopaque) anyerror!*graphics.FrameBuffer,
-  commit_render_surface_buffer: *const fn (self: *anyopaque, surf: *anyopaque, fb: *graphics.FrameBuffer) anyerror!void,
-  destroy_render_surface: *const fn (self: *anyopaque, surf: *anyopaque) void,
+  get_egl_image_khr_parameters: ?*const fn (self: *anyopaque, fb: *graphics.FrameBuffer) anyerror!EGLImageKHRParameters = null,
 };
 
 pub const Params = struct {
@@ -43,6 +45,7 @@ const Impl = struct {
       .gpu = if (self.gpu) |gpu| try gpu.ref(t.allocator) else null,
       .renderer = self.renderer,
     };
+    return error.NoRef;
   }
 
   pub fn unref(self: *Self) void {
@@ -76,22 +79,9 @@ pub fn toClient(self: *Self) *Client {
   return Client.Type.fromOpaque(self.type.parent.?);
 }
 
-pub fn createRenderSurface(self: *Self, res: @Vector(2, i32), visual: u32) !*anyopaque {
-  return self.vtable.create_render_surface(self.type.toOpaque(), res, visual);
-}
-
-pub fn resizeRenderSurface(self: *Self, surf: *anyopaque, res: @Vector(2, i32)) !void {
-  return self.vtable.resize_render_surface(self.type.toOpaque(), surf, res);
-}
-
-pub fn getRenderSurfaceBuffer(self: *Self, surf: *anyopaque) !*graphics.FrameBuffer {
-  return self.vtable.get_render_surface_buffer(self.type.toOpaque(), surf);
-}
-
-pub fn commitRenderSurfaceBuffer(self: *Self, surf: *anyopaque, fb: *graphics.FrameBuffer) !void {
-  return self.vtable.commit_render_surface_buffer(self.type.toOpaque(), surf, fb);
-}
-
-pub fn destroyRenderSurface(self: *Self, surf: *anyopaque) void {
-  return self.vtable.destroy_render_surface(self.type.toOpaque(), surf);
+pub fn getEGLImageKHRParameters(self: *Self, fb: *graphics.FrameBuffer) !EGLImageKHRParameters {
+  if (self.vtable.get_egl_image_khr_parameters) |get_egl_image_khr_parameters| {
+    return get_egl_image_khr_parameters(self.type.toOpaque(), fb);
+  }
+  return error.NotImplemented;
 }

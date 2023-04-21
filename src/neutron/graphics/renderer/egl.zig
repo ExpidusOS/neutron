@@ -95,8 +95,8 @@ pub fn getConfig(self: *Self) !c.EGLConfig {
   var configs = try self.type.allocator.alloc(c.EGLConfig, @intCast(usize, config_count));
   defer self.type.allocator.free(configs);
 
-  const attribs = &[_]i32 {
-    c.EGL_SURFACE_TYPE, c.EGL_WINDOW_BIT,
+  var attribs = [_]i32 {
+    c.EGL_SURFACE_TYPE, c.EGL_PBUFFER_BIT,
     c.EGL_BUFFER_SIZE, 24,
     c.EGL_RED_SIZE, 8,
     c.EGL_GREEN_SIZE, 8,
@@ -106,7 +106,13 @@ pub fn getConfig(self: *Self) !c.EGLConfig {
   };
 
   var matches: i32 = undefined;
-  if (c.eglChooseConfig(self.display, attribs, configs.ptr, config_count, &matches) == c.EGL_FALSE or matches == 0) return error.NoMatches;
+  if (c.eglChooseConfig(self.display, &attribs, configs.ptr, config_count, &matches) == c.EGL_FALSE or matches == 0) {
+    attribs[1] = c.EGL_PIXMAP_BIT;
+    if (c.eglChooseConfig(self.display, &attribs, configs.ptr, config_count, &matches) == c.EGL_FALSE or matches == 0) {
+      attribs[1] = c.EGL_WINDOW_BIT;
+      if (c.eglChooseConfig(self.display, &attribs, configs.ptr, config_count, &matches) == c.EGL_FALSE or matches == 0) return error.NoMatches;
+    }
+  }
 
   configs.len = @intCast(usize, matches);
   return configs[0];

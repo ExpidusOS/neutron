@@ -19,7 +19,7 @@ const Impl = struct {
     self.* = .{
       .type = t,
       .vtable = params.vtable,
-      .context = try params.context.ref(t.allocator),
+      .context = params.context,
       .subrenderer = try params.context.renderer.toBase().createSubrenderer(self.getResolution()),
     };
   }
@@ -28,14 +28,13 @@ const Impl = struct {
     dest.* = .{
       .type = t,
       .vtable = self.vtable,
-      .context = try self.context.ref(t.allocator),
+      .context = self.context,
       .subrenderer = try self.subrenderer.ref(t.allocator),
     };
   }
 
   pub fn unref(self: *Self) void {
     self.subrenderer.unref();
-    self.context.unref();
   }
 };
 

@@ -3,6 +3,7 @@ const elemental = @import("../../elemental.zig");
 const Output = @import("../base/output.zig");
 const Context = @import("../base/context.zig");
 const Compositor = @import("compositor.zig");
+const FrameBuffer = @import("fb.zig");
 const Self = @This();
 const wl = @import("wayland").server.wl;
 const wlr = @import("wlroots");
@@ -54,50 +55,23 @@ fn iterateResTry(self: *Self) bool {
 
 pub fn updateBuffer(self: *Self) !void {
   const res = self.base_output.getResolution();
-  self.buffer.init(&.{
-    .destroy = (struct {
-      fn callback(_: *wlr.Buffer) callconv(.C) void {}
-    }).callback,
-    .get_dmabuf = (struct {
-      fn callback(buffer: *wlr.Buffer, attribs: *wlr.DmabufAttributes) callconv(.C) bool {
-        _ = buffer;
-        _ = attribs;
-        return false;
-      }
-    }).callback,
-    .get_shm = (struct {
-      fn callback(buffer: *wlr.Buffer, attribs: *wlr.ShmAttributes) callconv(.C) bool {
-        _ = buffer;
-        _ = attribs;
-        return false;
-      }
-    }).callback,
-    .begin_data_ptr_access = (struct {
-      fn callback(buffer: *wlr.Buffer, flags: u32, data: **anyopaque, format: *u32, stride: *usize) callconv(.C) bool {
-        _ = flags;
+  const compositor = self.getCompositor();
+  const formats = compositor.renderer.getDmabufFormats();
+  if (!formats.has(self.value.render_format, 0)) return error.InvalidFormat;
 
-        const that = @fieldParentPtr(Self, "buffer", buffer);
-        const fb = that.base_output.subrenderer.toBase().getFrameBuffer() catch {
-          return false;
-        };
+  const buffer = try (if (compositor.allocator.createBuffer(res[0], res[1], formats.get(self.value.render_format))) |buffer| buffer else error.InvalidBuffer);
 
-        data.* = fb.getBuffer();
-        format.* = fb.getFormat();
-        stride.* = fb.getStride();
-        return true;
-      }
-    }).callback,
-    .end_data_ptr_access = (struct {
-      fn callback(buffer: *wlr.Buffer) callconv(.C) void {
-        const that = @fieldParentPtr(Self, "buffer", buffer);
-        that.base_output.subrenderer.toBase().commitFrameBuffer() catch |err| {
-          std.debug.print("Failed to commit: {}\n", .{ err });
-        };
-      }
-    }).callback,
-  }, res[0], res[1]);
+  if (self.fb == null) {
+    self.fb = try FrameBuffer.new(.{
+      .wlr_buffer = buffer,
+    }, null, self.type.allocator);
+  } else {
+    self.fb.?.buffer.drop();
+    self.fb.?.buffer = buffer;
+  }
 
-  self.scene_buffer.setBuffer(&self.buffer);
+  self.scene_buffer.setBuffer(self.fb.?.buffer);
+  try self.base_output.subrenderer.toBase().updateFrameBuffer(&self.fb.?.base);
 }
 
 const Impl = struct {
@@ -129,7 +103,7 @@ const Impl = struct {
         .vtable = &vtable,
       }, self, self.type.allocator),
       .value = params.value,
-      .buffer = undefined,
+      .fb = null,
       .scene_buffer = try compositor.scene.tree.createSceneBuffer(null),
     };
 
@@ -146,7 +120,7 @@ const Impl = struct {
       .type = t,
       .base_output = try self.base_output.type.refInit(t.allocator),
       .value = self.value,
-      .buffer = self.buffer,
+      .fb = if (self.fb) |fb| try fb.ref(t.allocator) else null,
       .scene_buffer = self.scene_buffer,
     };
   }
@@ -154,11 +128,14 @@ const Impl = struct {
   pub fn unref(self: *Self) void {
     self.base_output.unref();
     self.value.destroy();
+
+    if (self.fb) |fb| {
+      fb.unref();
+    }
   }
 
   pub fn destroy(self: *Self) void {
     self.scene_buffer.destroy();
-    self.buffer.drop();
   }
 };
 
@@ -166,7 +143,7 @@ pub const Type = elemental.Type(Self, Params, Impl);
 
 @"type": Type,
 base_output: Output,
-buffer: wlr.Buffer,
+fb: ?*FrameBuffer,
 value: *wlr.Output,
 scene_buffer: *wlr.SceneBuffer,
 frame: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
@@ -184,14 +161,6 @@ frame: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
 mode: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
   fn callback(listener: *wl.Listener(*wlr.Output), _: *wlr.Output) void {
     const self = @fieldParentPtr(Self, "mode", listener);
-    const res = self.base_output.getResolution();
-
-    self.base_output.subrenderer.toBase().resize(res) catch |err| {
-      std.debug.print("Failed to resize the subrenderer: {s}\n", .{ @errorName(err) });
-      return;
-      // TODO: use the logger
-    };
-
     self.updateBuffer() catch |err| {
       std.debug.print("Failed to update the buffer: {s}\n", .{ @errorName(err) });
       return;
