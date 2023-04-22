@@ -129,8 +129,8 @@ vtable: Base.VTable = .{
 
               const image_khr = try (if (eglCreateImageKHR(renderer.display, c.EGL_NO_CONTEXT, params.target, params.buffer, (&params.attribs).ptr)) |value| value else error.InvalidKHR);
 
-              if (c.eglMakeCurrent(renderer.display, c.EGL_NO_SURFACE, c.EGL_NO_SURFACE, renderer.context) == c.EGL_FALSE) return error.ContextError;
-              defer _ = c.eglMakeCurrent(renderer.display, c.EGL_NO_SURFACE, c.EGL_NO_SURFACE, c.EGL_NO_CONTEXT);
+              try renderer.useContext();
+              defer renderer.unuseContext();
 
               var renderable = FbRenderable {
                 .image_khr = image_khr,
@@ -176,8 +176,8 @@ vtable: Base.VTable = .{
       self.mutex.lock();
       defer self.mutex.unlock();
 
-      if (c.eglMakeCurrent(renderer.display, c.EGL_NO_SURFACE, c.EGL_NO_SURFACE, renderer.context) == c.EGL_FALSE) return error.ContextError;
-      defer _ = c.eglMakeCurrent(renderer.display, c.EGL_NO_SURFACE, c.EGL_NO_SURFACE, c.EGL_NO_CONTEXT);
+      try renderer.useContext();
+      defer renderer.unuseContext();
 
       if (self.renderable) |renderable| {
         renderable.use();

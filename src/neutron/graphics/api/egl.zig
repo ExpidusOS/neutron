@@ -32,7 +32,7 @@ pub fn wrapBool(r: c_uint) bool {
 
 pub fn resolve(comptime T: type, name: []const u8) ?@typeInfo(T).Optional.child {
   return if (c.eglGetProcAddress(name.ptr)) |proc|
-    @ptrCast(T, proc)
+    @ptrCast(T, @constCast(proc))
   else null;
 }
 

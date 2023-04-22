@@ -78,8 +78,9 @@ pub fn main() !void {
     .ipcs = @constCast(res.args.ipc),
     .display = res.args.display,
     .renderer = res.args.renderer,
+    .application_path = path,
   }, null, allocator);
   defer runtime.unref();
 
-  runtime.run();
+  try runtime.run();
 }
