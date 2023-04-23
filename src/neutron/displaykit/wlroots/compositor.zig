@@ -3,6 +3,7 @@ const std = @import("std");
 const elemental = @import("../../elemental.zig");
 const hardware = @import("../../hardware.zig");
 const graphics = @import("../../graphics.zig");
+const flutter = @import("../../flutter.zig");
 const Runtime = @import("../../runtime/runtime.zig");
 const Context = @import("../base/context.zig");
 const Compositor = @import("../base/compositor.zig");
@@ -25,6 +26,31 @@ const vtable = Compositor.VTable {
     .get_egl_image_khr_parameters = (struct {
       fn callback(_: *anyopaque, _fb: *graphics.FrameBuffer) !Context.EGLImageKHRParameters {
         return @fieldParentPtr(FrameBuffer, "base", _fb).getEGLImageKHRParameters();
+      }
+    }).callback,
+    .notify_flutter = (struct {
+      fn callback(_context: *anyopaque, runtime: *Runtime) !void {
+        const context = Context.Type.fromOpaque(_context);
+        const compositor = @fieldParentPtr(Compositor, "context", context);
+        const self = @fieldParentPtr(Self, "base_compositor", compositor);
+
+        std.debug.assert(runtime.has_flutter);
+
+        const displays = try self.type.allocator.alloc(flutter.c.FlutterEngineDisplay, self.outputs.items.len);
+        defer self.type.allocator.free(displays);
+
+        for (self.outputs.items, displays) |output, *display| {
+          display.* = .{
+            .struct_size = @sizeOf(flutter.c.FlutterEngineDisplay),
+            .display_id = output.base_output.getId(),
+            .single_display = self.outputs.items.len == 1,
+            .refresh_rate = std.math.lossyCast(f64, output.base_output.getRefreshRate()),
+          };
+        }
+
+        // FIXME: crash here
+        const result = runtime.proc_table.NotifyDisplayUpdate.?(runtime.engine, flutter.c.kFlutterEngineDisplaysUpdateTypeStartup, displays.ptr, displays.len);
+        if (result != flutter.c.kSuccess) return error.EngineFail;
       }
     }).callback,
   },
@@ -187,5 +213,5 @@ fn input_new(listener: *wl.Listener(*wlr.InputDevice), wlr_input: *wlr.InputDevi
 pub usingnamespace Type.Impl;
 
 pub inline fn getRuntime(self: *Self) *Runtime {
-  return Runtime.Type.fromOpaque(self.type.parent.?);
+  return Runtime.Type.fromOpaque(self.type.parent.?.getValue());
 }

@@ -25,6 +25,50 @@ const vtable = Output.VTable {
       return @Vector(2, i32) { self.value.width, self.value.height };
     }
   }).callback,
+  .get_position = (struct {
+    fn callback(_base: *anyopaque) @Vector(2, i32) {
+      const base = Output.Type.fromOpaque(_base);
+      const self = Type.fromOpaque(base.type.parent.?.getValue());
+      const compositor = self.getCompositor();
+
+      const ol = compositor.output_layout.get(self.value) orelse return @Vector(2, i32) { 0, 0 };
+      return @Vector(2, i32) {
+        ol.x,
+        ol.y,
+      };
+    }
+  }).callback,
+  .get_scale = (struct {
+    fn callback(_base: *anyopaque) f32 {
+      const base = Output.Type.fromOpaque(_base);
+      const self = Type.fromOpaque(base.type.parent.?.getValue());
+      return self.value.scale;
+    }
+  }).callback,
+  .get_physical_size = (struct {
+    fn callback(_base: *anyopaque) @Vector(2, i32) {
+      const base = Output.Type.fromOpaque(_base);
+      const self = Type.fromOpaque(base.type.parent.?.getValue());
+      return @Vector(2, i32) {
+        self.value.phys_width,
+        self.value.phys_height,
+      };
+    }
+  }).callback,
+  .get_refresh_rate = (struct {
+    fn callback(_base: *anyopaque) i32 {
+      const base = Output.Type.fromOpaque(_base);
+      const self = Type.fromOpaque(base.type.parent.?.getValue());
+      return self.value.refresh;
+    }
+  }).callback,
+  .get_id = (struct {
+    fn callback(_base: *anyopaque) u32 {
+      const base = Output.Type.fromOpaque(_base);
+      const self = Type.fromOpaque(base.type.parent.?.getValue());
+      return std.hash.CityHash32.hash(self.id);
+    }
+  }).callback,
 };
 
 fn effectiveResTry(self: *Self) bool {
@@ -105,7 +149,10 @@ const Impl = struct {
       .value = params.value,
       .fb = null,
       .scene_buffer = try compositor.scene.tree.createSceneBuffer(null),
+      .id = try std.fmt.allocPrint(self.type.allocator, "{?s}-{?s}-{?s}-{s}", .{ self.value.serial, self.value.model, self.value.make, self.value.name }),
     };
+
+    std.debug.print("{s}\n", .{ self.id });
 
     errdefer self.base_output.unref();
     try self.updateBuffer();
@@ -122,6 +169,7 @@ const Impl = struct {
       .value = self.value,
       .fb = if (self.fb) |fb| try fb.ref(t.allocator) else null,
       .scene_buffer = self.scene_buffer,
+      .id = try t.allocator.dupe(u8, self.id),
     };
   }
 
@@ -132,6 +180,8 @@ const Impl = struct {
     if (self.fb) |fb| {
       fb.unref();
     }
+
+    self.type.allocator.free(self.id);
   }
 
   pub fn destroy(self: *Self) void {
@@ -146,6 +196,7 @@ base_output: Output,
 fb: ?*FrameBuffer,
 value: *wlr.Output,
 scene_buffer: *wlr.SceneBuffer,
+id: []const u8,
 frame: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
   fn callback(listener: *wl.Listener(*wlr.Output), _: *wlr.Output) void {
     const self = @fieldParentPtr(Self, "frame", listener);

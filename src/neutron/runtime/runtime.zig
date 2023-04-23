@@ -103,6 +103,7 @@ const Impl = struct {
         .update_semantics_callback2 = null,
       },
       .proc_table = proc_table,
+      .has_flutter = false,
     };
 
     errdefer t.allocator.free(self.dir);
@@ -126,7 +127,8 @@ const Impl = struct {
     var result = self.proc_table.Initialize.?(flutter.c.FLUTTER_ENGINE_VERSION, @constCast(&self.displaykit.toBase()).toContext().renderer.toBase().getEngineImpl(), &self.project_args, self, &self.engine);
     if (result != flutter.c.kSuccess) return error.EngineFail;
 
-    // TODO: notify the subsystems that we have the engine initialized.
+    self.has_flutter = true;
+    try @constCast(&self.displaykit.toBase()).toContext().notifyFlutter(self);
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
@@ -134,6 +136,7 @@ const Impl = struct {
       .type = t,
       .mode = self.mode,
       .ipc = try self.ipc.ref(t.allocator),
+      .has_flutter = self.has_flutter,
     };
   }
 
@@ -157,6 +160,7 @@ mode: Mode,
 engine: flutter.c.FlutterEngine,
 project_args: flutter.c.FlutterProjectArgs,
 proc_table: flutter.c.FlutterEngineProcTable,
+has_flutter: bool,
 
 pub usingnamespace Type.Impl;
 

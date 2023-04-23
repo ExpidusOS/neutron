@@ -17,6 +17,7 @@ pub const EGLImageKHRParameters = struct {
 /// Virtual function table
 pub const VTable = struct {
   get_egl_image_khr_parameters: ?*const fn (self: *anyopaque, fb: *graphics.FrameBuffer) anyerror!EGLImageKHRParameters = null,
+  notify_flutter: ?*const fn (self: *anyopaque, runtime: *Runtime) anyerror!void = null,
 };
 
 pub const Params = struct {
@@ -84,4 +85,10 @@ pub fn getEGLImageKHRParameters(self: *Self, fb: *graphics.FrameBuffer) !EGLImag
     return get_egl_image_khr_parameters(self.type.toOpaque(), fb);
   }
   return error.NotImplemented;
+}
+
+pub fn notifyFlutter(self: *Self, runtime: *Runtime) !void {
+  if (self.vtable.notify_flutter) |notify_flutter| {
+    return notify_flutter(self.type.toOpaque(), runtime);
+  }
 }
