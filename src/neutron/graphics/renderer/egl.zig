@@ -31,6 +31,14 @@ const vtable = Base.VTable {
       return &self.flutter;
     }
   }).callback,
+  .get_compositor_impl = (struct {
+    fn callback(_base: *anyopaque) ?*flutter.c.FlutterCompositor {
+      const base = Base.Type.fromOpaque(_base);
+      const self = Type.fromOpaque(base.type.parent.?.getValue());
+      self.compositor.user_data = self;
+      return &self.compositor;
+    }
+  }).callback,
 };
 
 const Impl = struct {
@@ -44,6 +52,8 @@ const Impl = struct {
       .display = try self.gpu.getEglDisplay(),
       .context = undefined,
       .context_mutex = .{},
+      .tex_coord_buffer = undefined,
+      .quad_vert_buffer = undefined,
     };
     errdefer self.base.unref();
 
@@ -61,6 +71,37 @@ const Impl = struct {
 
     const config = try self.getConfig();
     self.context = try (if (c.eglCreateContext(self.display, config, c.EGL_NO_CONTEXT, attribs)) |value| value else error.InvalidContext);
+
+    try self.useContext();
+    defer self.unuseContext();
+
+    const x1 = 0.0;
+    const x2 = 1.0;
+    const y1 = 0.0;
+    const y2 = 1.0;
+
+    const texcoords = &[_]c.GLfloat {
+      x2, y2,
+      x1, y2,
+      x2, y1,
+      x1, y1
+    };
+
+    const quad_verts = &[_]c.GLfloat {
+      1, -1,
+      -1, -1,
+      1, 1,
+      -1, 1,
+    };
+
+    c.glGenBuffers(1, &self.tex_coord_buffer);
+    c.glBindBuffer(c.GL_ARRAY_BUFFER, self.tex_coord_buffer);
+    c.glBufferData(c.GL_ARRAY_BUFFER, texcoords.len, texcoords, c.GL_STATIC_DRAW);
+
+    c.glGenBuffers(1, &self.quad_vert_buffer);
+    c.glBindBuffer(c.GL_ARRAY_BUFFER, self.quad_vert_buffer);
+    c.glBufferData(c.GL_ARRAY_BUFFER, quad_verts.len, quad_verts, c.GL_STATIC_DRAW);
+    c.glBindBuffer(c.GL_ARRAY_BUFFER, 0);
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
@@ -71,6 +112,8 @@ const Impl = struct {
       .display = self.display,
       .context = self.context,
       .context_mutex = .{},
+      .tex_coord_buffer = self.tex_coord_buffer,
+      .quad_vert_buffer = self.quad_vert_buffer,
     };
   }
 
@@ -93,6 +136,42 @@ gpu: *hardware.device.Gpu,
 display: c.EGLDisplay,
 context: c.EGLContext,
 context_mutex: std.Thread.Mutex,
+tex_coord_buffer: c.GLuint,
+quad_vert_buffer: c.GLuint,
+compositor: flutter.c.FlutterCompositor = .{
+  .struct_size = @sizeOf(flutter.c.FlutterCompositor),
+  .user_data = null,
+  .avoid_backing_store_cache = true,
+  .create_backing_store_callback = (struct {
+    fn callback(config: [*c]const flutter.c.FlutterBackingStoreConfig, backing_store_out: [*c]flutter.c.FlutterBackingStore, _self: ?*anyopaque) callconv(.C) bool {
+      _ = config;
+      _ = backing_store_out;
+
+      const self = Type.fromOpaque(_self.?);
+      std.debug.print("{}\n", .{ self });
+      return false;
+    }
+  }).callback,
+  .collect_backing_store_callback = (struct {
+    fn callback(backing_store: [*c]const flutter.c.FlutterBackingStore, _self: ?*anyopaque) callconv(.C) bool {
+      _ = backing_store;
+
+      const self = Type.fromOpaque(_self.?);
+      std.debug.print("{}\n", .{ self });
+      return false;
+    }
+  }).callback,
+  .present_layers_callback = (struct {
+    fn callback(layers: [*c][*c]const flutter.c.FlutterLayer, layers_count: usize, _self: ?*anyopaque) callconv(.C) bool {
+      _ = layers;
+      _ = layers_count;
+
+      const self = Type.fromOpaque(_self.?);
+      std.debug.print("{}\n", .{ self });
+      return false;
+    }
+  }).callback,
+},
 flutter: flutter.c.FlutterRendererConfig = .{
   .type = flutter.c.kOpenGL,
   .unnamed_0 = .{
@@ -147,7 +226,7 @@ flutter: flutter.c.FlutterRendererConfig = .{
           const runtime = Runtime.Type.fromOpaque(_runtime.?);
           const self = @constCast(&runtime.displaykit.toBase()).toContext().renderer.egl;
           std.debug.print("{}\n", .{ self });
-          return true;
+          return false;
         }
       }).callback,
       .fbo_with_frame_info_callback = (struct {

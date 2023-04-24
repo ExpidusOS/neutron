@@ -59,7 +59,7 @@ const vtable = Output.VTable {
     fn callback(_base: *anyopaque) i32 {
       const base = Output.Type.fromOpaque(_base);
       const self = Type.fromOpaque(base.type.parent.?.getValue());
-      return self.value.refresh;
+      return if (self.value.current_mode) |mode| mode.refresh else self.value.refresh;
     }
   }).callback,
   .get_id = (struct {
@@ -151,8 +151,6 @@ const Impl = struct {
       .scene_buffer = try compositor.scene.tree.createSceneBuffer(null),
       .id = try std.fmt.allocPrint(self.type.allocator, "{?s}-{?s}-{?s}-{s}", .{ self.value.serial, self.value.model, self.value.make, self.value.name }),
     };
-
-    std.debug.print("{s}\n", .{ self.id });
 
     errdefer self.base_output.unref();
     try self.updateBuffer();

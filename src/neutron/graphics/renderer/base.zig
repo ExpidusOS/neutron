@@ -7,6 +7,7 @@ const Self = @This();
 pub const VTable = struct {
   create_subrenderer: *const fn (self: *anyopaque, res: @Vector(2, i32)) anyerror!subrenderer.Subrenderer,
   get_engine_impl: *const fn (self: *anyopaque) *flutter.c.FlutterRendererConfig,
+  get_compositor_impl: ?*const fn (self: *anyopaque) ?*flutter.c.FlutterCompositor = null,
 };
 
 pub const Params = struct {
@@ -42,4 +43,11 @@ pub fn createSubrenderer(self: *Self, res: @Vector(2, i32)) !subrenderer.Subrend
 
 pub fn getEngineImpl(self: *Self) *flutter.c.FlutterRendererConfig {
   return self.vtable.get_engine_impl(self.type.toOpaque());
+}
+
+pub fn getCompositorImpl(self: *Self) ?*flutter.c.FlutterCompositor {
+  if (self.vtable.get_compositor_impl) |get_compositor_impl| {
+    return get_compositor_impl(self.type.toOpaque());
+  }
+  return null;
 }

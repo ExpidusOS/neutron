@@ -37,18 +37,19 @@ const vtable = Compositor.VTable {
         std.debug.assert(runtime.has_flutter);
 
         const displays = try self.type.allocator.alloc(flutter.c.FlutterEngineDisplay, self.outputs.items.len);
-        defer self.type.allocator.free(displays);
 
         for (self.outputs.items, displays) |output, *display| {
           display.* = .{
             .struct_size = @sizeOf(flutter.c.FlutterEngineDisplay),
             .display_id = output.base_output.getId(),
-            .single_display = self.outputs.items.len == 1,
+            .single_display = false,
             .refresh_rate = std.math.lossyCast(f64, output.base_output.getRefreshRate()),
           };
+          std.debug.print("{} {}\n", .{ output, display });
         }
 
         // FIXME: crash here
+        std.debug.print("{?}\n", .{ runtime.engine });
         const result = runtime.proc_table.NotifyDisplayUpdate.?(runtime.engine, flutter.c.kFlutterEngineDisplaysUpdateTypeStartup, displays.ptr, displays.len);
         if (result != flutter.c.kSuccess) return error.EngineFail;
       }

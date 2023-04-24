@@ -55,7 +55,7 @@ const Impl = struct {
         else (if (std.os.getenv("XDG_RUNTIME_DIR")) |xdg_runtime_dir| t.allocator.dupe(u8, xdg_runtime_dir) else std.process.getCwdAlloc(t.allocator))),
       .ipcs = std.ArrayList(ipc.Ipc).init(t.allocator),
       .displaykit = undefined,
-      .engine = undefined,
+      .engine = null,
       .project_args = .{
         .struct_size = @sizeOf(flutter.c.FlutterProjectArgs),
         .icu_data_path = try std.fs.path.joinZ(self.type.allocator, &.{
@@ -124,8 +124,11 @@ const Impl = struct {
       },
     }, params.renderer, self, t.allocator);
 
+    self.project_args.compositor = @constCast(&self.displaykit.toBase()).toContext().renderer.toBase().getCompositorImpl();
+
     var result = self.proc_table.Initialize.?(flutter.c.FLUTTER_ENGINE_VERSION, @constCast(&self.displaykit.toBase()).toContext().renderer.toBase().getEngineImpl(), &self.project_args, self, &self.engine);
     if (result != flutter.c.kSuccess) return error.EngineFail;
+    std.debug.print("{?}\n", .{ self.engine });
 
     self.has_flutter = true;
     try @constCast(&self.displaykit.toBase()).toContext().notifyFlutter(self);
