@@ -10,8 +10,12 @@
   };
 
   inputs.expidus-sdk.url = github:ExpidusOS/sdk/feat/refactor-neutron;
+  inputs.glice-nixpkgs = {
+    url = github:gilice/nixpkgs/flutter-3.7.7;
+    flake = false;
+  };
 
-  outputs = { self, expidus-sdk }:
+  outputs = { self, expidus-sdk, glice-nixpkgs }:
     with expidus-sdk.lib;
     flake-utils.eachSystem flake-utils.allSystems (system:
       let
@@ -19,6 +23,7 @@
           (final: prev: {
             zig = prev.zigpkgs.master;
 
+            flutter = (prev.callPackage "${glice-nixpkgs}/pkgs/development/compilers/flutter/default.nix" {}).stable;
             wlroots = prev.wlroots.overrideAttrs (self: super: {
               version = "0.16.2";
 
@@ -143,7 +148,13 @@
         mkDevShell = name: mkShell {
           inherit (packages.${name}) pname version name buildFlags;
 
-          packages = packages.${name}.nativeBuildInputs ++ packages.${name}.buildInputs;
+          packages = packages.${name}.nativeBuildInputs ++ packages.${name}.buildInputs ++ (with pkgs; [
+            flutter
+            cmake
+            ninja
+            gtk3
+            unzip
+          ]);
 
           shellHook = ''
             export rootOut=$(dirname $out)

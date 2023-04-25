@@ -9,15 +9,3 @@ environment:
 
 dev_dependencies:
   ffigen: ^7.2.7
-
-dependencies:
-  web_ffi: ^0.7.2
-  ffi: ^2.0.1
-
-flutter:
-  plugin:
-    platforms:
-      android:
-        ffiPlugin: true
-      linux:
-        ffiPlugin: true

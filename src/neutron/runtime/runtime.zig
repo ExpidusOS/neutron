@@ -1,4 +1,5 @@
 const std = @import("std");
+const xev = @import("xev");
 const elemental = @import("../elemental.zig");
 const displaykit = @import("../displaykit.zig");
 const graphics = @import("../graphics.zig");
@@ -91,7 +92,7 @@ const Impl = struct {
         .persistent_cache_path = null,
         .is_persistent_cache_read_only = false,
         .custom_dart_entrypoint = null,
-        .custom_task_runners = null,
+        .custom_task_runners = &self.task_runners,
         .shutdown_dart_vm_when_done = true,
         .dart_old_gen_heap_size = -1,
         .aot_data = aot_data,
@@ -103,8 +104,15 @@ const Impl = struct {
         .update_semantics_callback2 = null,
       },
       .proc_table = proc_table,
-      .has_flutter = false,
+      .platform_id = std.Thread.getCurrentId(),
+      .loop = try xev.Loop.init(.{}),
     };
+
+    self.platform_task_runner.user_data = self;
+    self.render_task_runner.user_data = self;
+
+    self.task_runners.platform_task_runner = &self.platform_task_runner;
+    self.task_runners.render_task_runner = &self.render_task_runner;
 
     errdefer t.allocator.free(self.dir);
     errdefer self.ipcs.deinit();
@@ -125,13 +133,6 @@ const Impl = struct {
     }, params.renderer, self, t.allocator);
 
     self.project_args.compositor = @constCast(&self.displaykit.toBase()).toContext().renderer.toBase().getCompositorImpl();
-
-    var result = self.proc_table.Initialize.?(flutter.c.FLUTTER_ENGINE_VERSION, @constCast(&self.displaykit.toBase()).toContext().renderer.toBase().getEngineImpl(), &self.project_args, self, &self.engine);
-    if (result != flutter.c.kSuccess) return error.EngineFail;
-    std.debug.print("{?}\n", .{ self.engine });
-
-    self.has_flutter = true;
-    try @constCast(&self.displaykit.toBase()).toContext().notifyFlutter(self);
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
@@ -139,7 +140,8 @@ const Impl = struct {
       .type = t,
       .mode = self.mode,
       .ipc = try self.ipc.ref(t.allocator),
-      .has_flutter = self.has_flutter,
+      .loop = self.loop,
+      .platform_id = self.platform_id,
     };
   }
 
@@ -148,8 +150,42 @@ const Impl = struct {
       ipc_obj.unref();
     }
 
+    self.loop.deinit();
+
     self.ipcs.deinit();
     self.type.allocator.free(self.dir);
+  }
+};
+
+const Task = struct {
+  runtime: *Self,
+  completion: xev.Completion,
+  flutter: flutter.c.FlutterTask,
+
+  fn init(runtime: *Self, task: flutter.c.FlutterTask, time: u64) !*Task {
+    const self = try runtime.type.allocator.create(Task);
+    self.* = .{
+      .runtime = runtime,
+      .completion = undefined,
+      .flutter = task,
+    };
+
+    runtime.loop.timer(&self.completion, time, @ptrCast(*anyopaque, @alignCast(@alignOf(anyopaque), self)), Task.callback);
+    return self;
+  }
+
+  fn callback(ud: ?*anyopaque, loop: *xev.Loop, completion: *xev.Completion, res: xev.Result) xev.CallbackAction {
+    _ = loop;
+    _ = completion;
+    _ = res;
+
+    const self = @ptrCast(*Task, @alignCast(@alignOf(Task), ud.?));
+    defer self.runtime.type.allocator.destroy(self);
+
+    std.debug.print("{}\n", .{ self });
+
+    _ = self.runtime.proc_table.RunTask.?(self.runtime.engine, &self.flutter);
+    return .disarm;
   }
 };
 
@@ -160,14 +196,74 @@ dir: []const u8,
 ipcs: std.ArrayList(ipc.Ipc),
 displaykit: displaykit.Backend,
 mode: Mode,
+loop: xev.Loop,
 engine: flutter.c.FlutterEngine,
 project_args: flutter.c.FlutterProjectArgs,
 proc_table: flutter.c.FlutterEngineProcTable,
-has_flutter: bool,
+platform_id: std.Thread.Id,
+platform_task_mutex: std.Thread.Mutex = .{},
+platform_task_runner: flutter.c.FlutterTaskRunnerDescription = .{
+  .struct_size = @sizeOf(flutter.c.FlutterTaskRunnerDescription),
+  .user_data = null,
+  .identifier = 0,
+  .runs_task_on_current_thread_callback = (struct {
+    fn callback(_self: ?*anyopaque) callconv(.C) bool {
+      const self = Type.fromOpaque(_self.?);
+      return self.platform_id == std.Thread.getCurrentId();
+    }
+  }).callback,
+  .post_task_callback = (struct {
+    fn callback(task: flutter.c.FlutterTask, time: u64, _self: ?*anyopaque) callconv(.C) void {
+      const self = Type.fromOpaque(_self.?);
+
+      self.platform_task_mutex.lock();
+
+      _ = Task.init(self, task, time) catch |err| {
+        std.debug.print("Failed to create task: {s}\n", .{ @errorName(err) });
+      };
+
+      self.platform_task_mutex.unlock();
+    }
+  }).callback,
+},
+render_task_mutex: std.Thread.Mutex = .{},
+render_task_runner: flutter.c.FlutterTaskRunnerDescription = .{
+  .struct_size = @sizeOf(flutter.c.FlutterTaskRunnerDescription),
+  .user_data = null,
+  .identifier = 0,
+  .runs_task_on_current_thread_callback = (struct {
+    fn callback(_self: ?*anyopaque) callconv(.C) bool {
+      const self = Type.fromOpaque(_self.?);
+      return self.platform_id == std.Thread.getCurrentId();
+    }
+  }).callback,
+  .post_task_callback = (struct {
+    fn callback(task: flutter.c.FlutterTask, time: u64, _self: ?*anyopaque) callconv(.C) void {
+      const self = Type.fromOpaque(_self.?);
+
+      self.render_task_mutex.lock();
+
+      _ = Task.init(self, task, time) catch |err| {
+        std.debug.print("Failed to create task: {s}\n", .{ @errorName(err) });
+      };
+
+      self.render_task_mutex.unlock();
+    }
+  }).callback,
+},
+task_runners: flutter.c.FlutterCustomTaskRunners = .{
+  .struct_size = @sizeOf(flutter.c.FlutterCustomTaskRunners),
+  .platform_task_runner = null,
+  .render_task_runner = null,
+  .thread_priority_setter = null,
+},
 
 pub usingnamespace Type.Impl;
 
 pub fn run(self: *Self) !void {
-  const result = self.proc_table.RunInitialized.?(self.engine);
+  const result = self.proc_table.Run.?(flutter.c.FLUTTER_ENGINE_VERSION, @constCast(&self.displaykit.toBase()).toContext().renderer.toBase().getEngineImpl(), &self.project_args, self, &self.engine);
   if (result != flutter.c.kSuccess) return error.EngineFail;
+  try @constCast(&self.displaykit.toBase()).toContext().notifyFlutter(self);
+
+  try self.loop.run(.until_done);
 }

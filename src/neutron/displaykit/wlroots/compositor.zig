@@ -1,5 +1,6 @@
 const builtin = @import("builtin");
 const std = @import("std");
+const xev = @import("xev");
 const elemental = @import("../../elemental.zig");
 const hardware = @import("../../hardware.zig");
 const graphics = @import("../../graphics.zig");
@@ -34,8 +35,6 @@ const vtable = Compositor.VTable {
         const compositor = @fieldParentPtr(Compositor, "context", context);
         const self = @fieldParentPtr(Self, "base_compositor", compositor);
 
-        std.debug.assert(runtime.has_flutter);
-
         const displays = try self.type.allocator.alloc(flutter.c.FlutterEngineDisplay, self.outputs.items.len);
 
         for (self.outputs.items, displays) |output, *display| {
@@ -45,11 +44,8 @@ const vtable = Compositor.VTable {
             .single_display = false,
             .refresh_rate = std.math.lossyCast(f64, output.base_output.getRefreshRate()),
           };
-          std.debug.print("{} {}\n", .{ output, display });
         }
 
-        // FIXME: crash here
-        std.debug.print("{?}\n", .{ runtime.engine });
         const result = runtime.proc_table.NotifyDisplayUpdate.?(runtime.engine, flutter.c.kFlutterEngineDisplaysUpdateTypeStartup, displays.ptr, displays.len);
         if (result != flutter.c.kSuccess) return error.EngineFail;
       }
@@ -88,11 +84,7 @@ const Impl = struct {
       .output_layout = try wlr.OutputLayout.create(),
       .outputs = try elemental.TypedList(*Output).init(.{}, self, t.allocator),
       .inputs = try elemental.TypedList(*Input).init(.{}, self, t.allocator),
-      .thread = try std.Thread.spawn(.{}, (struct {
-        fn callback(compositor: *Self) !void {
-          compositor.wl_server.run();
-        }
-      }).callback, .{ self }),
+      .completion = undefined,
     };
 
     self.base_compositor = try Compositor.init(.{
@@ -114,6 +106,38 @@ const Impl = struct {
 
     try self.cursor_mngr.load(1);
     try self.backend.start();
+
+    const runtime = self.getRuntime();
+    const event_loop = self.wl_server.getEventLoop();
+
+    self.completion = .{
+      .op = .{
+        .poll = .{
+          .fd = event_loop.getFd(),
+          .events = std.os.POLL.ERR | std.os.POLL.HUP | std.os.POLL.IN | std.os.POLL.NVAL | std.os.POLL.OUT | std.os.POLL.PRI | std.os.POLL.RDBAND | std.os.POLL.RDNORM,
+        },
+      },
+
+      .userdata = self,
+      .callback = (struct {
+        fn callback(ud: ?*anyopaque, loop: *xev.Loop, completion: *xev.Completion, res: xev.Result) xev.CallbackAction {
+          const compositor = Type.fromOpaque(ud.?);
+
+          _ = loop;
+          _ = completion;
+          _ = res;
+
+          const wl_loop = compositor.wl_server.getEventLoop();
+          wl_loop.dispatch(0) catch |err| {
+            // TODO: use logger
+            std.debug.print("Failed to dispatch event: {s}\n", .{ @errorName(err) });
+          };
+          return .rearm;
+        }
+      }).callback,
+    };
+
+    runtime.loop.add(&self.completion);
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
@@ -131,14 +155,12 @@ const Impl = struct {
       .outputs = try self.outputs.type.refInit(t.allocator),
       .inputs = try self.inputs.type.refInit(t.allocator),
       .socket = try t.allocator.dupeZ(u8, self.socket),
-      .thread = self.thread,
       .gpu = try self.gpu.type.refInit(t.allocator),
+      .completion = self.completion,
     };
   }
 
   pub fn unref(self: *Self) void {
-    self.thread.join();
-
     self.base_compositor.unref();
 
     self.outputs.deinit();
@@ -169,12 +191,12 @@ seat: *wlr.Seat,
 cursor_mngr: *wlr.XcursorManager,
 output_layout: *wlr.OutputLayout,
 scene: *wlr.Scene,
+completion: xev.Completion,
 outputs: elemental.TypedList(*Output),
 output_new: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init(output_new),
 inputs: elemental.TypedList(*Input),
 input_new: wl.Listener(*wlr.InputDevice) = wl.Listener(*wlr.InputDevice).init(input_new),
 socket: [:0]const u8 = undefined,
-thread: std.Thread,
 gpu: ?hardware.device.Gpu,
 
 fn output_new(listener: *wl.Listener(*wlr.Output), wlr_output: *wlr.Output) void {

@@ -20,10 +20,10 @@ function(list_prepend LIST_NAME PREFIX)
 endfunction()
 
 # === Flutter Library ===
-set(FLUTTER_LIBRARY "${LOCAL_ENGINE}/libflutter_engine.so")
+#set(FLUTTER_LIBRARY "${LOCAL_ENGINE}/libflutter_engine.so")
 
 # Published to parent scope for install step.
-set(FLUTTER_LIBRARY ${FLUTTER_LIBRARY} PARENT_SCOPE)
+#set(FLUTTER_LIBRARY ${FLUTTER_LIBRARY} PARENT_SCOPE)
 set(FLUTTER_ICU_DATA_FILE "${EPHEMERAL_DIR}/icudtl.dat" PARENT_SCOPE)
 set(PROJECT_BUILD_DIR "${PROJECT_DIR}/build/" PARENT_SCOPE)
 set(AOT_LIBRARY "${PROJECT_DIR}/build/lib/libapp.so" PARENT_SCOPE)
@@ -53,6 +53,6 @@ add_custom_command(
   VERBATIM
 )
 add_custom_target(flutter_assemble ALL DEPENDS
-  "${FLUTTER_LIBRARY}"
+#  "${FLUTTER_LIBRARY}"
   ${FLUTTER_LIBRARY_HEADERS}
 )

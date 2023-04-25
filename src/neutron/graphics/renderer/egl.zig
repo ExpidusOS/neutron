@@ -1,3 +1,4 @@
+const builtin = @import("builtin");
 const std = @import("std");
 const elemental = @import("../../elemental.zig");
 const hardware = @import("../../hardware.zig");
@@ -51,7 +52,7 @@ const Impl = struct {
       .gpu = try gpu.ref(t.allocator),
       .display = try self.gpu.getEglDisplay(),
       .context = undefined,
-      .context_mutex = .{},
+      .flutter_context = undefined,
       .tex_coord_buffer = undefined,
       .quad_vert_buffer = undefined,
     };
@@ -71,9 +72,9 @@ const Impl = struct {
 
     const config = try self.getConfig();
     self.context = try (if (c.eglCreateContext(self.display, config, c.EGL_NO_CONTEXT, attribs)) |value| value else error.InvalidContext);
+    self.flutter_context = try (if (c.eglCreateContext(self.display, config, self.context, attribs)) |value| value else error.InvalidContext);
 
     try self.useContext();
-    defer self.unuseContext();
 
     const x1 = 0.0;
     const x2 = 1.0;
@@ -102,6 +103,8 @@ const Impl = struct {
     c.glBindBuffer(c.GL_ARRAY_BUFFER, self.quad_vert_buffer);
     c.glBufferData(c.GL_ARRAY_BUFFER, quad_verts.len, quad_verts, c.GL_STATIC_DRAW);
     c.glBindBuffer(c.GL_ARRAY_BUFFER, 0);
+
+    self.unuseContext();
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
@@ -111,7 +114,7 @@ const Impl = struct {
       .gpu = try self.gpu.ref(t.allocator),
       .display = self.display,
       .context = self.context,
-      .context_mutex = .{},
+      .flutter_context = self.flutter_context,
       .tex_coord_buffer = self.tex_coord_buffer,
       .quad_vert_buffer = self.quad_vert_buffer,
     };
@@ -123,6 +126,7 @@ const Impl = struct {
   }
 
   pub fn destroy(self: *Self) void {
+    _ = c.eglDestroyContext(self.display, self.flutter_context);
     _ = c.eglDestroyContext(self.display, self.context);
     _ = c.eglTerminate(self.display);
   }
@@ -135,7 +139,7 @@ base: Base,
 gpu: *hardware.device.Gpu,
 display: c.EGLDisplay,
 context: c.EGLContext,
-context_mutex: std.Thread.Mutex,
+flutter_context: c.EGLContext,
 tex_coord_buffer: c.GLuint,
 quad_vert_buffer: c.GLuint,
 compositor: flutter.c.FlutterCompositor = .{
@@ -215,7 +219,7 @@ flutter: flutter.c.FlutterRendererConfig = .{
           const runtime = Runtime.Type.fromOpaque(_runtime.?);
           const self = @constCast(&runtime.displaykit.toBase()).toContext().renderer.egl;
 
-          self.useContext() catch return false;
+          api.wrap(c.eglMakeCurrent(self.display, c.EGL_NO_SURFACE, c.EGL_NO_SURFACE, self.flutter_context)) catch return false;
           return true;
         }
       }).callback,
@@ -286,11 +290,9 @@ pub fn getDisplayKit(self: *Self) ?*displaykit.base.Context {
 }
 
 pub fn useContext(self: *Self) !void {
-  self.context_mutex.lock();
   try api.wrap(c.eglMakeCurrent(self.display, c.EGL_NO_SURFACE, c.EGL_NO_SURFACE, self.context));
 }
 
 pub fn unuseContext(self: *Self) void {
   api.wrap(c.eglMakeCurrent(self.display, c.EGL_NO_SURFACE, c.EGL_NO_SURFACE, c.EGL_NO_CONTEXT)) catch @panic("Failed to unuse context");
-  self.context_mutex.unlock();
 }

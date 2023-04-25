@@ -58,6 +58,23 @@
         "type": "github"
       }
     },
+    "glice-nixpkgs": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1681294642,
+        "narHash": "sha256-3L/h56HchfAcFpKRzdLuQ7md4srAeqd80jnCMULi7IU=",
+        "owner": "gilice",
+        "repo": "nixpkgs",
+        "rev": "680c2317129705c6e6b6e22b44371ed5103d57b8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "gilice",
+        "ref": "flutter-3.7.7",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "home-manager": {
       "flake": false,
       "locked": {
@@ -110,7 +127,8 @@
     },
     "root": {
       "inputs": {
-        "expidus-sdk": "expidus-sdk"
+        "expidus-sdk": "expidus-sdk",
+        "glice-nixpkgs": "glice-nixpkgs"
       }
     },
     "systems": {

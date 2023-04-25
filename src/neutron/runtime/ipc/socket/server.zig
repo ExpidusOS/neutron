@@ -37,7 +37,8 @@ const Impl = struct {
     try std.os.listen(self.fd, 1);
     try std.os.getsockname(self.fd, &self.address.any, &socklen);
 
-    self.base.base.loop.add(&xev.Completion {
+    // TODO: remove when not needed
+    self.base.base.runtime.loop.add(&xev.Completion {
       .op = .{
         .accept = .{
           .socket = self.fd,
@@ -60,8 +61,6 @@ const Impl = struct {
         }
       }).callback,
     });
-
-    try self.base.base.start();
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
