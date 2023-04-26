@@ -41,7 +41,9 @@ const Impl = struct {
   }
 
   pub fn unref(self: *Self) void {
-    self.subrenderer.unref();
+    // FIXME: segment faults
+    // self.subrenderer.unref();
+    _ = self;
   }
 };
 
@@ -76,9 +78,4 @@ pub fn getRefreshRate(self: *Self) i32 {
 
 pub fn getId(self: *Self) u32 {
   return self.vtable.get_id(self.type.toOpaque());
-}
-
-pub fn notifyFlutter(self: *Self, runtime: *Runtime) !void {
-  _ = self;
-  _ = runtime;
 }

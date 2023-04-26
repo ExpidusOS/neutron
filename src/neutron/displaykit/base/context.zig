@@ -5,7 +5,7 @@ const hardware = @import("../../hardware.zig");
 const Compositor = @import("compositor.zig");
 const Client = @import("client.zig");
 const base = @import("base.zig");
-const Runtime = @import("../../runtime/runtime.zig");
+const Output = @import("output.zig");
 const Self = @This();
 
 pub const EGLImageKHRParameters = struct {
@@ -17,7 +17,7 @@ pub const EGLImageKHRParameters = struct {
 /// Virtual function table
 pub const VTable = struct {
   get_egl_image_khr_parameters: ?*const fn (self: *anyopaque, fb: *graphics.FrameBuffer) anyerror!EGLImageKHRParameters = null,
-  notify_flutter: ?*const fn (self: *anyopaque, runtime: *Runtime) anyerror!void = null,
+  get_outputs: ?*const fn (self: *anyopaque) anyerror!*elemental.TypedList(*Output) = null,
 };
 
 pub const Params = struct {
@@ -87,8 +87,10 @@ pub fn getEGLImageKHRParameters(self: *Self, fb: *graphics.FrameBuffer) !EGLImag
   return error.NotImplemented;
 }
 
-pub fn notifyFlutter(self: *Self, runtime: *Runtime) !void {
-  if (self.vtable.notify_flutter) |notify_flutter| {
-    return notify_flutter(self.type.toOpaque(), runtime);
+pub fn getOutputs(self: *Self) !*elemental.TypedList(*Output) {
+  if (self.vtable.get_outputs) |get_outputs| {
+    return get_outputs(self.type.toOpaque());
   }
+
+  return elemental.TypedList(*Output).new(.{}, null, self.type.allocator);
 }

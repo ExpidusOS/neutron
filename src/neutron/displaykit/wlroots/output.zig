@@ -150,14 +150,23 @@ const Impl = struct {
       .fb = null,
       .scene_buffer = try compositor.scene.tree.createSceneBuffer(null),
       .id = try std.fmt.allocPrint(self.type.allocator, "{?s}-{?s}-{?s}-{s}", .{ self.value.serial, self.value.model, self.value.make, self.value.name }),
+      .index = compositor.outputs.items.len,
     };
 
     errdefer self.base_output.unref();
     try self.updateBuffer();
     
+    self.value.events.destroy.add(&self.destroy);
     self.value.events.frame.add(&self.frame);
     self.value.events.mode.add(&self.mode);
     compositor.output_layout.addAuto(self.value);
+
+    try compositor.outputs.append(self);
+
+    const runtime = compositor.getRuntime();
+    if (runtime.engine != null) {
+      try runtime.notifyDisplays();
+    }
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
@@ -167,23 +176,26 @@ const Impl = struct {
       .value = self.value,
       .fb = if (self.fb) |fb| try fb.ref(t.allocator) else null,
       .scene_buffer = self.scene_buffer,
+      .index = self.index,
       .id = try t.allocator.dupe(u8, self.id),
     };
   }
 
   pub fn unref(self: *Self) void {
     self.base_output.unref();
-    self.value.destroy();
 
     if (self.fb) |fb| {
-      fb.unref();
+      // FIXME: segment faults
+      // fb.unref();
+      _ = fb;
+      self.fb = null;
     }
 
     self.type.allocator.free(self.id);
   }
 
   pub fn destroy(self: *Self) void {
-    self.scene_buffer.destroy();
+    self.value.destroy();
   }
 };
 
@@ -195,6 +207,25 @@ fb: ?*FrameBuffer,
 value: *wlr.Output,
 scene_buffer: *wlr.SceneBuffer,
 id: []const u8,
+index: usize,
+destroy: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
+  fn callback(listener: *wl.Listener(*wlr.Output), _: *wlr.Output) void {
+    const self = @fieldParentPtr(Self, "destroy", listener);
+
+    const compositor = self.getCompositor();
+    const runtime = compositor.getRuntime();
+
+    if (compositor.outputs.remove(self.index)) |s| {
+      s.unref();
+
+      if (runtime.engine != null) {
+        runtime.notifyDisplays() catch |err| {
+          std.debug.print("Failed to update displays: {s}\n", .{ @errorName(err) });
+        };
+      }
+    }
+  }
+}).callback),
 frame: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
   fn callback(listener: *wl.Listener(*wlr.Output), _: *wlr.Output) void {
     const self = @fieldParentPtr(Self, "frame", listener);

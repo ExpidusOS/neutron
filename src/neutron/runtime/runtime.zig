@@ -260,10 +260,34 @@ task_runners: flutter.c.FlutterCustomTaskRunners = .{
 
 pub usingnamespace Type.Impl;
 
+pub fn notifyDisplays(self: *Self) !void {
+  const outputs = try @constCast(&self.displaykit.toBase()).toContext().getOutputs();
+  defer outputs.unref();
+
+  if (outputs.items.len == 0) {
+    self.loop.stop();
+  } else {
+    const displays = try self.type.allocator.alloc(flutter.c.FlutterEngineDisplay, outputs.items.len);
+    defer self.type.allocator.free(displays);
+
+    for (outputs.items, displays) |output, *display| {
+      display.* = .{
+        .struct_size = @sizeOf(flutter.c.FlutterEngineDisplay),
+        .display_id = output.getId(),
+        .single_display = false,
+        .refresh_rate = std.math.lossyCast(f64, output.getRefreshRate()),
+      };
+    }
+
+    const result = self.proc_table.NotifyDisplayUpdate.?(self.engine, flutter.c.kFlutterEngineDisplaysUpdateTypeStartup, displays.ptr, displays.len);
+    if (result != flutter.c.kSuccess) return error.EngineFail;
+  }
+}
+
 pub fn run(self: *Self) !void {
   const result = self.proc_table.Run.?(flutter.c.FLUTTER_ENGINE_VERSION, @constCast(&self.displaykit.toBase()).toContext().renderer.toBase().getEngineImpl(), &self.project_args, self, &self.engine);
   if (result != flutter.c.kSuccess) return error.EngineFail;
-  try @constCast(&self.displaykit.toBase()).toContext().notifyFlutter(self);
 
+  try self.notifyDisplays();
   try self.loop.run(.until_done);
 }

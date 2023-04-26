@@ -8,6 +8,7 @@ const flutter = @import("../../flutter.zig");
 const Runtime = @import("../../runtime/runtime.zig");
 const Context = @import("../base/context.zig");
 const Compositor = @import("../base/compositor.zig");
+const BaseOutput = @import("../base/output.zig");
 const Output = @import("output.zig");
 const Input = @import("input.zig").Input;
 const FrameBuffer = @import("fb.zig");
@@ -29,25 +30,19 @@ const vtable = Compositor.VTable {
         return @fieldParentPtr(FrameBuffer, "base", _fb).getEGLImageKHRParameters();
       }
     }).callback,
-    .notify_flutter = (struct {
-      fn callback(_context: *anyopaque, runtime: *Runtime) !void {
+    .get_outputs = (struct {
+      fn callback(_context: *anyopaque) !*elemental.TypedList(*BaseOutput) {
         const context = Context.Type.fromOpaque(_context);
         const compositor = @fieldParentPtr(Compositor, "context", context);
         const self = @fieldParentPtr(Self, "base_compositor", compositor);
 
-        const displays = try self.type.allocator.alloc(flutter.c.FlutterEngineDisplay, self.outputs.items.len);
+        const list = try elemental.TypedList(*BaseOutput).new(.{}, null, self.type.allocator);
+        errdefer list.unref();
 
-        for (self.outputs.items, displays) |output, *display| {
-          display.* = .{
-            .struct_size = @sizeOf(flutter.c.FlutterEngineDisplay),
-            .display_id = output.base_output.getId(),
-            .single_display = false,
-            .refresh_rate = std.math.lossyCast(f64, output.base_output.getRefreshRate()),
-          };
+        for (self.outputs.items) |output| {
+          try list.append(&output.base_output);
         }
-
-        const result = runtime.proc_table.NotifyDisplayUpdate.?(runtime.engine, flutter.c.kFlutterEngineDisplaysUpdateTypeStartup, displays.ptr, displays.len);
-        if (result != flutter.c.kSuccess) return error.EngineFail;
+        return list;
       }
     }).callback,
   },
@@ -210,12 +205,10 @@ fn output_new(listener: *wl.Listener(*wlr.Output), wlr_output: *wlr.Output) void
     std.debug.print("Failed to create output: {s}\n", .{ @errorName(err) });
     return;
   };
-  errdefer output.unref();
 
-  self.outputs.append(output) catch {
-    // TODO: use the logger
-    return;
-  };
+  // FIXME: segment faults
+  // output.unref();
+  _ = output;
 }
 
 fn input_new(listener: *wl.Listener(*wlr.InputDevice), wlr_input: *wlr.InputDevice) void {

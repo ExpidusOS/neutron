@@ -112,12 +112,28 @@ pub fn TypedListAligned(comptime T: type, comptime alignment: ?u29) type {
       return self.items.ptr[0..self.capacity];
     }
 
-    pub fn pop(self: *Self) !?T {
+    pub fn remove(self: *Self, i: usize) ?T {
+      if (self.items.len == 0) return null;
+      if (self.items.len - 1 == i) return self.popOwned();
+
+      const old_item = self.items[i];
+      self.items[i] = self.popOwned().?;
+      return old_item;
+    }
+
+    pub fn popOwned(self: *Self) ?T {
       if (self.items.len == 0) return null;
 
       const val = self.items[self.items.len - 1];
       self.items.len -= 1;
-      try val.unref();
+      return val;
+    }
+
+    pub fn pop(self: *Self) ?T {
+      const val = self.popOwned();
+      if (val) |v| {
+        v.unref();
+      }
       return val;
     }
 

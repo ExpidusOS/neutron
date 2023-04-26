@@ -76,6 +76,7 @@ const Impl = struct {
 
     if (self.fb) |fb| {
       fb.unref();
+      self.fb = null;
     }
   }
 };
