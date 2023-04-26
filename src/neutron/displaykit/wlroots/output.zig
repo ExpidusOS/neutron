@@ -167,6 +167,8 @@ const Impl = struct {
     if (runtime.engine != null) {
       try runtime.notifyDisplays();
     }
+
+    try self.base_output.sendMetrics(runtime);
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
@@ -246,8 +248,14 @@ frame: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
 mode: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
   fn callback(listener: *wl.Listener(*wlr.Output), _: *wlr.Output) void {
     const self = @fieldParentPtr(Self, "mode", listener);
+
     self.updateBuffer() catch |err| {
       std.debug.print("Failed to update the buffer: {s}\n", .{ @errorName(err) });
+      return;
+    };
+
+    self.base_output.sendMetrics(self.getCompositor().getRuntime()) catch |err| {
+      std.debug.print("Failed to send the metrics: {s}\n", .{ @errorName(err) });
       return;
     };
   }

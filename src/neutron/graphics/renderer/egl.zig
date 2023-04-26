@@ -152,7 +152,7 @@ compositor: flutter.c.FlutterCompositor = .{
       _ = backing_store_out;
 
       const self = Type.fromOpaque(_self.?);
-      std.debug.print("{}\n", .{ self });
+      _ = self;
       return false;
     }
   }).callback,
@@ -161,7 +161,7 @@ compositor: flutter.c.FlutterCompositor = .{
       _ = backing_store;
 
       const self = Type.fromOpaque(_self.?);
-      std.debug.print("{}\n", .{ self });
+      _ = self;
       return false;
     }
   }).callback,
@@ -171,7 +171,7 @@ compositor: flutter.c.FlutterCompositor = .{
       _ = layers_count;
 
       const self = Type.fromOpaque(_self.?);
-      std.debug.print("{}\n", .{ self });
+      _ = self;
       return false;
     }
   }).callback,
@@ -229,7 +229,7 @@ flutter: flutter.c.FlutterRendererConfig = .{
 
           const runtime = Runtime.Type.fromOpaque(_runtime.?);
           const self = @constCast(&runtime.displaykit.toBase()).toContext().renderer.egl;
-          std.debug.print("{}\n", .{ self });
+          _ = self;
           return false;
         }
       }).callback,
@@ -239,7 +239,7 @@ flutter: flutter.c.FlutterRendererConfig = .{
 
           const runtime = Runtime.Type.fromOpaque(_runtime.?);
           const self = @constCast(&runtime.displaykit.toBase()).toContext().renderer.egl;
-          std.debug.print("{}\n", .{ self });
+          _ = self;
           return 0;
         }
       }).callback,

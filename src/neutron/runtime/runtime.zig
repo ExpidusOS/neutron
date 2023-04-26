@@ -162,7 +162,7 @@ const Task = struct {
   completion: xev.Completion,
   flutter: flutter.c.FlutterTask,
 
-  fn init(runtime: *Self, task: flutter.c.FlutterTask, time: u64) !*Task {
+  fn init(runtime: *Self, task: flutter.c.FlutterTask, target_time: u64) !*Task {
     const self = try runtime.type.allocator.create(Task);
     self.* = .{
       .runtime = runtime,
@@ -170,7 +170,10 @@ const Task = struct {
       .flutter = task,
     };
 
-    runtime.loop.timer(&self.completion, time, @ptrCast(*anyopaque, @alignCast(@alignOf(anyopaque), self)), Task.callback);
+    const engine_time = runtime.proc_table.GetCurrentTime.?();
+    const delta_time = if (target_time > engine_time) target_time - engine_time else engine_time - target_time;
+
+    runtime.loop.timer(&self.completion, delta_time / 1000, @ptrCast(*anyopaque, @alignCast(@alignOf(anyopaque), self)), Task.callback);
     return self;
   }
 
@@ -181,8 +184,6 @@ const Task = struct {
 
     const self = @ptrCast(*Task, @alignCast(@alignOf(Task), ud.?));
     defer self.runtime.type.allocator.destroy(self);
-
-    std.debug.print("{}\n", .{ self });
 
     _ = self.runtime.proc_table.RunTask.?(self.runtime.engine, &self.flutter);
     return .disarm;
@@ -282,6 +283,8 @@ pub fn notifyDisplays(self: *Self) !void {
     const result = self.proc_table.NotifyDisplayUpdate.?(self.engine, flutter.c.kFlutterEngineDisplaysUpdateTypeStartup, displays.ptr, displays.len);
     if (result != flutter.c.kSuccess) return error.EngineFail;
   }
+
+  for (outputs.items) |output| try output.sendMetrics(self);
 }
 
 pub fn run(self: *Self) !void {

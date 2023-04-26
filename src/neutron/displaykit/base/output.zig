@@ -79,3 +79,26 @@ pub fn getRefreshRate(self: *Self) i32 {
 pub fn getId(self: *Self) u32 {
   return self.vtable.get_id(self.type.toOpaque());
 }
+
+pub fn sendMetrics(self: *Self, runtime: *Runtime) !void {
+  if (runtime.engine != null) {
+    const res = self.getResolution();
+    const pos = self.getPosition();
+
+    const event = flutter.c.FlutterWindowMetricsEvent {
+      .struct_size = @sizeOf(flutter.c.FlutterWindowMetricsEvent),
+      .width = @intCast(usize, res[0]),
+      .height = @intCast(usize, res[1]),
+      .pixel_ratio = 1.0 * self.getScale(),
+      .left = @intCast(usize, pos[0]),
+      .top = @intCast(usize, pos[1]),
+      .physical_view_inset_top = 0.0,
+      .physical_view_inset_right = 0.0,
+      .physical_view_inset_bottom = 0.0,
+      .physical_view_inset_left = 0.0,
+    };
+
+    const result = runtime.proc_table.SendWindowMetricsEvent.?(runtime.engine, &event);
+    if (result != flutter.c.kSuccess) return error.EngineFail;
+  }
+}
