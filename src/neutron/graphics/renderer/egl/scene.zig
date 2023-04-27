@@ -29,6 +29,9 @@ const scene_layer_vtable = SceneLayer.VTable {
 
           api.useDebug();
 
+          c.glActiveTexture(c.GL_TEXTURE0);
+          c.glBindTexture(c.GL_TEXTURE_2D, page_texture.tex);
+
           if (renderer.toBase().shader_prog) |base_shader_prog| {
             const shader_prog = @fieldParentPtr(ShaderProgram, "base", base_shader_prog);
 
@@ -40,18 +43,32 @@ const scene_layer_vtable = SceneLayer.VTable {
             texcoord_attrib = c.glGetAttribLocation(shader_prog.id, "texcoord");
             if (texcoord_attrib == -1) return error.InvalidAttrib;
 
+            const x1 = 0.0;
+            const x2 = 1.0;
+            const y1 = 0.0;
+            const y2 = 1.0;
+
+            const texcoords = &[_]c.GLfloat {
+              x2, y1,
+              x1, y1,
+              x2, y2,
+              x1, y2
+            };
+
+            const quad_verts = &[_]c.GLfloat {
+              1, 0,
+              0, 0,
+              1, 1,
+              0, 1,
+            };
+
             c.glEnableVertexAttribArray(@intCast(c.GLuint, pos_attrib));
-            c.glBindBuffer(c.GL_ARRAY_BUFFER, renderer.egl.quad_vert_buffer);
-            c.glVertexAttribPointer(@intCast(c.GLuint, pos_attrib), 2, c.GL_FLOAT, c.GL_FALSE, 0, null);
+            c.glVertexAttribPointer(@intCast(c.GLuint, pos_attrib), 2, c.GL_FLOAT, c.GL_FALSE, 0, quad_verts);
 
             c.glEnableVertexAttribArray(@intCast(c.GLuint, texcoord_attrib));
-            c.glBindBuffer(c.GL_ARRAY_BUFFER, renderer.egl.tex_coord_buffer);
-            c.glVertexAttribPointer(@intCast(c.GLuint, texcoord_attrib), 2, c.GL_FLOAT, c.GL_FALSE, 0, null);
+            c.glVertexAttribPointer(@intCast(c.GLuint, texcoord_attrib), 2, c.GL_FLOAT, c.GL_FALSE, 0, texcoords);
           }
 
-          c.glActiveTexture(c.GL_TEXTURE0);
-
-          c.glBindTexture(c.GL_TEXTURE_2D, page_texture.tex);
           c.glDrawArrays(c.GL_TRIANGLE_STRIP, 0, 4);
 
           if (renderer.toBase().shader_prog) |_| {
@@ -60,7 +77,6 @@ const scene_layer_vtable = SceneLayer.VTable {
           }
 
           c.glBindTexture(c.GL_TEXTURE_2D, 0);
-          c.glBindBuffer(c.GL_ARRAY_BUFFER, 0);
           c.glUseProgram(0);
         },
       }
@@ -79,10 +95,12 @@ const vtable = Scene.VTable {
     }
   }).callback,
   .pre_render = (struct {
-    fn callback(base: *anyopaque, renderer: *Renderer) !void {
+    fn callback(base: *anyopaque, renderer: *Renderer, size: @Vector(2, i32)) !void {
       _ = base;
       _ = renderer;
 
+      c.glViewport(0, 0, size[0], size[1]);
+      c.glBlendFunc(c.GL_ONE, c.GL_ONE_MINUS_SRC_ALPHA);
       c.glClearColor(0, 0, 0, 1);
       c.glClear(c.GL_COLOR_BUFFER_BIT);
     }

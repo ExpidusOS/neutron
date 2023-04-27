@@ -14,16 +14,17 @@ const Base = @import("base.zig");
 const Self = @This();
 
 const c = api.c;
+const GL_BGRA8 = 0x93A1;
 
 const vtable = Base.VTable {
   .create_subrenderer = (struct {
     fn callback(_base: *anyopaque, res: @Vector(2, i32)) !subrenderer.Subrenderer {
       const base = Base.Type.fromOpaque(_base);
       const self = Type.fromOpaque(base.type.parent.?.getValue());
+      _ = res;
       return .{
         .egl = try subrenderer.Egl.new(.{
           .renderer = self,
-          .resolution = res,
         }, self, null),
       };
     }
@@ -65,8 +66,6 @@ const Impl = struct {
       .display = try self.gpu.getEglDisplay(),
       .context = undefined,
       .flutter_context = undefined,
-      .tex_coord_buffer = undefined,
-      .quad_vert_buffer = undefined,
       .pages = [_]Page { Page.init(self) } ** 2,
       .curr_page = 0,
       .mutex = .{},
@@ -94,34 +93,6 @@ const Impl = struct {
 
     try self.useContext();
 
-    const x1 = 0.0;
-    const x2 = 1.0;
-    const y1 = 0.0;
-    const y2 = 1.0;
-
-    const texcoords = &[_]c.GLfloat {
-      x2, y2,
-      x1, y2,
-      x2, y1,
-      x1, y1
-    };
-
-    const quad_verts = &[_]c.GLfloat {
-      1, -1,
-      -1, -1,
-      1, 1,
-      -1, 1,
-    };
-
-    c.glGenBuffers(1, &self.tex_coord_buffer);
-    c.glBindBuffer(c.GL_ARRAY_BUFFER, self.tex_coord_buffer);
-    c.glBufferData(c.GL_ARRAY_BUFFER, texcoords.len, texcoords, c.GL_STATIC_DRAW);
-
-    c.glGenBuffers(1, &self.quad_vert_buffer);
-    c.glBindBuffer(c.GL_ARRAY_BUFFER, self.quad_vert_buffer);
-    c.glBufferData(c.GL_ARRAY_BUFFER, quad_verts.len, quad_verts, c.GL_STATIC_DRAW);
-    c.glBindBuffer(c.GL_ARRAY_BUFFER, 0);
-
     try self.base.useDefaultShaders();
 
     self.unuseContext();
@@ -135,8 +106,6 @@ const Impl = struct {
       .display = self.display,
       .context = self.context,
       .flutter_context = self.flutter_context,
-      .tex_coord_buffer = self.tex_coord_buffer,
-      .quad_vert_buffer = self.quad_vert_buffer,
       .pages = self.pages,
       .curr_page = self.curr_page,
       .current_scene = self.current_scene.type.refInit(t.allocator),
@@ -174,7 +143,7 @@ pub const PageTexture = struct {
     var tex: c.GLuint = 0;
     c.glGenTextures(1, &tex);
     c.glBindTexture(c.GL_TEXTURE_2D, tex);
-    c.glTexImage2D(c.GL_TEXTURE_2D, 0, c.GL_BGRA_EXT, @intCast(c_int, size[0]), @intCast(c_int, size[1]), 0, c.GL_BGRA_EXT, c.GL_UNSIGNED_BYTE, null);
+    c.glTexImage2D(c.GL_TEXTURE_2D, 0, c.GL_BGRA, @intCast(c_int, size[0]), @intCast(c_int, size[1]), 0, c.GL_BGRA, c.GL_UNSIGNED_BYTE, null);
     c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MIN_FILTER, c.GL_LINEAR);
     c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MAG_FILTER, c.GL_LINEAR);
 
@@ -216,7 +185,7 @@ pub const PageTexture = struct {
             .name = self.tex,
             .width = self.size[0],
             .height = self.size[1],
-            .format = 0x93A1,
+            .format = GL_BGRA8,
             .user_data = self,
             .destruction_callback = (struct {
               fn callback(_: ?*anyopaque) callconv(.C) void {}
@@ -229,7 +198,7 @@ pub const PageTexture = struct {
         .type = flutter.c.kFlutterOpenGLTargetTypeFramebuffer,
         .unnamed_0 = .{
           .framebuffer = .{
-            .target = 0x93A1,
+            .target = GL_BGRA8,
             .name = self.fbo,
             .user_data = self,
             .destruction_callback = (struct {
@@ -277,8 +246,6 @@ gpu: *hardware.device.Gpu,
 display: c.EGLDisplay,
 context: c.EGLContext,
 flutter_context: c.EGLContext,
-tex_coord_buffer: c.GLuint,
-quad_vert_buffer: c.GLuint,
 pages: [2]Page,
 curr_page: usize,
 current_scene: Scene,
@@ -294,7 +261,7 @@ compositor: flutter.c.FlutterCompositor = .{
     fn callback(config: [*c]const flutter.c.FlutterBackingStoreConfig, backing_store_out: [*c]flutter.c.FlutterBackingStore, _self: ?*anyopaque) callconv(.C) bool {
       const self = Type.fromOpaque(_self.?);
       const page = &self.pages[self.curr_page];
-      const page_texture = page.getTexture(.{ std.math.lossyCast(usize, config.*.size.width), std.math.lossyCast(usize, config.*.size.height) }, true) catch |err| {
+      const page_texture = page.getTexture(.{ std.math.lossyCast(usize, config.*.size.width), std.math.lossyCast(usize, config.*.size.height) }, false) catch |err| {
         std.debug.print("Failed to get page texture: {s}\n", .{ @errorName(err) });
         return false;
       };
@@ -303,7 +270,7 @@ compositor: flutter.c.FlutterCompositor = .{
         .struct_size = @sizeOf(flutter.c.FlutterBackingStore),
         .user_data = @ptrCast(*anyopaque, @alignCast(@alignOf(anyopaque), page_texture)),
         .type = flutter.c.kFlutterBackingStoreTypeOpenGL,
-        .did_update = true,
+        .did_update = false,
         .unnamed_0 = .{
           .open_gl = page_texture.getBackingStore(),
         },

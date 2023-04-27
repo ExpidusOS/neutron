@@ -43,7 +43,6 @@ const Renderable = union(enum) {
 };
 
 pub const Params = struct {
-  resolution: @Vector(2, i32),
   renderer: *Renderer,
 };
 
@@ -187,9 +186,11 @@ vtable: Base.VTable = .{
       renderer.mutex.lock();
       defer renderer.mutex.unlock();
 
-      try renderer.base.current_scene.render(&.{
-        .egl = renderer,
-      });
+      if (self.fb) |fb| {
+        try renderer.base.current_scene.render(&.{
+          .egl = renderer,
+        }, fb.getResolution());
+      }
 
       if (self.renderable) |renderable| {
         renderable.unuse();
