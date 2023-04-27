@@ -7,6 +7,9 @@ const flutter = @import("../../flutter.zig");
 const Runtime = @import("../../runtime/runtime.zig");
 const api = @import("../api/egl.zig");
 const subrenderer = @import("../subrenderer.zig");
+const BaseShaderProgram = @import("../shader-program.zig");
+const Scene = @import("egl/scene.zig");
+const ShaderProgram = @import("egl/shader-program.zig");
 const Base = @import("base.zig");
 const Self = @This();
 
@@ -40,14 +43,23 @@ const vtable = Base.VTable {
       return &self.compositor;
     }
   }).callback,
+  .create_shader_program = (struct {
+    fn callback(_base: *anyopaque) !*BaseShaderProgram {
+      const base = Base.Type.fromOpaque(_base);
+      const self = Type.fromOpaque(base.type.parent.?.getValue());
+      return &(try ShaderProgram.new(.{}, null, self.type.allocator)).base;
+    }
+  }).callback,
 };
 
 const Impl = struct {
   pub fn construct(self: *Self, gpu: *hardware.device.Gpu, t: Type) !void {
     self.* = .{
       .type = t,
+      .current_scene = try Scene.init(.{}, self, t.allocator),
       .base = try Base.init(.{
         .vtable = &vtable,
+        .current_scene = &self.current_scene.base,
       }, self, t.allocator),
       .gpu = try gpu.ref(t.allocator),
       .display = try self.gpu.getEglDisplay(),
@@ -57,6 +69,7 @@ const Impl = struct {
       .quad_vert_buffer = undefined,
       .pages = [_]Page { Page.init(self) } ** 2,
       .curr_page = 0,
+      .mutex = .{},
       .procs = .{
         .glDrawBuffers = try api.tryResolve(?*const fn (n: c.GLsizei, bufs: [*c]const c.GLenum) callconv(.C) void, "glDrawBuffers"),
       },
@@ -109,6 +122,8 @@ const Impl = struct {
     c.glBufferData(c.GL_ARRAY_BUFFER, quad_verts.len, quad_verts, c.GL_STATIC_DRAW);
     c.glBindBuffer(c.GL_ARRAY_BUFFER, 0);
 
+    try self.base.useDefaultShaders();
+
     self.unuseContext();
   }
 
@@ -124,12 +139,15 @@ const Impl = struct {
       .quad_vert_buffer = self.quad_vert_buffer,
       .pages = self.pages,
       .curr_page = self.curr_page,
+      .current_scene = self.current_scene.type.refInit(t.allocator),
+      .mutex = self.mutex,
     };
   }
 
   pub fn unref(self: *Self) void {
     self.base.unref();
     self.gpu.unref();
+    self.current_scene.unref();
   }
 
   pub fn destroy(self: *Self) void {
@@ -139,12 +157,14 @@ const Impl = struct {
   }
 };
 
-const PageTexture = struct {
+pub const PageTexture = struct {
   size: @Vector(2, usize),
   fbo: c.GLuint,
   tex: c.GLuint,
 
   pub fn init(renderer: *Self, size: @Vector(2, usize), make_fbo: bool) !PageTexture {
+    api.clearError();
+
     var fbo: c.GLuint = 0;
     if (make_fbo) {
       c.glGenFramebuffers(1, &fbo);
@@ -169,8 +189,7 @@ const PageTexture = struct {
 
     c.glBindTexture(c.GL_TEXTURE_2D, 0);
 
-    const err = c.glGetError();
-    if (err != 0) return error.glError;
+    try api.autoError();
 
     return .{
       .tex = tex,
@@ -178,9 +197,51 @@ const PageTexture = struct {
       .size = size,
     };
   }
+
+  pub fn deinit(self: *PageTexture) void {
+    c.glDeleteTextures(1, &self.tex);
+
+    if (self.fbo > 0) {
+      c.glDeleteFramebuffers(1, &self.fbo);
+    }
+  }
+
+  pub fn getBackingStore(self: *PageTexture) flutter.c.FlutterOpenGLBackingStore {
+    return if (self.fbo == 0)
+      .{
+        .type = flutter.c.kFlutterOpenGLTargetTypeTexture,
+        .unnamed_0 = .{
+          .texture = .{
+            .target = c.GL_TEXTURE_2D,
+            .name = self.tex,
+            .width = self.size[0],
+            .height = self.size[1],
+            .format = 0x93A1,
+            .user_data = self,
+            .destruction_callback = (struct {
+              fn callback(_: ?*anyopaque) callconv(.C) void {}
+            }).callback,
+          },
+        },
+      }
+    else
+      .{
+        .type = flutter.c.kFlutterOpenGLTargetTypeFramebuffer,
+        .unnamed_0 = .{
+          .framebuffer = .{
+            .target = 0x93A1,
+            .name = self.fbo,
+            .user_data = self,
+            .destruction_callback = (struct {
+              fn callback(_: ?*anyopaque) callconv(.C) void {}
+            }).callback,
+          },
+        },
+      };
+  }
 };
 
-const Page = struct {
+pub const Page = struct {
   renderer: *Self,
   textures: std.ArrayList(PageTexture),
   unused_textures: std.ArrayList(PageTexture),
@@ -220,6 +281,8 @@ tex_coord_buffer: c.GLuint,
 quad_vert_buffer: c.GLuint,
 pages: [2]Page,
 curr_page: usize,
+current_scene: Scene,
+mutex: std.Thread.Mutex,
 procs: struct {
   glDrawBuffers: *const fn (n: c.GLsizei, bufs: [*c]const c.GLenum) callconv(.C) void,
 },
@@ -231,30 +294,18 @@ compositor: flutter.c.FlutterCompositor = .{
     fn callback(config: [*c]const flutter.c.FlutterBackingStoreConfig, backing_store_out: [*c]flutter.c.FlutterBackingStore, _self: ?*anyopaque) callconv(.C) bool {
       const self = Type.fromOpaque(_self.?);
       const page = &self.pages[self.curr_page];
-      const page_texture = page.getTexture(.{ std.math.lossyCast(usize, config.*.size.width), std.math.lossyCast(usize, config.*.size.height) }, false) catch return false;
+      const page_texture = page.getTexture(.{ std.math.lossyCast(usize, config.*.size.width), std.math.lossyCast(usize, config.*.size.height) }, true) catch |err| {
+        std.debug.print("Failed to get page texture: {s}\n", .{ @errorName(err) });
+        return false;
+      };
 
       backing_store_out.* = .{
         .struct_size = @sizeOf(flutter.c.FlutterBackingStore),
-        .user_data = page_texture,
+        .user_data = @ptrCast(*anyopaque, @alignCast(@alignOf(anyopaque), page_texture)),
         .type = flutter.c.kFlutterBackingStoreTypeOpenGL,
         .did_update = true,
         .unnamed_0 = .{
-          .open_gl = .{
-            .type = flutter.c.kFlutterOpenGLTargetTypeTexture,
-            .unnamed_0 = .{
-              .texture = .{
-                .target = c.GL_TEXTURE_2D,
-                .name = page_texture.tex,
-                .width = page_texture.size[0],
-                .height = page_texture.size[1],
-                .format = c.GL_BGRA_EXT,
-                .user_data = page_texture,
-                .destruction_callback = (struct {
-                  fn callback(_: ?*anyopaque) callconv(.C) void {}
-                }).callback,
-              },
-            },
-          },
+          .open_gl = page_texture.getBackingStore(),
         },
       };
       return true;
@@ -266,17 +317,41 @@ compositor: flutter.c.FlutterCompositor = .{
 
       const self = Type.fromOpaque(_self.?);
       _ = self;
-      return false;
+      return true;
     }
   }).callback,
   .present_layers_callback = (struct {
     fn callback(layers: [*c][*c]const flutter.c.FlutterLayer, layers_count: usize, _self: ?*anyopaque) callconv(.C) bool {
-      _ = layers;
-      _ = layers_count;
-
       const self = Type.fromOpaque(_self.?);
-      _ = self;
-      return false;
+
+      self.mutex.lock();
+      defer self.mutex.unlock();
+
+      self.current_scene.base.clearLayers();
+
+      var x: usize = 0;
+      while (x < layers_count) : (x += 1) {
+        const layer = @ptrCast(*const flutter.c.FlutterLayer, layers[x]);
+        self.current_scene.base.addLayer(layer) catch return false;
+      }
+
+      const last_page_index: usize = if (self.curr_page == 0) 1 else 0;
+      const page = &self.pages[self.curr_page];
+
+      while (page.unused_textures.popOrNull()) |page_texture| {
+        @constCast(&page_texture).deinit();
+      }
+
+      // TODO: delete sync
+      // TODO: recreate sync
+
+      const last_page = &self.pages[last_page_index];
+      while (last_page.textures.popOrNull()) |texture| {
+        last_page.textures.append(texture) catch return false;
+      }
+
+      self.curr_page = if (self.curr_page == 0) 1 else 0;
+      return true;
     }
   }).callback,
 },
@@ -289,8 +364,8 @@ flutter: flutter.c.FlutterRendererConfig = .{
       .fbo_callback = null,
       .surface_transformation = null,
       .gl_external_texture_frame_callback = null,
-      .present = null,
       .populate_existing_damage = null,
+      .present_with_info = null,
       .gl_proc_resolver = (struct {
         fn callback(_: ?*anyopaque, name: [*c]const u8) callconv(.C) ?*anyopaque {
           var n: []const u8 = undefined;
@@ -327,14 +402,13 @@ flutter: flutter.c.FlutterRendererConfig = .{
           return true;
         }
       }).callback,
-      .present_with_info = (struct {
-        fn callback(_runtime: ?*anyopaque, present: [*c]const flutter.c.FlutterPresentInfo) callconv(.C) bool {
-          _ = present;
-
+      .present = (struct {
+        fn callback(_runtime: ?*anyopaque) callconv(.C) bool {
           const runtime = Runtime.Type.fromOpaque(_runtime.?);
           const self = @constCast(&runtime.displaykit.toBase()).toContext().renderer.egl;
-          _ = self;
-          return false;
+
+          api.wrap(c.eglSwapBuffers(self.display, c.EGL_NO_SURFACE)) catch return false;
+          return true;
         }
       }).callback,
       .fbo_with_frame_info_callback = (struct {

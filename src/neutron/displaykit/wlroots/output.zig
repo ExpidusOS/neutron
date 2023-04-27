@@ -223,6 +223,7 @@ destroy: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
       if (runtime.engine != null) {
         runtime.notifyDisplays() catch |err| {
           std.debug.print("Failed to update displays: {s}\n", .{ @errorName(err) });
+          std.debug.dumpStackTrace(@errorReturnTrace().?.*);
         };
       }
     }
@@ -234,6 +235,7 @@ frame: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
 
     self.base_output.subrenderer.toBase().render() catch |err| {
       std.debug.print("Failed to render: {s}\n", .{ @errorName(err) });
+      std.debug.dumpStackTrace(@errorReturnTrace().?.*);
       return;
     };
 
@@ -251,11 +253,13 @@ mode: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
 
     self.updateBuffer() catch |err| {
       std.debug.print("Failed to update the buffer: {s}\n", .{ @errorName(err) });
+      std.debug.dumpStackTrace(@errorReturnTrace().?.*);
       return;
     };
 
     self.base_output.sendMetrics(self.getCompositor().getRuntime()) catch |err| {
       std.debug.print("Failed to send the metrics: {s}\n", .{ @errorName(err) });
+      std.debug.dumpStackTrace(@errorReturnTrace().?.*);
       return;
     };
   }

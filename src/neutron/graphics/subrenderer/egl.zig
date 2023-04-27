@@ -184,9 +184,12 @@ vtable: Base.VTable = .{
         renderable.use();
       }
 
-      c.glClearColor(1, 0, 0, 1);
-      c.glClear(c.GL_COLOR_BUFFER_BIT);
-      c.glFlush();
+      renderer.mutex.lock();
+      defer renderer.mutex.unlock();
+
+      try renderer.base.current_scene.render(&.{
+        .egl = renderer,
+      });
 
       if (self.renderable) |renderable| {
         renderable.unuse();

@@ -93,6 +93,7 @@ pub const Renderer = union(Type) {
     if (_gpu) |gpu| {
       if (Egl.new(gpu, ctx, allocator) catch |err| blk: {
         std.debug.print("Failed to create EGL renderer: {s}\n", .{ @errorName(err) });
+        std.debug.dumpStackTrace(@errorReturnTrace().?.*);
         break :blk null;
       }) |egl| return .{ .egl = egl };
     }

@@ -39,3 +39,34 @@ pub fn resolve(comptime T: type, name: []const u8) ?@typeInfo(T).Optional.child 
 pub fn tryResolve(comptime T: type, name: []const u8) !@typeInfo(T).Optional.child {
   return resolve(T, name) orelse error.NoProc;
 }
+
+pub fn clearError() void {
+  var e = c.glGetError();
+  while (e != c.GL_NO_ERROR) : (e = c.glGetError()) {}
+}
+
+pub fn autoError() !void {
+  var e = c.glGetError();
+  while (e != c.GL_NO_ERROR) : (e = c.glGetError()) {
+    return switch (e) {
+      c.GL_INVALID_ENUM => error.InvalidEnum,
+      c.GL_INVALID_VALUE => error.InvalidValue,
+      c.GL_INVALID_OPERATION => error.InvalidOp,
+      c.GL_INVALID_FRAMEBUFFER_OPERATION => error.InvalidFbop,
+      c.GL_OUT_OF_MEMORY => error.OutOfMemory,
+      c.GL_STACK_UNDERFLOW => error.StackUnderflow,
+      c.GL_STACK_OVERFLOW => error.StackOverflow,
+      else => std.debug.panic("Unknown error {}", .{ e }),
+    };
+  }
+}
+
+pub fn useDebug() void {
+  c.glEnable(c.GL_DEBUG_OUTPUT);
+  c.glEnable(c.GL_DEBUG_OUTPUT_SYNCHRONOUS);
+  //c.glDebugMessageCallback((struct {
+  //  fn callback(source: c.GLenum, t: c.GLenum, id: c.GLuint, severity: c.GLenum, len: c.GLsizei, message: [*c]const c.GLchar, _: ?*const anyopaque) callconv(.C) void {
+  //    std.debug.print("{} {} {} {} {} {s}\n", .{ source, t, id, severity, len, message });
+  //  }
+  //}).callback, null);
+}
