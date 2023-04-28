@@ -27,8 +27,6 @@ const scene_layer_vtable = SceneLayer.VTable {
           var pos_attrib: c.GLint = undefined;
           var texcoord_attrib: c.GLint = undefined;
 
-          api.useDebug();
-
           c.glActiveTexture(c.GL_TEXTURE0);
           c.glBindTexture(c.GL_TEXTURE_2D, page_texture.tex);
 
@@ -97,8 +95,8 @@ const vtable = Scene.VTable {
   .pre_render = (struct {
     fn callback(base: *anyopaque, renderer: *Renderer, size: @Vector(2, i32)) !void {
       _ = base;
-      _ = renderer;
 
+      try renderer.egl.pushDebug();
       c.glViewport(0, 0, size[0], size[1]);
       c.glBlendFunc(c.GL_ONE, c.GL_ONE_MINUS_SRC_ALPHA);
       c.glClearColor(0, 0, 0, 1);
@@ -108,9 +106,9 @@ const vtable = Scene.VTable {
   .post_render = (struct {
     fn callback(base: *anyopaque, renderer: *Renderer) !void {
       _ = base;
-      _ = renderer;
 
       c.glFlush();
+      renderer.egl.popDebug();
     }
   }).callback,
 };

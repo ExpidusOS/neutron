@@ -60,13 +60,3 @@ pub fn autoError() !void {
     };
   }
 }
-
-pub fn useDebug() void {
-  c.glEnable(c.GL_DEBUG_OUTPUT);
-  c.glEnable(c.GL_DEBUG_OUTPUT_SYNCHRONOUS);
-  //c.glDebugMessageCallback((struct {
-  //  fn callback(source: c.GLenum, t: c.GLenum, id: c.GLuint, severity: c.GLenum, len: c.GLsizei, message: [*c]const c.GLchar, _: ?*const anyopaque) callconv(.C) void {
-  //    std.debug.print("{} {} {} {} {} {s}\n", .{ source, t, id, severity, len, message });
-  //  }
-  //}).callback, null);
-}

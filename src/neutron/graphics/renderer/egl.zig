@@ -71,6 +71,10 @@ const Impl = struct {
       .mutex = .{},
       .procs = .{
         .glDrawBuffers = try api.tryResolve(?*const fn (n: c.GLsizei, bufs: [*c]const c.GLenum) callconv(.C) void, "glDrawBuffers"),
+        .glDebugMessageControlKHR = null,
+        .glDebugMessageCallbackKHR = null,
+        .glPushDebugGroupKHR = null,
+        .glPopDebugGroupKHR = null,
       },
     };
     errdefer self.base.unref();
@@ -93,8 +97,45 @@ const Impl = struct {
 
     try self.useContext();
 
-    try self.base.useDefaultShaders();
+    if (api.hasClientExtension("GL_KHR_debug")) {
+      self.procs.glDebugMessageCallbackKHR = try api.tryResolve(c.PFNGLDEBUGMESSAGECALLBACKPROC, "glDebugMessageCallbackKHR");
+      self.procs.glDebugMessageControlKHR = try api.tryResolve(c.PFNGLDEBUGMESSAGECONTROLPROC, "glDebugMessageControlKHR");
+      self.procs.glPushDebugGroupKHR = try api.tryResolve(c.PFNGLPUSHDEBUGGROUPPROC, "glPushDebugGroupKHR");
+      self.procs.glPopDebugGroupKHR = try api.tryResolve(c.PFNGLPOPDEBUGGROUPPROC, "glPopDebugGroupKHR");
 
+      c.glEnable(c.GL_DEBUG_OUTPUT);
+      c.glEnable(c.GL_DEBUG_OUTPUT_SYNCHRONOUS);
+
+      // TODO: use logger
+      self.procs.glDebugMessageCallbackKHR.?((struct {
+        fn callback(src: c.GLenum, log_type: c.GLenum, id: c.GLuint, severity: c.GLenum, len: c.GLsizei, msg: [*c]const c.GLchar, user_data: ?*const anyopaque) callconv(.C) void {
+          _ = src;
+          _ = id;
+          _ = severity;
+          _ = len;
+          _ = user_data;
+
+          const log_level: std.log.Level = switch (log_type) {
+            c.GL_DEBUG_TYPE_ERROR => .err,
+            c.GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR => .debug,
+            c.GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR => .err,
+            c.GL_DEBUG_TYPE_PORTABILITY => .debug,
+            c.GL_DEBUG_TYPE_PERFORMANCE => .debug,
+            c.GL_DEBUG_TYPE_OTHER => .debug,
+            c.GL_DEBUG_TYPE_MARKER => .debug,
+            c.GL_DEBUG_TYPE_PUSH_GROUP => .debug,
+            c.GL_DEBUG_TYPE_POP_GROUP => .debug,
+            else => .debug,
+          };
+          std.debug.print("{} {s}\n", .{ log_level, msg });
+        }
+      }).callback, null);
+
+      self.procs.glDebugMessageControlKHR.?(c.GL_DONT_CARE, c.GL_DEBUG_TYPE_POP_GROUP, c.GL_DONT_CARE, 0, null, c.GL_FALSE);
+      self.procs.glDebugMessageControlKHR.?(c.GL_DONT_CARE, c.GL_DEBUG_TYPE_PUSH_GROUP, c.GL_DONT_CARE, 0, null, c.GL_FALSE);
+    }
+
+    try self.base.useDefaultShaders();
     self.unuseContext();
   }
 
@@ -252,6 +293,10 @@ current_scene: Scene,
 mutex: std.Thread.Mutex,
 procs: struct {
   glDrawBuffers: *const fn (n: c.GLsizei, bufs: [*c]const c.GLenum) callconv(.C) void,
+  glDebugMessageCallbackKHR: c.PFNGLDEBUGMESSAGECALLBACKPROC,
+  glDebugMessageControlKHR: c.PFNGLDEBUGMESSAGECONTROLPROC,
+  glPushDebugGroupKHR: c.PFNGLPUSHDEBUGGROUPPROC,
+  glPopDebugGroupKHR: c.PFNGLPOPDEBUGGROUPPROC,
 },
 compositor: flutter.c.FlutterCompositor = .{
   .struct_size = @sizeOf(flutter.c.FlutterCompositor),
@@ -440,4 +485,22 @@ pub fn useContext(self: *Self) !void {
 
 pub fn unuseContext(self: *Self) void {
   api.wrap(c.eglMakeCurrent(self.display, c.EGL_NO_SURFACE, c.EGL_NO_SURFACE, c.EGL_NO_CONTEXT)) catch @panic("Failed to unuse context");
+}
+
+pub fn pushDebug(self: *Self) !void {
+  if (self.procs.glPushDebugGroupKHR) |glPushDebugGroupKHR| {
+    var message = std.ArrayList(u8).init(self.type.allocator);
+    defer message.deinit();
+
+    try std.debug.writeCurrentStackTrace(message.writer(), try std.debug.getSelfDebugInfo(), .no_color, @returnAddress());
+    try message.append(0);
+
+    glPushDebugGroupKHR(c.GL_DEBUG_SOURCE_APPLICATION, 1, -1, message.items.ptr);
+  }
+}
+
+pub fn popDebug(self: *Self) void {
+  if (self.procs.glPopDebugGroupKHR) |glPopDebugGroupKHR| {
+    glPopDebugGroupKHR();
+  }
 }
