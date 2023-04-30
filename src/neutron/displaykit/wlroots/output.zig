@@ -128,6 +128,7 @@ const Impl = struct {
 
     if (self.value.preferredMode()) |preferred_mode| {
       self.value.setMode(preferred_mode);
+      self.value.enableAdaptiveSync(true);
       self.value.enable(true);
       self.value.commit() catch {
         if (!iterateResTry(self)) {
@@ -158,6 +159,7 @@ const Impl = struct {
     
     self.value.events.destroy.add(&self.destroy);
     self.value.events.frame.add(&self.frame);
+    self.value.events.present.add(&self.present);
     self.value.events.mode.add(&self.mode);
     compositor.output_layout.addAuto(self.value);
 
@@ -232,19 +234,43 @@ destroy: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
 frame: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
   fn callback(listener: *wl.Listener(*wlr.Output), _: *wlr.Output) void {
     const self = @fieldParentPtr(Self, "frame", listener);
+    const runtime = self.getCompositor().getRuntime();
 
-    self.base_output.subrenderer.toBase().render() catch |err| {
-      std.debug.print("Failed to render: {s}\n", .{ @errorName(err) });
-      std.debug.dumpStackTrace(@errorReturnTrace().?.*);
-      return;
-    };
+    const baton = runtime.vsync_baton.swap(0, .AcqRel);
+    if (baton != 0) {
+      const curr_time = runtime.proc_table.GetCurrentTime.?();
+      _ = runtime.proc_table.OnVsync.?(runtime.engine, baton, curr_time, curr_time + 16600000);
+    }
 
     const scene_output = self.getCompositor().scene.getSceneOutput(self.value).?;
-    _ = scene_output.commit();
 
     var now: std.os.timespec = undefined;
     std.os.clock_gettime(std.os.CLOCK.MONOTONIC, &now) catch @panic("CLOCK_MONOTONIC not supported");
-    scene_output.sendFrameDone(&now);
+
+    if (scene_output.commit()) {
+      scene_output.sendFrameDone(&now);
+
+      self.base_output.subrenderer.toBase().render() catch |err| {
+        std.debug.print("Failed to render: {s}\n", .{ @errorName(err) });
+        std.debug.dumpStackTrace(@errorReturnTrace().?.*);
+        return;
+      };
+
+      self.scene_buffer.sendFrameDone(&now);
+    }
+  }
+}).callback),
+present: wl.Listener(*wlr.Output.event.Present) = wl.Listener(*wlr.Output.event.Present).init((struct {
+  fn callback(listener: *wl.Listener(*wlr.Output.event.Present), event: *wlr.Output.event.Present) void {
+    const self = @fieldParentPtr(Self, "present", listener);
+    const runtime = self.getCompositor().getRuntime();
+
+    const baton = runtime.vsync_baton.swap(0, .AcqRel);
+    if (baton != 0) {
+      const curr_time = runtime.proc_table.GetCurrentTime.?();
+      const frame_time_ns = @intCast(u64, if (event.refresh == 0) 16600000 else event.refresh);
+      _ = runtime.proc_table.OnVsync.?(runtime.engine, baton, curr_time, curr_time + frame_time_ns);
+    }
   }
 }).callback),
 mode: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {

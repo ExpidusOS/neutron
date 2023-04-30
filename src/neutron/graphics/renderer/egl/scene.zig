@@ -80,8 +80,15 @@ const vtable = Scene.VTable {
     }
   }).callback,
   .pre_render = (struct {
-    fn callback(base: *anyopaque, renderer: *Renderer, size: @Vector(2, i32)) !void {
-      _ = base;
+    fn callback(_base: *anyopaque, renderer: *Renderer, size: @Vector(2, i32)) !void {
+      const base = Scene.Type.fromOpaque(_base);
+      const self = @fieldParentPtr(Self, "base", base);
+
+      if (self.sync != null) {
+        _ = c.eglWaitSync(renderer.egl.display, self.sync, 0);
+        _ = c.eglDestroySync(renderer.egl.display, self.sync);
+        self.sync = null;
+      }
 
       try renderer.egl.pushDebug();
 
@@ -109,6 +116,7 @@ const Impl = struct {
       .base = try Scene.init(.{
         .vtable = &vtable,
       }, self, t.allocator),
+      .sync = null,
     };
   }
 
@@ -116,6 +124,7 @@ const Impl = struct {
     dest.* = .{
       .type = t,
       .base = try self.scene.type.refInit(t.allocator),
+      .sync = self.sync,
     };
   }
 
@@ -128,5 +137,6 @@ pub const Type = elemental.Type(Self, Params, Impl);
 
 @"type": Type,
 base: Scene,
+sync: c.EGLSync,
 
 pub usingnamespace Type.Impl;

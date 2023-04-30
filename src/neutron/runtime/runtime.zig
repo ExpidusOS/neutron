@@ -71,7 +71,12 @@ const Impl = struct {
         }),
         .command_line_argc = 0,
         .command_line_argv = null,
-        .vsync_callback = null,
+        .vsync_callback = (struct {
+          fn callback(ud: ?*anyopaque, baton: i64) callconv(.C) void {
+            const compositor = Type.fromOpaque(ud.?);
+            compositor.vsync_baton.store(baton, .Unordered);
+          }
+        }).callback,
         .platform_message_callback = null,
         .log_message_callback = null,
         .log_tag = null,
@@ -106,6 +111,7 @@ const Impl = struct {
       .proc_table = proc_table,
       .platform_id = std.Thread.getCurrentId(),
       .loop = try xev.Loop.init(.{}),
+      .vsync_baton = std.atomic.Atomic(i64).init(0),
     };
 
     self.platform_task_runner.user_data = self;
@@ -142,6 +148,7 @@ const Impl = struct {
       .ipc = try self.ipc.ref(t.allocator),
       .loop = self.loop,
       .platform_id = self.platform_id,
+      .vsync_baton = self.vsync_baton,
     };
   }
 
@@ -197,6 +204,7 @@ dir: []const u8,
 ipcs: std.ArrayList(ipc.Ipc),
 displaykit: displaykit.Backend,
 mode: Mode,
+vsync_baton: std.atomic.Atomic(i64),
 loop: xev.Loop,
 engine: flutter.c.FlutterEngine,
 project_args: flutter.c.FlutterProjectArgs,

@@ -392,16 +392,19 @@ compositor: flutter.c.FlutterCompositor = .{
       const last_page_index: usize = if (self.curr_page == 0) 1 else 0;
       const page = &self.pages[self.curr_page];
 
-      while (page.unused_textures.popOrNull()) |page_texture| {
-        @constCast(&page_texture).deinit();
+      while (page.unused_textures.popOrNull()) |*page_texture| {
+        @constCast(page_texture).deinit();
       }
 
-      // TODO: delete sync
-      // TODO: recreate sync
+      if (self.current_scene.sync != null) {
+        _ = c.eglDestroySync(self.display, self.current_scene.sync);
+      }
+
+      self.current_scene.sync = c.eglCreateSync(self.display, c.EGL_SYNC_FENCE, null);
 
       const last_page = &self.pages[last_page_index];
-      while (last_page.textures.popOrNull()) |texture| {
-        last_page.textures.append(texture) catch return false;
+      while (last_page.textures.popOrNull()) |*texture| {
+        @constCast(texture).deinit();
       }
 
       self.curr_page = if (self.curr_page == 0) 1 else 0;
@@ -414,12 +417,12 @@ flutter: flutter.c.FlutterRendererConfig = .{
   .unnamed_0 = .{
     .open_gl = .{
       .struct_size = @sizeOf(flutter.c.FlutterOpenGLRendererConfig),
-      .fbo_reset_after_present = false,
+      .fbo_reset_after_present = true,
       .fbo_callback = null,
       .surface_transformation = null,
       .gl_external_texture_frame_callback = null,
       .populate_existing_damage = null,
-      .present_with_info = null,
+      .present = null,
       .gl_proc_resolver = (struct {
         fn callback(_: ?*anyopaque, name: [*c]const u8) callconv(.C) ?*anyopaque {
           var n: []const u8 = undefined;
@@ -456,22 +459,23 @@ flutter: flutter.c.FlutterRendererConfig = .{
           return true;
         }
       }).callback,
-      .present = (struct {
-        fn callback(_runtime: ?*anyopaque) callconv(.C) bool {
+      .present_with_info = (struct {
+        fn callback(_runtime: ?*anyopaque, info: [*c]const flutter.c.FlutterPresentInfo) callconv(.C) bool {
           const runtime = Runtime.Type.fromOpaque(_runtime.?);
           const self = @constCast(&runtime.displaykit.toBase()).toContext().renderer.egl;
 
-          api.wrap(c.eglSwapBuffers(self.display, c.EGL_NO_SURFACE)) catch return false;
+          _ = info;
+          _ = self;
           return true;
         }
       }).callback,
       .fbo_with_frame_info_callback = (struct {
         fn callback(_runtime: ?*anyopaque, frame: [*c]const flutter.c.FlutterFrameInfo) callconv(.C) u32 {
-          _ = frame;
-
           const runtime = Runtime.Type.fromOpaque(_runtime.?);
           const self = @constCast(&runtime.displaykit.toBase()).toContext().renderer.egl;
+
           _ = self;
+          _ = frame;
           return 0;
         }
       }).callback,
