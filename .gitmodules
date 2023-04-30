@@ -1,0 +1,27 @@
+[submodule "vendor/third-party/zig/zig-clap"]
+	path = vendor/third-party/zig/zig-clap
+	url = https://github.com/Hejsil/zig-clap
+[submodule "vendor/third-party/zig/libxev"]
+	path = vendor/third-party/zig/libxev
+	url = https://github.com/mitchellh/libxev
+[submodule "vendor/third-party/zig/s2s"]
+	path = vendor/third-party/zig/s2s
+	url = https://github.com/ziglibs/s2s
+[submodule "vendor/bindings/zig-wlroots"]
+	path = vendor/bindings/zig-wlroots
+	url = https://github.com/ExpidusOS/zig-wlroots
+[submodule "vendor/bindings/zig-flutter"]
+	path = vendor/bindings/zig-flutter
+	url = https://github.com/ExpidusOS/zig-flutter
+[submodule "vendor/bindings/zig-wayland"]
+	path = vendor/bindings/zig-wayland
+	url = https://github.com/ExpidusOS/zig-wayland
+[submodule "vendor/bindings/zig-xkbcommon"]
+	path = vendor/bindings/zig-xkbcommon
+	url = https://github.com/ifreund/zig-xkbcommon
+[submodule "vendor/bindings/zig-pixman"]
+	path = vendor/bindings/zig-pixman
+	url = https://github.com/ifreund/zig-pixman
+[submodule "vendor/bindings/vulkan-zig"]
+	path = vendor/bindings/vulkan-zig
+	url = https://github.com/Snektron/vulkan-zig
