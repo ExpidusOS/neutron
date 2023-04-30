@@ -30,7 +30,7 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('ExpidusOS Runtime Example'),
+          title: const Text('ExpidusOS Neutron Example'),
         ),
         body: Center(
           child: new Column(

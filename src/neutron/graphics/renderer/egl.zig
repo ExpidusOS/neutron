@@ -6,6 +6,7 @@ const displaykit = @import("../../displaykit.zig");
 const flutter = @import("../../flutter.zig");
 const Runtime = @import("../../runtime/runtime.zig");
 const api = @import("../api/egl.zig");
+const gl = @import("../bindings/gles3v2.zig");
 const subrenderer = @import("../subrenderer.zig");
 const BaseShaderProgram = @import("../shader-program.zig");
 const Scene = @import("egl/scene.zig");
@@ -76,6 +77,8 @@ const Impl = struct {
         .glPushDebugGroupKHR = null,
         .glPopDebugGroupKHR = null,
       },
+      .tex_coord_buffer = undefined,
+      .quad_vert_buffer = undefined,
     };
     errdefer self.base.unref();
 
@@ -96,6 +99,41 @@ const Impl = struct {
     self.flutter_context = try (if (c.eglCreateContext(self.display, config, self.context, attribs)) |value| value else error.InvalidContext);
 
     try self.useContext();
+    try gl.load(self, (struct {
+      fn callback(comp: *Self, name: [:0]const u8) ?gl.FunctionPointer {
+        _ = comp;
+        return api.resolve(?gl.FunctionPointer, name);
+      }
+    }).callback);
+
+    const x1 = 0.0;
+    const x2 = 1.0;
+    const y1 = 0.0;
+    const y2 = 1.0;
+
+    const texcoords = [_]gl.GLfloat {
+      x2, y2,
+      x1, y2,
+      x2, y1,
+      x1, y1,
+    };
+
+    const quad_verts = [_]gl.GLfloat {
+      1, -1,
+      -1, -1,
+      1, 1,
+      -1, 1,
+    };
+
+    gl.genBuffers(1, &self.tex_coord_buffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, self.tex_coord_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, @sizeOf(gl.GLfloat) * texcoords.len, @ptrCast(*const anyopaque, &texcoords), gl.STATIC_DRAW);
+
+    gl.genBuffers(1, &self.quad_vert_buffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, self.quad_vert_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, @sizeOf(gl.GLfloat) * quad_verts.len, @ptrCast(*const anyopaque, &quad_verts), gl.STATIC_DRAW);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, 0);
 
     if (api.hasClientExtension("GL_KHR_debug")) {
       self.procs.glDebugMessageCallbackKHR = try api.tryResolve(c.PFNGLDEBUGMESSAGECALLBACKPROC, "glDebugMessageCallbackKHR");
@@ -103,7 +141,7 @@ const Impl = struct {
       self.procs.glPushDebugGroupKHR = try api.tryResolve(c.PFNGLPUSHDEBUGGROUPPROC, "glPushDebugGroupKHR");
       self.procs.glPopDebugGroupKHR = try api.tryResolve(c.PFNGLPOPDEBUGGROUPPROC, "glPopDebugGroupKHR");
 
-      c.glEnable(c.GL_DEBUG_OUTPUT);
+      gl.enable(gl.DEBUG_OUTPUT);
       c.glEnable(c.GL_DEBUG_OUTPUT_SYNCHRONOUS);
 
       // TODO: use logger
@@ -151,6 +189,8 @@ const Impl = struct {
       .curr_page = self.curr_page,
       .current_scene = self.current_scene.type.refInit(t.allocator),
       .mutex = self.mutex,
+      .tex_coord_buffer = self.tex_coord_buffer,
+      .quad_vert_buffer = self.quad_vert_buffer,
     };
   }
 
@@ -291,6 +331,8 @@ pages: [2]Page,
 curr_page: usize,
 current_scene: Scene,
 mutex: std.Thread.Mutex,
+tex_coord_buffer: gl.GLuint,
+quad_vert_buffer: gl.GLuint,
 procs: struct {
   glDrawBuffers: *const fn (n: c.GLsizei, bufs: [*c]const c.GLenum) callconv(.C) void,
   glDebugMessageCallbackKHR: c.PFNGLDEBUGMESSAGECALLBACKPROC,

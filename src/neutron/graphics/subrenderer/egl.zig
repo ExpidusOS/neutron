@@ -15,13 +15,15 @@ const FbRenderable = struct {
   rbo: c.GLuint,
   fbo: c.GLuint,
 
-  pub fn use(self: FbRenderable) void {
+  pub fn use(self: FbRenderable, _: *Self) void {
     c.glBindFramebuffer(c.GL_FRAMEBUFFER, self.fbo);
   }
 
-  pub fn unuse(self: FbRenderable) void {
+  pub fn unuse(self: FbRenderable, subrenderer: *Self) void {
     _ = self;
+    const renderer = subrenderer.getRenderer();
 
+    renderer.procs.glDrawBuffers(1, &[_]c.GLenum { c.GL_COLOR_ATTACHMENT0 });
     c.glBindFramebuffer(c.GL_FRAMEBUFFER, 0);
   }
 };
@@ -29,15 +31,15 @@ const FbRenderable = struct {
 const Renderable = union(enum) {
   fb: FbRenderable,
 
-  pub fn use(self: Renderable) void {
+  pub fn use(self: Renderable, subrenderer: *Self) void {
     return switch (self) {
-      .fb => |fb| fb.use(),
+      .fb => |fb| fb.use(subrenderer),
     };
   }
 
-  pub fn unuse(self: Renderable) void {
+  pub fn unuse(self: Renderable, subrenderer: *Self) void {
     return switch (self) {
-      .fb => |fb| fb.unuse(),
+      .fb => |fb| fb.unuse(subrenderer),
     };
   }
 };
@@ -180,7 +182,7 @@ vtable: Base.VTable = .{
       defer renderer.unuseContext();
 
       if (self.renderable) |renderable| {
-        renderable.use();
+        renderable.use(self);
       }
 
       renderer.mutex.lock();
@@ -193,7 +195,7 @@ vtable: Base.VTable = .{
       }
 
       if (self.renderable) |renderable| {
-        renderable.unuse();
+        renderable.unuse(self);
       }
     }
   }).callback,
