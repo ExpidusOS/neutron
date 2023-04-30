@@ -78,7 +78,8 @@
           "bindings/zig-flutter" = pkgs.fetchFromGitHub {
             owner = "ExpidusOS";
             repo = "zig-flutter";
-            rev = "b090d9d37cfb0ccb2cb55fab4208ee6ffe9e3007";
+            rev = "256de1bf11ba5ea20740a575a1b1e078e547abad";
+            sha256 = "sha256-l3qf98SPRyexrflct+J6oZC+F3Ci4axOpiZvo1wLWWY=";
           };
           "third-party/zig/s2s" = pkgs.fetchFromGitHub {
             owner = "ziglibs";
@@ -92,7 +93,7 @@
             rev = "aab505ffca04117ef8eeeb8dc3c64c87d80dfe6d";
             sha256 = "sha256-a7caowEsonavStCG5qNLDh/Ij6JIYJ9NS1DNFPr2Mrk=";
           };
-          "third-party/zig/zig-clap" = fetchFromGitHub {
+          "third-party/zig/zig-clap" = pkgs.fetchFromGitHub {
             owner = "Hejsil";
             repo = "zig-clap";
             rev = "cb13519431b916c05c6c783cb0ce3b232be5e400";
@@ -105,7 +106,7 @@
             pname = "expidus-neutron";
             version = "git+${self.shortRev or "dirty"}";
 
-            src = cleanSource src;
+            src = cleanSource self;
 
             strictDeps = true;
             depsBuildBuild = [ pkgs.buildPackages.pkg-config ];
