@@ -7,11 +7,38 @@ pub const OpaqueType = struct {
     field: ?[]const u8,
     offset: ?usize,
     ptr: *anyopaque,
+
+    pub fn format(self: ParentType, comptime fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+      _ = fmt;
+
+      try writer.writeAll(self.name);
+      try writer.writeByte('@');
+
+      if (self.field != null and self.offset != null) {
+        try writer.print("{s}:{}=", .{ self.field.?, self.offset.? });
+      }
+
+      try writer.print("{x}", .{ @ptrToInt(self.ptr) });
+    }
   };
 
   pub const Parent = union(enum) {
     ty: ParentType,
     op: *anyopaque,
+
+    pub fn getValue(self: *Parent) *anyopaque {
+      return switch (self.*) {
+        .ty => |t| t.ptr,
+        .op => |o| o,
+      };
+    }
+
+    pub fn format(self: Parent, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+      return switch (self) {
+        .ty => |t| t.format(fmt, options, writer),
+        .op => |o| writer.print("{x}", .{ @ptrToInt(o) }),
+      };
+    }
   };
 
   name: []const u8,

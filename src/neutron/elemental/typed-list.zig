@@ -108,6 +108,11 @@ pub fn TypedListAligned(comptime T: type, comptime alignment: ?u29) type {
       new_item_ptr.* = try item.ref(self.type.allocator);
     }
 
+    pub fn appendOwned(self: *Self, item: T) !void {
+      const new_item_ptr = try self.addOne();
+      new_item_ptr.* = item;
+    }
+
     pub fn allocatedSlice(self: *Self) Slice {
       return self.items.ptr[0..self.capacity];
     }

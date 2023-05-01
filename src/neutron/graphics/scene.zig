@@ -54,7 +54,7 @@ pub fn addLayer(self: *Self, layer: *const flutter.c.FlutterLayer) !void {
     if (vtable.get_layer_vtable) |get_layer_vtable| get_layer_vtable(self.type.toOpaque(), layer) else null
   else null;
 
-  try self.layers.append(try SceneLayer.new(.{
+  try self.layers.appendOwned(try SceneLayer.new(.{
     .value = layer,
     .vtable = vtable,
   }, self, self.type.allocator));
