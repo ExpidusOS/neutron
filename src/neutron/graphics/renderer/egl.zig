@@ -538,7 +538,10 @@ pub fn pushDebug(self: *Self) !void {
     var message = std.ArrayList(u8).init(self.type.allocator);
     defer message.deinit();
 
-    try std.debug.writeCurrentStackTrace(message.writer(), try std.debug.getSelfDebugInfo(), .no_color, @returnAddress());
+    var debug = try std.debug.openSelfDebugInfo(self.type.allocator);
+    defer debug.deinit();
+
+    try std.debug.writeCurrentStackTrace(message.writer(), &debug, .no_color, @returnAddress());
     try message.append(0);
 
     glPushDebugGroupKHR(c.GL_DEBUG_SOURCE_APPLICATION, 1, -1, message.items.ptr);
