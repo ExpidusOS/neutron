@@ -237,6 +237,10 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
         ref_type.ref.value = null;
         dest.type = ref_type;
 
+        if (self.ref.getTop().children == null) {
+          self.ref.getTop().children = std.ArrayList(*Reference).init(self.allocator);
+        }
+
         try self.ref.getTop().children.?.append(&dest.type.ref);
 
         if (@hasDecl(impl, "ref")) {
@@ -265,6 +269,11 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
 
         ref_type.ref.value = @ptrCast(*anyopaque, @alignCast(@alignOf(*anyopaque), dest));
         dest.type = ref_type;
+
+        if (self.ref.getTop().children == null) {
+          self.ref.getTop().children = std.ArrayList(*Reference).init(self.allocator);
+        }
+
         try self.ref.getTop().children.?.append(&dest.type.ref);
 
         if (@hasDecl(impl, "ref")) {
