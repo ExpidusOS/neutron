@@ -97,13 +97,18 @@ fn iterateResTry(self: *Self) bool {
   return false;
 }
 
-pub fn updateBuffer(self: *Self) !void {
+fn getBufferDrm(self: *Self) !*wlr.Buffer {
   const res = self.base_output.getResolution();
   const compositor = self.getCompositor();
-  const formats = compositor.renderer.getDmabufFormats();
-  if (!formats.has(self.value.render_format, 0)) return error.InvalidFormat;
+  if (compositor.renderer.getDmabufFormats()) |formats| {
+    if (!formats.has(self.value.render_format, 0)) return error.InvalidFormat;
+    return if (compositor.allocator.createBuffer(res[0], res[1], formats.get(self.value.render_format))) |buffer| buffer else error.InvalidBuffer;
+  }
+  return error.MissingDrm;
+}
 
-  const buffer = try (if (compositor.allocator.createBuffer(res[0], res[1], formats.get(self.value.render_format))) |buffer| buffer else error.InvalidBuffer);
+pub fn updateBuffer(self: *Self) !void {
+  const buffer = try self.getBufferDrm();
 
   if (self.fb == null) {
     self.fb = try FrameBuffer.new(.{
