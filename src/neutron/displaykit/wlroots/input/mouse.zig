@@ -32,14 +32,16 @@ const Impl = struct {
     self.cursor.attachOutputLayout(compositor.output_layout);
     self.cursor.attachInputDevice(self.base.device);
 
+    compositor.cursor_mngr.setCursorImage("left_ptr", self.cursor);
+
     self.cursor.events.motion.add(&self.motion);
     self.cursor.events.motion_absolute.add(&self.motion_abs);
     self.cursor.events.axis.add(&self.axis);
     self.cursor.events.frame.add(&self.frame);
 
-    compositor.seat.setCapabilities(.{
-      .pointer = true,
-    });
+    var caps = @bitCast(wl.Seat.Capability, compositor.seat.capabilities);
+    caps.pointer = true;
+    compositor.seat.setCapabilities(caps);
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
@@ -60,6 +62,14 @@ const Impl = struct {
 
 pub const Type = elemental.Type(Self, Params, Impl);
 
+fn processMotion(self: *Self, time: u32, delta_x: f64, delta_y: f64, unaccel_dx: f64, unaccel_dy: f64) void {
+  _ = time;
+  _ = unaccel_dx;
+  _ = unaccel_dy;
+
+  self.cursor.move(self.base.device, delta_x, delta_y);
+}
+
 @"type": Type,
 base_mouse: Mouse,
 base: Base,
@@ -67,13 +77,20 @@ cursor: *wlr.Cursor,
 motion: wl.Listener(*wlr.Pointer.event.Motion) = wl.Listener(*wlr.Pointer.event.Motion).init((struct {
   fn callback(listener: *wl.Listener(*wlr.Pointer.event.Motion), event: *wlr.Pointer.event.Motion) void {
     const self = @fieldParentPtr(Self, "motion", listener);
-    self.cursor.move(event.device, event.delta_x, event.delta_y);
+    self.processMotion(event.time_msec, event.delta_x, event.delta_y, event.unaccel_dx, event.unaccel_dy);
   }
 }).callback),
 motion_abs: wl.Listener(*wlr.Pointer.event.MotionAbsolute) = wl.Listener(*wlr.Pointer.event.MotionAbsolute).init((struct {
   fn callback(listener: *wl.Listener(*wlr.Pointer.event.MotionAbsolute), event: *wlr.Pointer.event.MotionAbsolute) void {
     const self = @fieldParentPtr(Self, "motion_abs", listener);
-    self.cursor.warpAbsolute(event.device, event.x, event.y);
+
+    var lx: f64 = undefined;
+    var ly: f64 = undefined;
+    self.cursor.absoluteToLayoutCoords(event.device, event.x, event.y, &lx, &ly);
+
+    const dx = lx - self.cursor.x;
+    const dy = ly - self.cursor.y;
+    self.processMotion(event.time_msec, dx, dx, dx, dy);
   }
 }).callback),
 axis: wl.Listener(*wlr.Pointer.event.Axis) = wl.Listener(*wlr.Pointer.event.Axis).init((struct {
@@ -85,6 +102,7 @@ axis: wl.Listener(*wlr.Pointer.event.Axis) = wl.Listener(*wlr.Pointer.event.Axis
 frame: wl.Listener(*wlr.Cursor) = wl.Listener(*wlr.Cursor).init((struct {
   fn callback(listener: *wl.Listener(*wlr.Cursor), _: *wlr.Cursor) void {
     const self = @fieldParentPtr(Self, "frame", listener);
+
     self.getCompositor().seat.pointerNotifyFrame();
   }
 }).callback),

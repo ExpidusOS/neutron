@@ -5,6 +5,8 @@ const Base = @import("base.zig");
 const Keyboard = @import("../../base/input/keyboard.zig");
 const Context = @import("../../base/context.zig");
 const Compositor = @import("../compositor.zig");
+
+const wl = @import("wayland").server.wl;
 const wlr = @import("wlroots");
 
 pub const Params = struct {
@@ -26,10 +28,10 @@ const Impl = struct {
     };
 
     const compositor = self.getCompositor();
-    compositor.seat.setKeyboard(self.base.device.toKeyboard());
-    compositor.seat.setCapabilities(.{
-      .pointer = true,
-    });
+
+    var caps = @bitCast(wl.Seat.Capability, compositor.seat.capabilities);
+    caps.keyboard = true;
+    compositor.seat.setCapabilities(caps);
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {

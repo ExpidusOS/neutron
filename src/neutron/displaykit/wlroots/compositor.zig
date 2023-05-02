@@ -203,6 +203,7 @@ fn output_new(listener: *wl.Listener(*wlr.Output), wlr_output: *wlr.Output) void
   }, self, self.type.allocator) catch |err| {
     // TODO: use the logger
     std.debug.print("Failed to create output: {s}\n", .{ @errorName(err) });
+    std.debug.dumpStackTrace(@errorReturnTrace().?.*);
     return;
   };
 
@@ -214,14 +215,16 @@ fn output_new(listener: *wl.Listener(*wlr.Output), wlr_output: *wlr.Output) void
 fn input_new(listener: *wl.Listener(*wlr.InputDevice), wlr_input: *wlr.InputDevice) void {
   const self = @fieldParentPtr(Self, "input_new", listener);
 
-  const input = Input.new(wlr_input, self, self.type.allocator) catch {
-    // TODO: use the logger
+  const input = Input.new(wlr_input, self, self.type.allocator) catch |err| {
+    std.debug.print("Failed to create input: {s}\n", .{ @errorName(err) });
+    std.debug.dumpStackTrace(@errorReturnTrace().?.*);
     return;
   };
   errdefer input.unref();
 
-  self.inputs.append(input) catch {
-    // TODO: use the logger
+  self.inputs.append(input) catch |err| {
+    std.debug.print("Failed to attach input: {s}\n", .{ @errorName(err) });
+    std.debug.dumpStackTrace(@errorReturnTrace().?.*);
     return;
   };
 }

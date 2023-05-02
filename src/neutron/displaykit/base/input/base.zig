@@ -11,19 +11,19 @@ const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
     self.* = .{
       .type = t,
-      .context = try params.context.ref(t.allocator),
+      .context = params.context,
     };
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
     dest.* = .{
       .type = t,
-      .context = try self.context.ref(t.allocator),
+      .context = self.context,
     };
   }
 
   pub fn unref(self: *Self) void {
-    self.context.unref();
+    _ = self;
   }
 };
 
