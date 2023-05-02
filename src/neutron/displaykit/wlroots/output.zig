@@ -97,10 +97,17 @@ fn iterateResTry(self: *Self) bool {
   return false;
 }
 
+pub fn getFormats(self: *Self) ?*const wlr.DrmFormatSet {
+  if (self.value.getPrimaryFormats(8)) |formats| {
+    if (formats.len > 0) return formats;
+  }
+  return self.getCompositor().renderer.getDmabufFormats();
+}
+
 fn getBufferDrm(self: *Self) !*wlr.Buffer {
   const res = self.base_output.getResolution();
   const compositor = self.getCompositor();
-  if (compositor.renderer.getDmabufFormats()) |formats| {
+  if (self.getFormats()) |formats| {
     if (!formats.has(self.value.render_format, 0)) return error.InvalidFormat;
     return if (compositor.allocator.createBuffer(res[0], res[1], formats.get(self.value.render_format))) |buffer| buffer else error.InvalidBuffer;
   }
