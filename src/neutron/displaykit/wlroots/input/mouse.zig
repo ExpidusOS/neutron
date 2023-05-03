@@ -7,6 +7,10 @@ const Mouse = @import("../../base/input/mouse.zig");
 const Context = @import("../../base/context.zig");
 const Compositor = @import("../compositor.zig");
 
+const c = @cImport({
+  @cInclude("linux/input-event-codes.h");
+});
+
 const wl = @import("wayland").server.wl;
 const wlr = @import("wlroots");
 
@@ -22,6 +26,9 @@ const Impl = struct {
       .base_mouse = undefined,
       .base = undefined,
       .cursor = try wlr.Cursor.create(),
+      .btn_mask = 0,
+      .acc_btn_mask = 0,
+      .acc_scroll_delta = .{ 0, 0 },
     };
 
     _ = try Mouse.init(&self.base_mouse, .{
@@ -41,6 +48,7 @@ const Impl = struct {
 
     self.cursor.events.motion.add(&self.motion);
     self.cursor.events.motion_absolute.add(&self.motion_abs);
+    self.cursor.events.button.add(&self.button);
     self.cursor.events.axis.add(&self.axis);
     self.cursor.events.frame.add(&self.frame);
 
@@ -55,6 +63,9 @@ const Impl = struct {
       .base_mouse = undefined,
       .base = undefined,
       .cursor = self.cursor,
+      .btn_mask = self.btn_mask,
+      .acc_btn_mask = self.acc_btn_mask,
+      .acc_scroll_delta = .{ 0, 0 },
     };
 
     _ = try self.base_mouse.type.refInit(&dest.base_mouse, t.allocator);
@@ -70,49 +81,45 @@ const Impl = struct {
 
 pub const Type = elemental.Type(Self, Params, Impl);
 
-fn processMotion(self: *Self, time: u32, delta_x: f64, delta_y: f64, unaccel_dx: f64, unaccel_dy: f64) !void {
+fn processMotion(self: *Self, time: u32, delta_x: f64, delta_y: f64, unaccel_dx: f64, unaccel_dy: f64) void {
+  _ = time;
   _ = unaccel_dx;
   _ = unaccel_dy;
 
   self.cursor.move(self.base.device, delta_x, delta_y);
+}
 
-  const compositor = self.getCompositor();
-  const runtime = compositor.getRuntime();
+fn uapi2flutter(btn: u32) u32 {
+  var mask: u32 = 0;
+  if (btn & c.BTN_LEFT == c.BTN_LEFT) mask |= flutter.c.kFlutterPointerButtonMousePrimary;
+  if (btn & c.BTN_RIGHT == c.BTN_RIGHT) mask |= flutter.c.kFlutterPointerButtonMouseSecondary;
+  if (btn & c.BTN_MIDDLE == c.BTN_MIDDLE) mask |= flutter.c.kFlutterPointerButtonMouseMiddle;
+  if (btn & c.BTN_BACK == c.BTN_BACK) mask |= flutter.c.kFlutterPointerButtonMouseBack;
+  if (btn & c.BTN_FORWARD == c.BTN_FORWARD) mask |= flutter.c.kFlutterPointerButtonMouseForward;
+  return mask;
+}
 
-  const events = &[_]flutter.c.FlutterPointerEvent {
-    .{
-      .struct_size = @sizeOf(flutter.c.FlutterPointerEvent),
-      .phase = flutter.c.kHover,
-      .timestamp = time,
-      .x = self.cursor.x,
-      .y = self.cursor.y,
-      .device = 0,
-      .signal_kind = flutter.c.kFlutterPointerSignalKindNone,
-      .scroll_delta_x = 0,
-      .scroll_delta_y = 0,
-      .device_kind = flutter.c.kFlutterPointerDeviceKindMouse,
-      .buttons = 0,
-      .pan_x = 0,
-      .pan_y = 0,
-      .scale = 1.0,
-      .rotation = 0.0,
-    },
-  };
-
-  const result = runtime.proc_table.SendPointerEvent.?(runtime.engine, &events[0], events.*.len);
-  if (result != flutter.c.kSuccess) return error.EngineFail;
+fn flutter2uapi(btn: u32) u32 {
+  var mask: u32 = 0;
+  if (btn & flutter.c.kFlutterPointerButtonMousePrimary == flutter.c.kFlutterPointerButtonMousePrimary) mask |= c.BTN_LEFT;
+  if (btn & flutter.c.kFlutterPointerButtonMouseSecondary == flutter.c.kFlutterPointerButtonMouseSecondary) mask |= c.BTN_RIGHT;
+  if (btn & flutter.c.kFlutterPointerButtonMouseMiddle == flutter.c.kFlutterPointerButtonMouseMiddle) mask |= c.BTN_MIDDLE;
+  if (btn & flutter.c.kFlutterPointerButtonMouseBack == flutter.c.kFlutterPointerButtonMouseBack) mask |= c.BTN_BACK;
+  if (btn & flutter.c.kFlutterPointerButtonMouseForward == flutter.c.kFlutterPointerButtonMouseForward) mask |= c.BTN_FORWARD;
+  return mask;
 }
 
 @"type": Type,
 base_mouse: Mouse,
 base: Base,
 cursor: *wlr.Cursor,
+btn_mask: u32,
+acc_btn_mask: u32,
+acc_scroll_delta: @Vector(2, f64),
 motion: wl.Listener(*wlr.Pointer.event.Motion) = wl.Listener(*wlr.Pointer.event.Motion).init((struct {
   fn callback(listener: *wl.Listener(*wlr.Pointer.event.Motion), event: *wlr.Pointer.event.Motion) void {
     const self = @fieldParentPtr(Self, "motion", listener);
-    self.processMotion(event.time_msec, event.delta_x, event.delta_y, event.unaccel_dx, event.unaccel_dy) catch |err| {
-      std.debug.print("Failed to process pointer motion: {s}\n", .{ @errorName(err) });
-    };
+    self.processMotion(event.time_msec, event.delta_x, event.delta_y, event.unaccel_dx, event.unaccel_dy);
   }
 }).callback),
 motion_abs: wl.Listener(*wlr.Pointer.event.MotionAbsolute) = wl.Listener(*wlr.Pointer.event.MotionAbsolute).init((struct {
@@ -125,22 +132,75 @@ motion_abs: wl.Listener(*wlr.Pointer.event.MotionAbsolute) = wl.Listener(*wlr.Po
 
     const dx = lx - self.cursor.x;
     const dy = ly - self.cursor.y;
-    self.processMotion(event.time_msec, dx, dx, dx, dy) catch |err| {
-      std.debug.print("Failed to process pointer motion: {s}\n", .{ @errorName(err) });
-    };
+    self.processMotion(event.time_msec, dx, dx, dx, dy);
   }
 }).callback),
 axis: wl.Listener(*wlr.Pointer.event.Axis) = wl.Listener(*wlr.Pointer.event.Axis).init((struct {
   fn callback(listener: *wl.Listener(*wlr.Pointer.event.Axis), event: *wlr.Pointer.event.Axis) void {
     const self = @fieldParentPtr(Self, "axis", listener);
     self.getCompositor().seat.pointerNotifyAxis(event.time_msec, event.orientation, event.delta, event.delta_discrete, event.source);
+
+    const index: usize = switch (event.orientation) {
+      .horizontal => 0,
+      .vertical => 1,
+    };
+
+    self.acc_scroll_delta[index] += event.delta;
+  }
+}).callback),
+button: wl.Listener(*wlr.Pointer.event.Button) = wl.Listener(*wlr.Pointer.event.Button).init((struct {
+  fn callback(listener: *wl.Listener(*wlr.Pointer.event.Button), event: *wlr.Pointer.event.Button) void {
+    const self = @fieldParentPtr(Self, "button", listener);
+
+    const fl_button = uapi2flutter(event.button);
+    if (fl_button > 0) {
+      const mask = @as(u32, 1) << @intCast(u5, fl_button - 1);
+      switch (event.state) {
+        .pressed => self.acc_btn_mask |= mask,
+        .released => self.acc_btn_mask &= ~mask,
+        else => {}
+      }
+    }
   }
 }).callback),
 frame: wl.Listener(*wlr.Cursor) = wl.Listener(*wlr.Cursor).init((struct {
   fn callback(listener: *wl.Listener(*wlr.Cursor), _: *wlr.Cursor) void {
     const self = @fieldParentPtr(Self, "frame", listener);
+    const compositor = self.getCompositor();
+    const runtime = compositor.getRuntime();
 
-    self.getCompositor().seat.pointerNotifyFrame();
+    compositor.seat.pointerNotifyFrame();
+
+    const last_mask = self.btn_mask;
+    const curr_mask = self.acc_btn_mask;
+
+    defer {
+      self.acc_scroll_delta = .{ 0, 0 };
+      self.btn_mask = curr_mask;
+    }
+
+    const event = flutter.c.FlutterPointerEvent {
+      .struct_size = @sizeOf(flutter.c.FlutterPointerEvent),
+      .phase = if (last_mask == 0 and curr_mask != 0) flutter.c.kDown
+        else if (last_mask != 0 and curr_mask == 0) flutter.c.kUp
+        else if (curr_mask == 0) flutter.c.kHover
+        else flutter.c.kMove,
+      .timestamp = runtime.proc_table.GetCurrentTime.?(),
+      .x = self.cursor.x,
+      .y = self.cursor.y,
+      .device = 0,
+      .signal_kind = flutter.c.kFlutterPointerSignalKindNone,
+      .scroll_delta_x = self.acc_scroll_delta[0],
+      .scroll_delta_y = self.acc_scroll_delta[1],
+      .device_kind = flutter.c.kFlutterPointerDeviceKindMouse,
+      .buttons = curr_mask,
+      .pan_x = 0,
+      .pan_y = 0,
+      .scale = 1.0,
+      .rotation = 0.0,
+    };
+
+    _ = runtime.proc_table.SendPointerEvent.?(runtime.engine, &event, 1);
   }
 }).callback),
 

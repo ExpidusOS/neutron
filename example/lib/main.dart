@@ -40,6 +40,12 @@ class _MyAppState extends State<MyApp> {
               Text('Hello, world'),
               SizedBox(height: 15),
               CircularProgressIndicator(),
+              TextButton(
+                child: Text('Click me!'),
+                onPressed: () {
+                  print('Hello, world!');
+                },
+              ),
             ],
           ),
         ),
