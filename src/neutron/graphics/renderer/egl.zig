@@ -26,7 +26,7 @@ const vtable = Base.VTable {
       return .{
         .egl = try subrenderer.Egl.new(.{
           .renderer = self,
-        }, self, null),
+        }, null, self.type.allocator),
       };
     }
   }).callback,
@@ -55,15 +55,18 @@ const vtable = Base.VTable {
 };
 
 const Impl = struct {
-  pub fn construct(self: *Self, gpu: *hardware.device.Gpu, t: Type) !void {
+  pub fn construct(self: *Self, params: Base.CommonParams, t: Type) !void {
+    if (params.gpu == null) return error.MissingGPU;
+
     self.* = .{
       .type = t,
-      .current_scene = try Scene.init(.{}, self, t.allocator),
-      .base = try Base.init(.{
+      .current_scene = try Scene.init(&self.current_scene, .{}, self, t.allocator),
+      .base = try Base.init(&self.base, .{
         .vtable = &vtable,
         .current_scene = &self.current_scene.base,
+        .common = params,
       }, self, t.allocator),
-      .gpu = try gpu.ref(t.allocator),
+      .gpu = try params.gpu.?.ref(t.allocator),
       .display = try self.gpu.getEglDisplay(),
       .context = undefined,
       .flutter_context = undefined,
@@ -319,7 +322,7 @@ pub const Page = struct {
   }
 };
 
-pub const Type = elemental.Type(Self, *hardware.device.Gpu, Impl);
+pub const Type = elemental.Type(Self, Base.CommonParams, Impl);
 
 @"type": Type,
 base: Base,
@@ -517,12 +520,6 @@ pub fn getConfig(self: *Self) !c.EGLConfig {
 
   configs.len = @intCast(usize, matches);
   return configs[0];
-}
-
-pub fn getDisplayKit(self: *Self) ?*displaykit.base.Context {
-  return if (self.type.parent) |*p|
-    displaykit.base.Context.Type.fromOpaque(p.getValue())
-  else null;
 }
 
 pub fn useContext(self: *Self) !void {

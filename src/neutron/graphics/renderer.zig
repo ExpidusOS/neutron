@@ -1,7 +1,5 @@
 const std = @import("std");
 const config = @import("neutron-config");
-const hardware = @import("../hardware.zig");
-const displaykit = @import("../displaykit.zig");
 
 pub const Base = @import("renderer/base.zig");
 pub const Mock = @import("renderer/mock.zig");
@@ -74,24 +72,24 @@ pub const Renderer = union(Type) {
   egl: *Egl,
   osmesa: *OsMesa,
 
-  pub fn initGL(software: ?bool, _gpu: ?*hardware.device.Gpu, ctx: ?*displaykit.base.Context, allocator: ?std.mem.Allocator) !Renderer {
+  pub fn initGL(software: ?bool, params: Base.CommonParams, allocator: ?std.mem.Allocator) !Renderer {
     if (software) |sw| {
       if (sw) {
         return .{
-          .osmesa = try OsMesa.new(.{}, ctx, allocator),
+          .osmesa = try OsMesa.new(params, null, allocator),
         };
       } else {
-        if (_gpu) |gpu| {
+        if (params.gpu) |_| {
           return .{
-            .egl = try Egl.new(gpu, ctx, allocator),
+            .egl = try Egl.new(params, null, allocator),
           };
         }
         return error.InvalidGpu;
       }
     }
 
-    if (_gpu) |gpu| {
-      if (Egl.new(gpu, ctx, allocator) catch |err| blk: {
+    if (params.gpu) |_| {
+      if (Egl.new(params, null, allocator) catch |err| blk: {
         std.debug.print("Failed to create EGL renderer: {s}\n", .{ @errorName(err) });
         std.debug.dumpStackTrace(@errorReturnTrace().?.*);
         break :blk null;
@@ -99,23 +97,23 @@ pub const Renderer = union(Type) {
     }
 
     return .{
-      .osmesa = try OsMesa.new(.{}, ctx, allocator),
+      .osmesa = try OsMesa.new(params, null, allocator),
     };
   }
 
-  pub fn init(params: ?Params, _gpu: ?*hardware.device.Gpu, ctx: ?*displaykit.base.Context, allocator: ?std.mem.Allocator) !Renderer {
+  pub fn init(params: ?Params, options: Base.CommonParams, allocator: ?std.mem.Allocator) !Renderer {
     if (params) |p| {
       if (p.kind) |kind| {
         return switch (kind) {
-          .gl => Renderer.initGL(p.software, _gpu, ctx, allocator),
+          .gl => Renderer.initGL(p.software, options, allocator),
         };
       }
 
-      if (Renderer.initGL(p.software, _gpu, ctx, allocator) catch null) |self| return self;
+      if (Renderer.initGL(p.software, options, allocator) catch null) |self| return self;
       return error.NotSupported;
     }
 
-    return Renderer.init(Params.init(), _gpu, ctx, allocator);
+    return Renderer.init(Params.init(), options, allocator);
   }
 
   pub fn ref(self: *Renderer, allocator: ?std.mem.Allocator) !Renderer {
@@ -126,24 +124,6 @@ pub const Renderer = union(Type) {
       .osmesa => |osmesa| .{
         .osmesa = try osmesa.ref(allocator),
       },
-    };
-  }
-
-  pub fn setDisplayKit(self: *Renderer, ctx: ?*displaykit.base.Context) void {
-    switch (self.*) {
-      .egl => |egl| {
-        egl.type.parent = Egl.Type.Parent.init(ctx);
-      },
-      .osmesa => |osmesa| {
-        osmesa.type.parent = OsMesa.Type.Parent.init(ctx);
-      },
-    }
-  }
-
-  pub fn getDisplayKit(self: *Renderer) ?*displaykit.base.Context {
-    return switch (self.*) {
-      .egl => |egl| egl.getDisplayKit(),
-      .osmesa => |osmesa| osmesa.getDisplayKit(),
     };
   }
 

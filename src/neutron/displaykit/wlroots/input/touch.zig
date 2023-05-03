@@ -16,10 +16,10 @@ const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
     self.* = .{
       .type = t,
-      .base_touch = try Touch.init(.{
+      .base_touch = try Touch.init(&self.base_touch, .{
         .context = params.context,
       }, self, self.type.allocator),
-      .base = try Base.init(.{
+      .base = try Base.init(&self.base, .{
         .base = &self.base_touch.base,
         .device = params.device,
       }, self, self.type.allocator),
@@ -29,9 +29,12 @@ const Impl = struct {
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
     dest.* = .{
       .type = t,
-      .base_touch = try self.base_touch.type.refInit(t.allocator),
-      .base = try self.base.type.refInit(t.allocator),
+      .base_touch = undefined,
+      .base = undefined,
     };
+
+    _ = try self.base_touch.type.refInit(&dest.base_touch, t.allocator);
+    _ = try self.base.type.refInit(&dest.base, t.allocator);
   }
 
   pub fn unref(self: *Self) void {

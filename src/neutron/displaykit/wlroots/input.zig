@@ -13,66 +13,48 @@ pub const Input = union(base.Type) {
   mouse: *Mouse,
   touch: *Touch,
 
-  pub fn new(device: *wlr.InputDevice, compositor: *Compositor, allocator: ?std.mem.Allocator) !*Input {
-    if (allocator) |alloc| {
-      const self = try alloc.create(Input);
-      errdefer alloc.destroy(self);
-      self.* = try Input.init(device, compositor, alloc);
-      return self;
-    }
-    return Input.new(device, compositor, compositor.type.allocator);
-  }
-
   pub fn init(device: *wlr.InputDevice, compositor: *Compositor, allocator: ?std.mem.Allocator) !Input {
     return switch (device.type) {
       .keyboard => .{
         .keyboard = try Keyboard.new(.{
           .context = &compositor.base_compositor.context,
           .device = device,
-        }, compositor, allocator),
+        }, null, allocator),
       },
       .pointer => .{
         .mouse = try Mouse.new(.{
           .context = &compositor.base_compositor.context,
           .device = device,
-        }, compositor, allocator),
+        }, null, allocator),
       },
       .touch => .{
         .touch = try Touch.new(.{
           .context = &compositor.base_compositor.context,
           .device = device,
-        }, compositor, allocator),
+        }, null, allocator),
       },
       else => error.Unsupported,
     };
   }
 
-  pub fn ref(self: *Input, allocator: ?std.mem.Allocator) !*Input {
-    if (allocator) |alloc| {
-      const r = try alloc.create(Input);
-      errdefer alloc.destroy(r);
-      r.* = switch (self.*) {
-        .keyboard => |keyboard| .{
-          .keyboard = try keyboard.ref(allocator),
-        },
-        .mouse => |mouse| .{
-          .mouse = try mouse.ref(allocator),
-        },
-        .touch => |touch| .{
-          .touch = try touch.ref(allocator),
-        },
-      };
-      return r;
-    }
-    
-    const b = self.toBase();
-    return self.ref(@constCast(&b).toBase().type.allocator);
+  pub fn ref(self: Input, allocator: ?std.mem.Allocator) !Input {
+    return switch (self) {
+      .keyboard => |keyboard| .{
+        .keyboard = try keyboard.ref(allocator),
+      },
+      .mouse => |mouse| .{
+        .mouse = try mouse.ref(allocator),
+      },
+      .touch => |touch| .{
+        .touch = try touch.ref(allocator),
+      },
+    };
   }
 
-  pub fn unref(self: *Input) void {
+  pub fn unref(self: Input) void {
     const alloc = self.toBase().toBase().type.allocator;
 
-    try switch (self.*) {
+    try switch (self) {
       .keyboard => |keyboard| keyboard.unref(),
       .mouse => |mouse| mouse.unref(),
       .touch => |touch| touch.unref(),
@@ -81,8 +63,8 @@ pub const Input = union(base.Type) {
     alloc.destroy(self);
   }
 
-  pub fn toBase(self: *Input) base.Input {
-    return switch (self.*) {
+  pub fn toBase(self: Input) base.Input {
+    return switch (self) {
       .keyboard => |keyboard| .{
         .keyboard = &keyboard.base_keyboard,
       },

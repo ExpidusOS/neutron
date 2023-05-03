@@ -16,10 +16,10 @@ const Impl = struct {
     self.* = .{
       .type = t,
       .address = undefined,
-      .base_server = try base.Server.init(.{
+      .base_server = try base.Server.init(&self.base_server, .{
         .runtime = params.runtime,
       }, self, self.type.allocator),
-      .base = try Base.init(.{
+      .base = try Base.init(&self.base, .{
         .vtable = &.{
           .get_fd = get_fd,
         },

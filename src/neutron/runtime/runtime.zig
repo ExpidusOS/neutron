@@ -295,10 +295,40 @@ pub fn notifyDisplays(self: *Self) !void {
   for (outputs.items) |output| try output.sendMetrics(self);
 }
 
+pub fn notifyInputByKind(self: *Self, comptime kind: displaykit.base.input.Type, event_kind: displaykit.base.input.EventKind(kind), time: usize) !void {
+  const inputs = try @constCast(&self.displaykit.toBase()).toContext().getInputsByKind(kind);
+  // FIXME: crashes while getting toplevel ref
+  // defer inputs.unref();
+
+  if (inputs.items.len == 0) return;
+
+  const events = try self.type.allocator.alloc(displaykit.base.input.FlutterEvent(kind), inputs.items.len);
+  defer self.type.allocator.free(events);
+
+  for (inputs.items, events) |input, *event| {
+    event.* = input.notify(event_kind, time);
+  }
+
+  const func = switch (kind) {
+    .keyboard => self.proc_table.SendKeyEvent.?,
+    .mouse, .touch => self.proc_table.SendPointerEvent.?,
+  };
+
+  const result = func(self.engine, &events[0], events.len);
+  if (result != flutter.c.kSuccess) return error.EngineFail;
+}
+
+pub fn notifyInputs(self: *Self, time: usize) !void {
+  try self.notifyInputByKind(.mouse, .add, time);
+  try self.notifyInputByKind(.touch, .add, time);
+}
+
 pub fn run(self: *Self) !void {
   const result = self.proc_table.Run.?(flutter.c.FLUTTER_ENGINE_VERSION, @constCast(&self.displaykit.toBase()).toContext().renderer.toBase().getEngineImpl(), &self.project_args, self, &self.engine);
   if (result != flutter.c.kSuccess) return error.EngineFail;
 
   try self.notifyDisplays();
+  try self.notifyInputs(self.proc_table.GetCurrentTime.?());
+
   try self.loop.run(.until_done);
 }

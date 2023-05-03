@@ -6,6 +6,7 @@ const Compositor = @import("compositor.zig");
 const Client = @import("client.zig");
 const base = @import("base.zig");
 const Output = @import("output.zig");
+const input = @import("input.zig");
 const Self = @This();
 
 pub const EGLImageKHRParameters = struct {
@@ -18,6 +19,7 @@ pub const EGLImageKHRParameters = struct {
 pub const VTable = struct {
   get_egl_image_khr_parameters: ?*const fn (self: *anyopaque, fb: *graphics.FrameBuffer) anyerror!EGLImageKHRParameters = null,
   get_outputs: ?*const fn (self: *anyopaque) anyerror!*elemental.TypedList(*Output) = null,
+  get_inputs: ?*const fn (self: *anyopaque) anyerror!*elemental.TypedList(input.Input) = null,
 };
 
 pub const Params = struct {
@@ -34,7 +36,10 @@ const Impl = struct {
       ._type = params.type,
       .vtable = params.vtable,
       .gpu = if (params.gpu) |gpu| try gpu.ref(t.allocator) else null,
-      .renderer = try graphics.renderer.Renderer.init(params.renderer, params.gpu, self, t.allocator),
+      .renderer = try graphics.renderer.Renderer.init(params.renderer, .{
+        .gpu = self.gpu,
+        .displaykit = self,
+      }, t.allocator),
     };
   }
 
@@ -72,12 +77,12 @@ pub usingnamespace Type.Impl;
 
 pub fn toCompositor(self: *Self) *Compositor {
   if (self._type != .compositor) @panic("Cannot cast a client to a compositor");
-  return Compositor.Type.fromOpaque(self.type.parent.?);
+  return Compositor.Type.fromOpaque(self.type.parent.?.getValue());
 }
 
 pub fn toClient(self: *Self) *Client {
   if (self._type != .client) @panic("Cannot cast a compositor to a client");
-  return Client.Type.fromOpaque(self.type.parent.?);
+  return Client.Type.fromOpaque(self.type.parent.?.getValue());
 }
 
 pub fn getEGLImageKHRParameters(self: *Self, fb: *graphics.FrameBuffer) !EGLImageKHRParameters {
@@ -93,4 +98,28 @@ pub fn getOutputs(self: *Self) !*elemental.TypedList(*Output) {
   }
 
   return elemental.TypedList(*Output).new(.{}, null, self.type.allocator);
+}
+
+pub fn getInputs(self: *Self) !*elemental.TypedList(input.Input) {
+  if (self.vtable.get_inputs) |get_inputs| {
+    return get_inputs(self.type.toOpaque());
+  }
+
+  return elemental.TypedList(input.Input).new(.{}, null, self.type.allocator);
+}
+
+pub fn getInputsByKind(self: *Self, comptime kind: input.Type) !*elemental.TypedList(std.meta.fieldInfo(input.Input, kind).type) {
+  var inputs = try self.getInputs();
+  defer inputs.unref();
+
+  var list = try elemental.TypedList(std.meta.fieldInfo(input.Input, kind).type).new(.{}, null, self.type.allocator);
+  errdefer list.unref();
+
+  for (inputs.items) |item| {
+    if (item == kind) {
+      const value = @field(item, @tagName(kind));
+      try list.append(value);
+    }
+  }
+  return list;
 }

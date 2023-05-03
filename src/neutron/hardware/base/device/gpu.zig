@@ -21,18 +21,22 @@ const Impl = struct {
     self.* = .{
       .type = t,
       .vtable = params.vtable,
-      .base = try Base.init(.{
-        .vtable = &params.vtable.base,
-      }, self, t.allocator),
+      .base = undefined,
     };
+
+    _ = try Base.init(&self.base, .{
+      .vtable = &params.vtable.base,
+    }, self, t.allocator);
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
     dest.* = .{
       .type = t,
       .vtable = self.vtable,
-      .base = try self.base.type.refInit(t.allocator),
+      .base = undefined,
     };
+
+    _ = try self.base.type.refInit(&dest.base, t.allocator);
   }
 
   pub fn unref(self: *Self) void {

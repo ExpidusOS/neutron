@@ -1,6 +1,8 @@
 const std = @import("std");
 const elemental = @import("../../elemental.zig");
 const flutter = @import("../../flutter.zig");
+const hardware = @import("../../hardware.zig");
+const displaykit = @import("../../displaykit.zig");
 const subrenderer = @import("../subrenderer.zig");
 const Scene = @import("../scene.zig");
 const ShaderProgram = @import("../shader-program.zig");
@@ -16,6 +18,12 @@ pub const VTable = struct {
 pub const Params = struct {
   vtable: *const VTable,
   current_scene: *Scene,
+  common: CommonParams,
+};
+
+pub const CommonParams = struct {
+  gpu: ?*hardware.device.Gpu,
+  displaykit: ?*displaykit.base.Context,
 };
 
 const Impl = struct {
@@ -25,6 +33,8 @@ const Impl = struct {
       .vtable = params.vtable,
       .current_scene = try params.current_scene.ref(t.allocator),
       .shader_prog = null,
+      .gpu = params.common.gpu,
+      .displaykit = params.common.displaykit,
     };
   }
 
@@ -34,6 +44,8 @@ const Impl = struct {
       .vtable = self.vtable,
       .current_scene = try self.current_scene.ref(t.allocator),
       .shader_prog = if (self.shader_prog) |shader_prog| try shader_prog.ref(t.allocator) else null,
+      .gpu = self.gpu,
+      .displaykit = self.displaykit,
     };
   }
 
@@ -53,6 +65,8 @@ pub const Type = elemental.Type(Self, Params, Impl);
 current_scene: *Scene,
 vtable: *const VTable,
 shader_prog: ?*ShaderProgram,
+gpu: ?*hardware.device.Gpu,
+displaykit: ?*displaykit.base.Context,
 
 pub usingnamespace Type.Impl;
 

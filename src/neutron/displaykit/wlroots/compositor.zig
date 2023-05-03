@@ -8,6 +8,7 @@ const flutter = @import("../../flutter.zig");
 const Runtime = @import("../../runtime/runtime.zig");
 const Context = @import("../base/context.zig");
 const Compositor = @import("../base/compositor.zig");
+const base_input = @import("../base/input.zig");
 const BaseOutput = @import("../base/output.zig");
 const Output = @import("output.zig");
 const Input = @import("input.zig").Input;
@@ -45,6 +46,21 @@ const vtable = Compositor.VTable {
         return list;
       }
     }).callback,
+    .get_inputs = (struct {
+      fn callback(_context: *anyopaque) !*elemental.TypedList(base_input.Input) {
+        const context = Context.Type.fromOpaque(_context);
+        const compositor = @fieldParentPtr(Compositor, "context", context);
+        const self = @fieldParentPtr(Self, "base_compositor", compositor);
+
+        const list = try elemental.TypedList(base_input.Input).new(.{}, null, self.type.allocator);
+        errdefer list.unref();
+
+        for (self.inputs.items) |input| {
+          try list.append(input.toBase());
+        }
+        return list;
+      }
+    }).callback,
   },
 };
 
@@ -68,28 +84,27 @@ const Impl = struct {
       .wl_server = wl_server,
       .backend = backend,
       .renderer = renderer,
-      .gpu = hardware.device.Gpu.init(.{
-        .fd = backend.getDrmFd(),
-      }, self, t.allocator) catch null,
+      .gpu = undefined,
       .base_compositor = undefined,
       .allocator = allocator,
       .seat = try wlr.Seat.create(self.wl_server, "default"),
       .cursor_mngr = try wlr.XcursorManager.create(null, 24),
       .scene = try wlr.Scene.create(),
       .output_layout = try wlr.OutputLayout.create(),
-      .outputs = try elemental.TypedList(*Output).init(.{}, self, t.allocator),
-      .inputs = try elemental.TypedList(*Input).init(.{}, self, t.allocator),
+      .outputs = try elemental.TypedList(*Output).new(.{}, null, t.allocator),
+      .inputs = try elemental.TypedList(Input).new(.{}, null, t.allocator),
       .completion = undefined,
     };
 
-    self.base_compositor = try Compositor.init(.{
+    self.gpu = hardware.device.Gpu.init(&self.gpu.?, .{
+      .fd = backend.getDrmFd(),
+    }, null, t.allocator) catch null;
+
+    _ = try Compositor.init(&self.base_compositor, .{
       .vtable = &vtable,
       .renderer = params.renderer,
       .gpu = if (self.gpu) |*gpu| gpu else null,
     }, self, self.type.allocator);
-
-    self.base_compositor.context.type.ref.value = &self.base_compositor.context;
-    self.base_compositor.context.renderer.setDisplayKit(&self.base_compositor.context);
 
     try self.scene.attachOutputLayout(self.output_layout);
 
@@ -187,9 +202,9 @@ cursor_mngr: *wlr.XcursorManager,
 output_layout: *wlr.OutputLayout,
 scene: *wlr.Scene,
 completion: xev.Completion,
-outputs: elemental.TypedList(*Output),
+outputs: *elemental.TypedList(*Output),
 output_new: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init(output_new),
-inputs: elemental.TypedList(*Input),
+inputs: *elemental.TypedList(Input),
 input_new: wl.Listener(*wlr.InputDevice) = wl.Listener(*wlr.InputDevice).init(input_new),
 socket: [:0]const u8 = undefined,
 gpu: ?hardware.device.Gpu,
@@ -200,7 +215,7 @@ fn output_new(listener: *wl.Listener(*wlr.Output), wlr_output: *wlr.Output) void
   const output = Output.new(.{
     .context = &self.base_compositor.context,
     .value = wlr_output,
-  }, self, self.type.allocator) catch |err| {
+  }, null, self.type.allocator) catch |err| {
     // TODO: use the logger
     std.debug.print("Failed to create output: {s}\n", .{ @errorName(err) });
     std.debug.dumpStackTrace(@errorReturnTrace().?.*);
@@ -215,7 +230,7 @@ fn output_new(listener: *wl.Listener(*wlr.Output), wlr_output: *wlr.Output) void
 fn input_new(listener: *wl.Listener(*wlr.InputDevice), wlr_input: *wlr.InputDevice) void {
   const self = @fieldParentPtr(Self, "input_new", listener);
 
-  const input = Input.new(wlr_input, self, self.type.allocator) catch |err| {
+  const input = Input.init(wlr_input, self, self.type.allocator) catch |err| {
     std.debug.print("Failed to create input: {s}\n", .{ @errorName(err) });
     std.debug.dumpStackTrace(@errorReturnTrace().?.*);
     return;

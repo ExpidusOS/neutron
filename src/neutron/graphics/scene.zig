@@ -20,7 +20,7 @@ const Impl = struct {
     self.* = .{
       .type = t,
       .vtable = params.vtable,
-      .layers = try elemental.TypedList(*SceneLayer).new(.{}, self, t.allocator),
+      .layers = try elemental.TypedList(*SceneLayer).new(.{}, null, t.allocator),
     };
   }
 
@@ -57,7 +57,7 @@ pub fn addLayer(self: *Self, layer: *const flutter.c.FlutterLayer) !void {
   try self.layers.appendOwned(try SceneLayer.new(.{
     .value = layer,
     .vtable = vtable,
-  }, self, self.type.allocator));
+  }, null, self.type.allocator));
 }
 
 pub fn render(self: *Self, renderer: *Renderer, size: @Vector(2, i32)) !void {

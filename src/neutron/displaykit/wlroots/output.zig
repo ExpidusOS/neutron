@@ -135,6 +135,11 @@ const Impl = struct {
     self.type = t;
     self.value = params.value;
 
+    self.base_output = try Output.init(&self.base_output, .{
+      .context = params.context,
+      .vtable = &vtable,
+    }, self, self.type.allocator);
+
     const compositor = self.getCompositor();
     if (!params.value.initRender(compositor.allocator, compositor.renderer)) return error.RenderFailed;
 
@@ -153,12 +158,11 @@ const Impl = struct {
       }
     }
 
+    const old_output = self.base_output;
+
     self.* = .{
       .type = t,
-      .base_output = try Output.init(.{
-        .context = params.context,
-        .vtable = &vtable,
-      }, self, self.type.allocator),
+      .base_output = old_output,
       .value = params.value,
       .fb = null,
       .scene_buffer = try compositor.scene.tree.createSceneBuffer(null),
@@ -188,13 +192,15 @@ const Impl = struct {
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
     dest.* = .{
       .type = t,
-      .base_output = try self.base_output.type.refInit(t.allocator),
+      .base_output = undefined,
       .value = self.value,
       .fb = if (self.fb) |fb| try fb.ref(t.allocator) else null,
       .scene_buffer = self.scene_buffer,
       .index = self.index,
       .id = try t.allocator.dupe(u8, self.id),
     };
+
+    _ = try self.base_output.type.refInit(&dest.base_output, t.allocator);
   }
 
   pub fn unref(self: *Self) void {
@@ -305,6 +311,6 @@ mode: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
 
 pub usingnamespace Type.Impl;
 
-pub inline fn getCompositor(self: *Self) *Compositor {
-  return Compositor.Type.fromOpaque(self.type.parent.?.getValue());
+pub fn getCompositor(self: *Self) *Compositor {
+  return @fieldParentPtr(Compositor, "base_compositor", self.base_output.context.toCompositor());
 }

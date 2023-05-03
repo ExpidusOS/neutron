@@ -52,24 +52,28 @@ const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
     self.* = .{
       .type = t,
-      .base = try Base.init(.{
-        .vtable = &self.vtable,
-        .renderer = &params.renderer.base,
-      }, self, t.allocator),
+      .base = undefined,
       .fb = null,
       .renderable = null,
       .mutex = .{},
     };
+
+    _ = try Base.init(&self.base, .{
+      .vtable = &self.vtable,
+      .renderer = &params.renderer.base,
+    }, self, t.allocator);
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
     dest.* = .{
       .type = t,
-      .base = try self.base.type.refInit(t.allocator),
+      .base = undefined,
       .fb = if (self.fb) |fb| try fb.ref(t.allocator) else null,
       .renderable = self.renderable,
       .mutex = .{},
     };
+
+    _ = try self.base.type.refInit(&dest.base, t.allocator);
   }
 
   pub fn unref(self: *Self) void {
@@ -93,7 +97,7 @@ vtable: Base.VTable = .{
   .update_frame_buffer = (struct {
     fn callback(_base: *anyopaque, fb: *FrameBuffer) !void {
       const base = Base.Type.fromOpaque(_base);
-      const self = @constCast(@fieldParentPtr(Self, "vtable", base.vtable));
+      const self = @fieldParentPtr(Self, "base", base);
       const renderer = self.getRenderer();
 
       self.mutex.lock();
@@ -126,7 +130,7 @@ vtable: Base.VTable = .{
               self.fb = null;
             }
 
-            if (renderer.getDisplayKit()) |ctx| {
+            if (renderer.base.displaykit) |ctx| {
               const params = try ctx.getEGLImageKHRParameters(fb);
 
               const image_khr = try (if (eglCreateImageKHR(renderer.display, c.EGL_NO_CONTEXT, params.target, params.buffer, (&params.attribs).ptr)) |value| value else error.InvalidKHR);
@@ -204,5 +208,5 @@ vtable: Base.VTable = .{
 pub usingnamespace Type.Impl;
 
 pub fn getRenderer(self: *Self) *Renderer {
-  return Renderer.Type.fromOpaque(self.type.parent.?.getValue());
+  return Renderer.Type.fromOpaque(self.base.renderer.type.parent.?.getValue());
 }

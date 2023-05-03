@@ -8,10 +8,8 @@ const Self = @This();
 
 const c = api.c;
 
-pub const Params = struct {};
-
 const Impl = struct {
-  pub fn construct(self: *Self, _: Params, t: Type) !void {
+  pub fn construct(self: *Self, _: Base.CommonParams, t: Type) !void {
     _ = self;
     _ = t;
     return error.Unsupported;
@@ -25,7 +23,7 @@ const Impl = struct {
   }
 };
 
-pub const Type = elemental.Type(Self, Params, Impl);
+pub const Type = elemental.Type(Self, Base.CommonParams, Impl);
 
 @"type": Type,
 base: Base,

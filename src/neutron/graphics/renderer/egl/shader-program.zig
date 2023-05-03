@@ -77,7 +77,7 @@ const Impl = struct {
     self.* = .{
       .type = t,
       .id = id,
-      .base = try ShaderProgram.init(.{
+      .base = try ShaderProgram.init(&self.base, .{
         .vtable = &vtable,
       }, self, t.allocator),
     };

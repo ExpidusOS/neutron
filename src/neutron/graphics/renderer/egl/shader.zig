@@ -60,7 +60,7 @@ const Impl = struct {
     self.* = .{
       .type = t,
       .id = id,
-      .base = try Shader.init(.{
+      .base = try Shader.init(&self.base, .{
         .vtable = &vtable,
         .kind = params.kind,
       }, self, t.allocator),

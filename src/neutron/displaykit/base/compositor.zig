@@ -21,13 +21,15 @@ const Impl = struct {
     self.* = .{
       .type = t,
       .vtable = params.vtable,
-      .context = try Context.init(.{
-        .vtable = &params.vtable.context,
-        .renderer = params.renderer,
-        .gpu = params.gpu,
-        .type = .compositor,
-      }, self, t.allocator),
+      .context = undefined,
     };
+
+    _ = try Context.init(&self.context, .{
+      .vtable = &params.vtable.context,
+      .renderer = params.renderer,
+      .gpu = params.gpu,
+      .type = .compositor,
+    }, self, t.allocator);
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {

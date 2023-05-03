@@ -113,7 +113,7 @@ const Impl = struct {
   pub fn construct(self: *Self, _: Params, t: Type) !void {
     self.* = .{
       .type = t,
-      .base = try Scene.init(.{
+      .base = try Scene.init(&self.base, .{
         .vtable = &vtable,
       }, self, t.allocator),
       .sync = null,

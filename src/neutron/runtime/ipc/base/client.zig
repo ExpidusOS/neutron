@@ -12,7 +12,7 @@ const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
     self.* = .{
       .type = t,
-      .base = try Base.init(.{
+      .base = try Base.init(&self.base, .{
         .vtable = &.{},
         .runtime = params.runtime,
       }, self, self.type.allocator),

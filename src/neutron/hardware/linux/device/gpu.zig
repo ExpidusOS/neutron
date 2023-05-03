@@ -117,33 +117,37 @@ const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
     self.* = .{
       .type = t,
-      .base = try Gpu.init(.{
-        .vtable = &.{
-          .base = .{},
-          .get_egl_display = (struct {
-            fn callback(_gpu: *anyopaque) !c.EGLDisplay {
-              const gpu = Gpu.Type.fromOpaque(_gpu);
-              const that = Type.fromOpaque(gpu.type.parent.?.getValue());
-              return that.getEglDisplay();
-            }
-          }).callback,
-        },
-      }, self, t.allocator),
+      .base = undefined,
       .fd = try (switch (params) {
         .fd => |fd| std.os.dup(fd),
         .path => |path| std.os.open(path, 0, std.os.O.RDWR),
       }),
       .gbm_dev = try (if (c.gbm_create_device(self.fd)) |value| value else error.GbmFailed),
     };
+
+    _ = try Gpu.init(&self.base, .{
+      .vtable = &.{
+        .base = .{},
+        .get_egl_display = (struct {
+          fn callback(_gpu: *anyopaque) !c.EGLDisplay {
+            const gpu = Gpu.Type.fromOpaque(_gpu);
+            const that = Type.fromOpaque(gpu.type.parent.?.getValue());
+            return that.getEglDisplay();
+          }
+        }).callback,
+      },
+    }, self, t.allocator);
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
     dest.* = .{
       .type = t,
-      .base = try self.base.type.refInit(t.allocator),
+      .base = undefined,
       .fd = try std.os.dup(self.fd),
       .gbm_dev = try (if (c.gbm_create_device(dest.fd)) |value| value else error.GbmFailed),
     };
+
+    _ = try self.base.type.refInit(&dest.base, t.allocator);
   }
 
   pub fn unref(self: *Self) void {

@@ -33,7 +33,3 @@ pub const Type = elemental.Type(Self, Params, Impl);
 context: *Context,
 
 pub usingnamespace Type.Impl;
-
-pub inline fn unref(self: *Self) void {
-  return self.type.unref();
-}

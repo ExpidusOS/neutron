@@ -17,7 +17,7 @@ const Impl = struct {
     self.* = .{
       .type = t,
       .buffer = params.wlr_buffer,
-      .base = try graphics.FrameBuffer.init(.{
+      .base = try graphics.FrameBuffer.init(&self.base, .{
         .vtable = &self.vtable,
       }, self, t.allocator),
     };
@@ -27,8 +27,10 @@ const Impl = struct {
     dest.* = .{
       .type = t,
       .buffer = self.buffer,
-      .base = try self.base.type.refInit(t.allocator),
+      .base = undefined,
     };
+
+    _ = try self.base.type.refInit(&dest.base, t.allocator);
   }
 
   pub fn unref(self: *Self) void {

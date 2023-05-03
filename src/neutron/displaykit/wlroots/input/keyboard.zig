@@ -18,10 +18,10 @@ const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
     self.* = .{
       .type = t,
-      .base_keyboard = try Keyboard.init(.{
+      .base_keyboard = try Keyboard.init(&self.base_keyboard, .{
         .context = params.context,
       }, self, self.type.allocator),
-      .base = try Base.init(.{
+      .base = try Base.init(&self.base, .{
         .base = &self.base_keyboard.base,
         .device = params.device,
       }, self, self.type.allocator),
@@ -37,9 +37,12 @@ const Impl = struct {
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
     dest.* = .{
       .type = t,
-      .base_keyboard = try self.base_keyboard.type.refInit(t.allocator),
-      .base = try self.base.type.refInit(t.allocator),
+      .base_keyboard = undefined,
+      .base = undefined,
     };
+
+    _ = try self.base_keyboard.type.refInit(&dest.base_keyboard, t.allocator);
+    _ = try self.base.type.refInit(&dest.base, t.allocator);
   }
 
   pub fn unref(self: *Self) void {
@@ -57,5 +60,5 @@ base: Base,
 pub usingnamespace Type.Impl;
 
 pub inline fn getCompositor(self: *Self) *Compositor {
-  return self.base.getCompositor(Self);
+  return self.base.getCompositor();
 }

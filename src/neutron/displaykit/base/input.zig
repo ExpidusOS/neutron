@@ -1,4 +1,5 @@
 const std = @import("std");
+const flutter = @import("../../flutter.zig");
 
 pub const Base = @import("input/base.zig");
 pub const Keyboard = @import("input/keyboard.zig");
@@ -16,8 +17,8 @@ pub const Input = union(Type) {
   mouse: *Mouse,
   touch: *Touch,
 
-  pub fn ref(self: *Input, allocator: ?std.mem.Allocator) !Input {
-    return switch (self.*) {
+  pub fn ref(self: Input, allocator: ?std.mem.Allocator) !Input {
+    return switch (self) {
       .keyboard => |keyboard| .{
         .keyboard = try keyboard.ref(allocator),
       },
@@ -30,19 +31,34 @@ pub const Input = union(Type) {
     };
   }
 
-  pub fn unref(self: *Input) void {
-    return switch (self.*) {
+  pub fn unref(self: Input) void {
+    return switch (self) {
       .keyboard => |keyboard| keyboard.unref(),
       .mouse => |mouse| mouse.unref(),
       .touch => |touch| touch.unref(),
     };
   }
 
-  pub fn toBase(self: *Input) *Base {
-    return switch (self.*) {
+  pub fn toBase(self: Input) *Base {
+    return switch (self) {
       .keyboard => |keyboard| &keyboard.base,
       .mouse => |mouse| &mouse.base,
       .touch => |touch| &touch.base,
     };
   }
 };
+
+pub fn FlutterEvent(comptime kind: Type) type {
+  return switch (kind) {
+    .keyboard => flutter.c.FlutterKeyEvent,
+    .mouse, .touch => flutter.c.FlutterPointerEvent,
+  };
+}
+
+pub fn EventKind(comptime kind: Type) type {
+  return switch (kind) {
+    .keyboard => Keyboard.EventKind,
+    .mouse => Mouse.EventKind,
+    .touch => Touch.EventKind,
+  };
+}

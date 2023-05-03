@@ -15,10 +15,10 @@ const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
     self.* = .{
       .type = t,
-      .base_client = try base.Client.init(.{
+      .base_client = try base.Client.init(&self.base_client, .{
         .runtime = params.runtime,
       }, self, self.type.allocator),
-      .base = try Base.init(.{
+      .base = try Base.init(&self.base, .{
         .vtable = &.{
           .get_fd = get_fd,
         },

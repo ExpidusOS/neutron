@@ -30,7 +30,7 @@ const Impl = struct {
     self.* = .{
       .type = t,
       .vtable = params.vtable,
-      .shaders = try elemental.TypedList(*Shader).new(.{}, self, t.allocator),
+      .shaders = try elemental.TypedList(*Shader).new(.{}, null, t.allocator),
     };
   }
 
@@ -61,14 +61,12 @@ pub fn createShader(self: *Self, kind: Shader.Kind, code: []const u8) !*Shader {
 
 pub fn attach(self: *Self, kind: Shader.Kind, code: []const u8) !void {
   const shader = try self.createShader(kind, code);
-  defer shader.unref();
   return try self.attachShader(shader);
 }
 
 pub fn attachShader(self: *Self, shader: *Shader) !void {
   try self.vtable.attach(self.type.toOpaque(), shader);
-  errdefer self.vtable.detach(self.type.toOpaque(), shader) catch @panic("Double error while trying to detach");
-  try self.shaders.append(shader);
+  try self.shaders.appendOwned(shader);
 }
 
 pub fn detachShader(self: *Self, i: usize) !void {
@@ -81,15 +79,6 @@ pub fn detachShader(self: *Self, i: usize) !void {
 
 pub fn link(self: *Self) !void {
   return self.vtable.link(self.type.toOpaque());
-}
-
-pub fn linkWithEntries(self: *Self, entries: []const Entry) !void {
-  for (entries) |entry| {
-    std.debug.print("{}\n", .{ entry });
-    try self.attach(entry.kind, entry.code);
-  }
-
-  return self.link();
 }
 
 pub fn linkWith(self: *Self, shaders: []*Shader) !void {

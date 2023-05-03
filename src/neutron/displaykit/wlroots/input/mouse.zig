@@ -1,5 +1,6 @@
 const std = @import("std");
 const elemental = @import("../../../elemental.zig");
+const flutter = @import("../../../flutter.zig");
 const Self = @This();
 const Base = @import("base.zig");
 const Mouse = @import("../../base/input/mouse.zig");
@@ -18,15 +19,19 @@ const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
     self.* = .{
       .type = t,
-      .base_mouse = try Mouse.init(.{
-        .context = params.context,
-      }, self, self.type.allocator),
-      .base = try Base.init(.{
-        .base = &self.base_mouse.base,
-        .device = params.device,
-      }, self, self.type.allocator),
+      .base_mouse = undefined,
+      .base = undefined,
       .cursor = try wlr.Cursor.create(),
     };
+
+    _ = try Mouse.init(&self.base_mouse, .{
+      .context = params.context,
+    }, self, self.type.allocator);
+
+    _ = try Base.init(&self.base, .{
+      .base = &self.base_mouse.base,
+      .device = params.device,
+    }, self, self.type.allocator);
 
     const compositor = self.getCompositor();
     self.cursor.attachOutputLayout(compositor.output_layout);
@@ -47,10 +52,13 @@ const Impl = struct {
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
     dest.* = .{
       .type = t,
-      .base_mouse = try self.base_mouse.type.refInit(t.allocator),
-      .base = try self.base.type.refInit(t.allocator),
+      .base_mouse = undefined,
+      .base = undefined,
       .cursor = self.cursor,
     };
+
+    _ = try self.base_mouse.type.refInit(&dest.base_mouse, t.allocator);
+    _ = try self.base.type.refInit(&dest.base, t.allocator);
   }
 
   pub fn unref(self: *Self) void {
@@ -62,12 +70,37 @@ const Impl = struct {
 
 pub const Type = elemental.Type(Self, Params, Impl);
 
-fn processMotion(self: *Self, time: u32, delta_x: f64, delta_y: f64, unaccel_dx: f64, unaccel_dy: f64) void {
-  _ = time;
+fn processMotion(self: *Self, time: u32, delta_x: f64, delta_y: f64, unaccel_dx: f64, unaccel_dy: f64) !void {
   _ = unaccel_dx;
   _ = unaccel_dy;
 
   self.cursor.move(self.base.device, delta_x, delta_y);
+
+  const compositor = self.getCompositor();
+  const runtime = compositor.getRuntime();
+
+  const events = &[_]flutter.c.FlutterPointerEvent {
+    .{
+      .struct_size = @sizeOf(flutter.c.FlutterPointerEvent),
+      .phase = flutter.c.kHover,
+      .timestamp = time,
+      .x = self.cursor.x,
+      .y = self.cursor.y,
+      .device = 0,
+      .signal_kind = flutter.c.kFlutterPointerSignalKindNone,
+      .scroll_delta_x = 0,
+      .scroll_delta_y = 0,
+      .device_kind = flutter.c.kFlutterPointerDeviceKindMouse,
+      .buttons = 0,
+      .pan_x = 0,
+      .pan_y = 0,
+      .scale = 1.0,
+      .rotation = 0.0,
+    },
+  };
+
+  const result = runtime.proc_table.SendPointerEvent.?(runtime.engine, &events[0], events.*.len);
+  if (result != flutter.c.kSuccess) return error.EngineFail;
 }
 
 @"type": Type,
@@ -77,7 +110,9 @@ cursor: *wlr.Cursor,
 motion: wl.Listener(*wlr.Pointer.event.Motion) = wl.Listener(*wlr.Pointer.event.Motion).init((struct {
   fn callback(listener: *wl.Listener(*wlr.Pointer.event.Motion), event: *wlr.Pointer.event.Motion) void {
     const self = @fieldParentPtr(Self, "motion", listener);
-    self.processMotion(event.time_msec, event.delta_x, event.delta_y, event.unaccel_dx, event.unaccel_dy);
+    self.processMotion(event.time_msec, event.delta_x, event.delta_y, event.unaccel_dx, event.unaccel_dy) catch |err| {
+      std.debug.print("Failed to process pointer motion: {s}\n", .{ @errorName(err) });
+    };
   }
 }).callback),
 motion_abs: wl.Listener(*wlr.Pointer.event.MotionAbsolute) = wl.Listener(*wlr.Pointer.event.MotionAbsolute).init((struct {
@@ -90,7 +125,9 @@ motion_abs: wl.Listener(*wlr.Pointer.event.MotionAbsolute) = wl.Listener(*wlr.Po
 
     const dx = lx - self.cursor.x;
     const dy = ly - self.cursor.y;
-    self.processMotion(event.time_msec, dx, dx, dx, dy);
+    self.processMotion(event.time_msec, dx, dx, dx, dy) catch |err| {
+      std.debug.print("Failed to process pointer motion: {s}\n", .{ @errorName(err) });
+    };
   }
 }).callback),
 axis: wl.Listener(*wlr.Pointer.event.Axis) = wl.Listener(*wlr.Pointer.event.Axis).init((struct {
@@ -110,5 +147,5 @@ frame: wl.Listener(*wlr.Cursor) = wl.Listener(*wlr.Cursor).init((struct {
 pub usingnamespace Type.Impl;
 
 pub inline fn getCompositor(self: *Self) *Compositor {
-  return self.base.getCompositor(Self);
+  return self.base.getCompositor();
 }
