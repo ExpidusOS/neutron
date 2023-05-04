@@ -91,20 +91,15 @@ fn handleKey(self: *Self, keycode: u32, released: bool) !void {
   const compositor = self.getCompositor();
   const runtime = compositor.getRuntime();
 
-  const unicode = self.state.keyGetUtf32(keycode);
-
   var message = std.ArrayList(u8).init(self.type.allocator);
   defer message.deinit();
 
   try std.json.stringify(.{
     .keymap = "linux",
     .toolkit = "gtk",
-    .unicodeScalarValues = if (released) 0 else unicode,
-    .keyCode = @enumToInt(self.state.keyGetOneSym(keycode)),
-    .scanCode = keycode,
-    .modifiers = 0,
-    .type = if (released) flutter.c.kFlutterKeyEventTypeUp
-      else flutter.c.kFlutterKeyEventTypeDown,
+    .type = if (released) "keyup" 
+      else "keydown",
+    .keyCode = keycode,
   }, .{}, message.writer());
 
   var resp_handle: ?*flutter.c.FlutterPlatformMessageResponseHandle = null;
@@ -115,7 +110,13 @@ fn handleKey(self: *Self, keycode: u32, released: bool) !void {
       if (data_ptr == null) return;
 
       var data = data_ptr[0..data_size];
-      std.debug.print("{any}\n", .{ data });
+      var ts = std.json.TokenStream.init(data);
+      var msg = std.json.parse(struct {
+        handled: bool
+      }, &ts, .{}) catch unreachable;
+      
+      // TODO: pass unhandled events to seat
+      _ = msg;
     }
   }).callback, self, &resp_handle);
   if (result != flutter.c.kSuccess) return error.EngineFail;
@@ -128,8 +129,6 @@ fn handleKey(self: *Self, keycode: u32, released: bool) !void {
     .message_size = message.items.len,
     .response_handle = resp_handle,
   };
-
-  std.debug.print("{s}\n", .{ message.items });
 
   result = runtime.proc_table.SendPlatformMessage.?(runtime.engine, &pm);
   if (result != flutter.c.kSuccess) return error.EngineFail;
