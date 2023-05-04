@@ -91,6 +91,8 @@ fn handleKey(self: *Self, keycode: u32, released: bool) !void {
   const compositor = self.getCompositor();
   const runtime = compositor.getRuntime();
 
+  const keysym = self.state.keyGetOneSym(keycode);
+
   var message = std.ArrayList(u8).init(self.type.allocator);
   defer message.deinit();
 
@@ -99,7 +101,8 @@ fn handleKey(self: *Self, keycode: u32, released: bool) !void {
     .toolkit = "gtk",
     .type = if (released) "keyup" 
       else "keydown",
-    .keyCode = keycode,
+    .keyCode = @enumToInt(keysym),
+    .scanCode = keycode,
   }, .{}, message.writer());
 
   var resp_handle: ?*flutter.c.FlutterPlatformMessageResponseHandle = null;
