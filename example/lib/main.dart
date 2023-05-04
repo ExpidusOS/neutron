@@ -19,6 +19,16 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     initPlatformState();
+
+    HardwareKeyboard.instance.addHandler((ev) {
+      print(ev);
+      return true;
+    });
+
+    ServicesBinding.instance.keyboard.addHandler((ev) {
+      print(ev);
+      return true;
+    });
   }
 
   Future<void> initPlatformState() async {
@@ -45,6 +55,12 @@ class _MyAppState extends State<MyApp> {
                 onPressed: () {
                   print('Hello, world!');
                 },
+              ),
+              TextField(
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Input test box',
+                ),
               ),
             ],
           ),

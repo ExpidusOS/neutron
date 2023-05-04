@@ -77,7 +77,16 @@ const Impl = struct {
             compositor.vsync_baton.store(baton, .Unordered);
           }
         }).callback,
-        .platform_message_callback = null,
+        .platform_message_callback = (struct {
+          fn callback(message: [*c]const flutter.c.FlutterPlatformMessage, ud: ?*anyopaque) callconv(.C) void {
+            const compositor = Type.fromOpaque(ud.?);
+
+            const data = message.*.message[0..message.*.message_size];
+            std.debug.print("{s}: {s}\n", .{ message.*.channel, data });
+
+            _ = compositor.proc_table.SendPlatformMessageResponse.?(compositor.engine, message.*.response_handle, null, 0);
+          }
+        }).callback,
         .log_message_callback = null,
         .log_tag = null,
         .compositor = null,

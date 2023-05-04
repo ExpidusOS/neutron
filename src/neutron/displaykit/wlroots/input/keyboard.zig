@@ -1,5 +1,9 @@
+const builtin = @import("builtin");
 const std = @import("std");
 const elemental = @import("../../../elemental.zig");
+const flutter = @import("../../../flutter.zig");
+const xkb = @import("xkbcommon");
+const xkb_keymap = @import("../keymap.zig");
 const Self = @This();
 const Base = @import("base.zig");
 const Keyboard = @import("../../base/input/keyboard.zig");
@@ -16,6 +20,22 @@ pub const Params = struct {
 
 const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
+    const kb = params.device.toKeyboard();
+
+    const rules = xkb.RuleNames {
+      .rules = std.c.getenv("XKB_DEFAULT_RULES"),
+      .model = std.c.getenv("XKB_DEFAULT_MODEL"),
+      .layout = std.c.getenv("XKB_DEFAULT_LAYOUT"),
+      .variant = std.c.getenv("XKB_DEFAULT_VARIANT"),
+      .options = std.c.getenv("XKB_DEFAULT_OPTIONS"),
+    };
+
+    const context = try (xkb.Context.new(.no_flags) orelse error.OutOfMemory);
+    context.setLogLevel(if (builtin.mode == .Debug) .debug else .err);
+
+    const keymap = try (xkb.Keymap.newFromNames(context, &rules, .no_flags) orelse error.OutOfMemory);
+    std.debug.assert(kb.setKeymap(keymap));
+
     self.* = .{
       .type = t,
       .base_keyboard = try Keyboard.init(&self.base_keyboard, .{
@@ -25,13 +45,20 @@ const Impl = struct {
         .base = &self.base_keyboard.base,
         .device = params.device,
       }, self, self.type.allocator),
+      .context = context,
+      .keymap = keymap,
+      .state = try (xkb.State.new(keymap) orelse error.OutOfMemory),
     };
+
+    kb.events.key.add(&self.key);
+    kb.events.modifiers.add(&self.modifiers);
 
     const compositor = self.getCompositor();
 
     var caps = @bitCast(wl.Seat.Capability, compositor.seat.capabilities);
     caps.keyboard = true;
     compositor.seat.setCapabilities(caps);
+    compositor.seat.setKeyboard(kb);
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
@@ -39,6 +66,9 @@ const Impl = struct {
       .type = t,
       .base_keyboard = undefined,
       .base = undefined,
+      .context = self.context.ref(),
+      .keymap = self.keymap.ref(),
+      .state = self.state.ref(),
     };
 
     _ = try self.base_keyboard.type.refInit(&dest.base_keyboard, t.allocator);
@@ -48,14 +78,89 @@ const Impl = struct {
   pub fn unref(self: *Self) void {
     self.base.unref();
     self.base_keyboard.unref();
+
+    self.state.unref();
+    self.keymap.unref();
+    self.context.unref();
   }
 };
 
 pub const Type = elemental.Type(Self, Params, Impl);
 
+fn handleKey(self: *Self, keycode: u32, released: bool) !void {
+  const compositor = self.getCompositor();
+  const runtime = compositor.getRuntime();
+
+  const unicode = self.state.keyGetUtf32(keycode);
+
+  var message = std.ArrayList(u8).init(self.type.allocator);
+  defer message.deinit();
+
+  try std.json.stringify(.{
+    .keymap = "linux",
+    .toolkit = "gtk",
+    .unicodeScalarValues = if (released) 0 else unicode,
+    .keyCode = @enumToInt(self.state.keyGetOneSym(keycode)),
+    .scanCode = keycode,
+    .modifiers = 0,
+    .type = if (released) flutter.c.kFlutterKeyEventTypeUp
+      else flutter.c.kFlutterKeyEventTypeDown,
+  }, .{}, message.writer());
+
+  var resp_handle: ?*flutter.c.FlutterPlatformMessageResponseHandle = null;
+  var result = runtime.proc_table.PlatformMessageCreateResponseHandle.?(runtime.engine, (struct {
+    fn callback(data_ptr: [*c]const u8, data_size: usize, ud: ?*anyopaque) callconv(.C) void {
+      _ = ud;
+
+      if (data_ptr == null) return;
+
+      var data = data_ptr[0..data_size];
+      std.debug.print("{any}\n", .{ data });
+    }
+  }).callback, self, &resp_handle);
+  if (result != flutter.c.kSuccess) return error.EngineFail;
+  errdefer _ = runtime.proc_table.PlatformMessageReleaseResponseHandle.?(runtime.engine, resp_handle);
+
+  const pm = flutter.c.FlutterPlatformMessage {
+    .struct_size = @sizeOf(flutter.c.FlutterPlatformMessage),
+    .channel = "flutter/keyevent",
+    .message = message.items.ptr,
+    .message_size = message.items.len,
+    .response_handle = resp_handle,
+  };
+
+  std.debug.print("{s}\n", .{ message.items });
+
+  result = runtime.proc_table.SendPlatformMessage.?(runtime.engine, &pm);
+  if (result != flutter.c.kSuccess) return error.EngineFail;
+}
+
 @"type": Type,
 base_keyboard: Keyboard,
 base: Base,
+context: *xkb.Context,
+keymap: *xkb.Keymap,
+state: *xkb.State,
+key: wl.Listener(*wlr.Keyboard.event.Key) = wl.Listener(*wlr.Keyboard.event.Key).init((struct {
+  fn callback(listener: *wl.Listener(*wlr.Keyboard.event.Key), event: *wlr.Keyboard.event.Key) void {
+    const self = @fieldParentPtr(Self, "key", listener);
+
+    self.handleKey(event.keycode + 8, event.state == .released) catch |err| {
+      std.debug.print("Failed to handle keyboard event: {s}\n", .{ @errorName(err) });
+      return;
+    };
+  }
+}).callback),
+modifiers: wl.Listener(*wlr.Keyboard) = wl.Listener(*wlr.Keyboard).init((struct {
+  fn callback(listener: *wl.Listener(*wlr.Keyboard), _: *wlr.Keyboard) void {
+    const self = @fieldParentPtr(Self, "modifiers", listener);
+    const compositor = self.getCompositor();
+    const kb = self.base.device.toKeyboard();
+
+    compositor.seat.setKeyboard(kb);
+    compositor.seat.keyboardNotifyModifiers(&kb.modifiers);
+  }
+}).callback),
 
 pub usingnamespace Type.Impl;
 
