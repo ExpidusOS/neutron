@@ -1,5 +1,7 @@
 const std = @import("std");
 const elemental = @import("../../elemental.zig");
+const hardware = @import("../../hardware.zig");
+const graphics = @import("../../graphics.zig");
 const Self = @This();
 const Context = @import("context.zig");
 
@@ -10,6 +12,8 @@ pub const VTable = struct {
 
 pub const Params = struct {
   vtable: *const VTable,
+  renderer: ?graphics.renderer.Params,
+  gpu: ?*hardware.base.device.Gpu,
 };
 
 const Impl = struct {
@@ -17,19 +21,25 @@ const Impl = struct {
     self.* = .{
       .type = t,
       .vtable = params.vtable,
-      .context = try Context.init(.{
-        .vtable = &params.vtable.context,
-        .type = .client,
-      }, self, t.allocator),
+      .context = undefined,
     };
+
+    _ = try Context.init(&self.context, .{
+      .vtable = &params.vtable.context,
+      .renderer = params.renderer,
+      .gpu = params.gpu,
+      .type = .client,
+    }, self, t.allocator);
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !Self {
     dest.* = .{
       .type = t,
       .vtable = self.vtable,
-      .context = try self.context.type.refInit(t.allocator),
+      .context = undefined,
     };
+
+    _ = try self.context.type.refInit(&self.context);
   }
 
   pub fn unref(self: *Self) void {

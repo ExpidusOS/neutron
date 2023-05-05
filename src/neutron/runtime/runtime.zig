@@ -82,7 +82,10 @@ const Impl = struct {
             const compositor = Type.fromOpaque(ud.?);
 
             const data = message.*.message[0..message.*.message_size];
-            std.debug.print("{s}: {s}\n", .{ message.*.channel, data });
+            if (std.mem.eql(u8, @ptrCast([]const u8, message.*.channel[0..std.mem.len(message.*.channel)]), "flutter/mousecursor")) {
+              // TODO: implement this
+              std.debug.print("{s}\n", .{ data });
+            }
 
             _ = compositor.proc_table.SendPlatformMessageResponse.?(compositor.engine, message.*.response_handle, null, 0);
           }

@@ -92,6 +92,7 @@ fn handleKey(self: *Self, keycode: u32, released: bool) !void {
   const runtime = compositor.getRuntime();
 
   const keysym = self.state.keyGetOneSym(keycode);
+  const unicode = self.state.keyGetUtf32(keycode);
 
   var message = std.ArrayList(u8).init(self.type.allocator);
   defer message.deinit();
@@ -103,6 +104,7 @@ fn handleKey(self: *Self, keycode: u32, released: bool) !void {
       else "keydown",
     .keyCode = @enumToInt(keysym),
     .scanCode = keycode,
+    .unicodeScalarValues = unicode,
   }, .{}, message.writer());
 
   var resp_handle: ?*flutter.c.FlutterPlatformMessageResponseHandle = null;

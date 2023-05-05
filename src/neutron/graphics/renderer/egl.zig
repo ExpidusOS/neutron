@@ -326,7 +326,7 @@ pub const Type = elemental.Type(Self, Base.CommonParams, Impl);
 
 @"type": Type,
 base: Base,
-gpu: *hardware.device.Gpu,
+gpu: *hardware.base.device.Gpu,
 display: c.EGLDisplay,
 context: c.EGLContext,
 flutter_context: c.EGLContext,

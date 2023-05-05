@@ -83,6 +83,7 @@ pub fn new(builder: *Build, target: std.zig.CrossTarget, optimize: std.builtin.M
   if (target.isLinux()) {
     const scanner = ScanProtocolsStep.create(builder, if (options.wayland) |value| value else ScanProtocolsStep.Options.auto(builder));
     scanner.addSystemProtocol("stable/xdg-shell/xdg-shell.xml");
+    scanner.addSystemProtocol("unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml");
 
     scanner.generate("wl_compositor", 4);
     scanner.generate("wl_subcompositor", 1);
@@ -91,12 +92,14 @@ pub fn new(builder: *Build, target: std.zig.CrossTarget, optimize: std.builtin.M
     scanner.generate("wl_seat", 7);
     scanner.generate("wl_data_device_manager", 3);
     scanner.generate("xdg_wm_base", 2);
+    scanner.generate("zwp_linux_dmabuf_v1", 4);
 
     self.wl_scan_protocols = scanner;
     self.step.dependOn(&self.wl_scan_protocols.?.step);
   }
 
   self.config.addOption(bool, "has_wlroots", self.wl_scan_protocols != null);
+  self.config.addOption(bool, "has_wayland", self.wl_scan_protocols != null);
   self.config.addOption(bool, "has_gbm", target.isLinux());
   self.config.addOption(bool, "has_libdrm", target.isLinux());
   self.config.addOption(bool, "has_osmesa", target.isLinux());

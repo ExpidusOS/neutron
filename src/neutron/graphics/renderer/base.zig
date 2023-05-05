@@ -22,7 +22,7 @@ pub const Params = struct {
 };
 
 pub const CommonParams = struct {
-  gpu: ?*hardware.device.Gpu,
+  gpu: ?*hardware.base.device.Gpu,
   displaykit: ?*displaykit.base.Context,
 };
 
@@ -65,7 +65,7 @@ pub const Type = elemental.Type(Self, Params, Impl);
 current_scene: *Scene,
 vtable: *const VTable,
 shader_prog: ?*ShaderProgram,
-gpu: ?*hardware.device.Gpu,
+gpu: ?*hardware.base.device.Gpu,
 displaykit: ?*displaykit.base.Context,
 
 pub usingnamespace Type.Impl;

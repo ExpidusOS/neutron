@@ -25,7 +25,7 @@ pub const VTable = struct {
 pub const Params = struct {
   @"type": base.Type,
   renderer: ?graphics.renderer.Params,
-  gpu: ?*hardware.device.Gpu,
+  gpu: ?*hardware.base.device.Gpu,
   vtable: *const VTable,
 };
 
@@ -70,7 +70,7 @@ pub const Type = elemental.Type(Self, Params, Impl);
 @"type": Type,
 _type: base.Type,
 vtable: *const VTable,
-gpu: ?*hardware.device.Gpu = null,
+gpu: ?*hardware.base.device.Gpu = null,
 renderer: graphics.renderer.Renderer,
 
 pub usingnamespace Type.Impl;

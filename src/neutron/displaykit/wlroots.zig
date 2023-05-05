@@ -24,12 +24,6 @@ pub const Params = struct {
   }
 
   pub fn format(self: Params, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-    if (self.path) |path| {
-      try writer.writeAll("path=");
-      try writer.writeAll(path);
-      try writer.writeAll(",");
-    }
-
     try self.base.format(fmt, options, writer);
   }
 };
@@ -49,8 +43,8 @@ pub const Backend = union(base.Type) {
     };
   }
 
-  pub fn ref(self: *Backend, allocator: ?std.mem.Allocator) !Backend {
-    return switch (self.*) {
+  pub fn ref(self: Backend, allocator: ?std.mem.Allocator) !Backend {
+    return switch (self) {
       .client => error.Unimplemented,
       .compositor => |compositor| .{
         .compositor = try compositor.ref(allocator),
@@ -58,15 +52,15 @@ pub const Backend = union(base.Type) {
     };
   }
 
-  pub fn unref(self: *Backend) void {
-    return switch (self.*) {
+  pub fn unref(self: Backend) void {
+    return switch (self) {
       .client => @panic("Wlroots does not have a client backend, please use Wayland or X11"),
       .compositor => |compositor| compositor.unref(),
     };
   }
 
-  pub fn toBase(self: *Backend) base.Backend {
-    return switch (self.*) {
+  pub fn toBase(self: Backend) base.Backend {
+    return switch (self) {
       .client => @panic("Wlroots does not have a client backend, please use Wayland or X11"),
       .compositor => |compositor| .{
         .compositor = &compositor.base_compositor,

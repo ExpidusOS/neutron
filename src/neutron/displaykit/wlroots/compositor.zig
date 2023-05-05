@@ -103,7 +103,7 @@ const Impl = struct {
     _ = try Compositor.init(&self.base_compositor, .{
       .vtable = &vtable,
       .renderer = params.renderer,
-      .gpu = if (self.gpu) |*gpu| gpu else null,
+      .gpu = if (self.gpu) |*gpu| &gpu.base else null,
     }, self, self.type.allocator);
 
     try self.scene.attachOutputLayout(self.output_layout);

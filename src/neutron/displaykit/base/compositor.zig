@@ -13,7 +13,7 @@ pub const VTable = struct {
 pub const Params = struct {
   vtable: *const VTable,
   renderer: ?graphics.renderer.Params,
-  gpu: ?*hardware.device.Gpu,
+  gpu: ?*hardware.base.device.Gpu,
 };
 
 const Impl = struct {
@@ -36,8 +36,10 @@ const Impl = struct {
     dest.* = .{
       .type = t,
       .vtable = self.vtable,
-      .context = try self.context.ref(t.allocator),
+      .context = undefined,
     };
+
+    _ = try self.context.type.refInit(&self.context);
   }
 
   pub fn unref(self: *Self) void {
