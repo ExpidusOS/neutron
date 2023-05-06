@@ -26,20 +26,76 @@ const FbRenderable = struct {
     renderer.procs.glDrawBuffers(1, &[_]c.GLenum { c.GL_COLOR_ATTACHMENT0 });
     c.glBindFramebuffer(c.GL_FRAMEBUFFER, 0);
   }
+
+  pub fn destroy(self: FbRenderable, subrenderer: *Self) void {
+    const renderer = subrenderer.getRenderer();
+    const eglDestroyImageKHR = api.tryResolve(c.PFNEGLDESTROYIMAGEKHRPROC, "eglDestroyImageKHR") catch @panic("Not implemented");
+
+    _ = eglDestroyImageKHR(renderer.display, self.image_khr);
+    c.glDeleteFramebuffers(1, &self.fbo);
+    c.glDeleteRenderbuffers(1, &self.rbo);
+  }
+};
+
+const TextureFbRenderable = struct {
+  tex: c.GLuint,
+  fbo: c.GLuint,
+
+  pub fn use(self: TextureFbRenderable, subrenderer: *Self) !void {
+    const res = subrenderer.fb.?.getResolution();
+
+    c.glBindTexture(c.GL_TEXTURE_2D, self.tex);
+    c.glTexImage2D(c.GL_TEXTURE_2D, 0, c.GL_RGBA, @intCast(c_int, res[0]), @intCast(c_int, res[1]), 0, c.GL_RGBA, c.GL_UNSIGNED_BYTE, null);
+    c.glBindFramebuffer(c.GL_FRAMEBUFFER, self.fbo);
+  }
+
+  pub fn unuse(self: TextureFbRenderable, subrenderer: *Self) !void {
+    _ = self;
+
+    const renderer = subrenderer.getRenderer();
+    const res = subrenderer.fb.?.getResolution();
+    const stride = @intCast(i32, subrenderer.fb.?.getStride());
+    const size = res[1] * stride;
+
+    renderer.procs.glDrawBuffers(1, &[_]c.GLenum { c.GL_COLOR_ATTACHMENT0 });
+    c.glReadBuffer(c.GL_COLOR_ATTACHMENT0);
+    c.glBindFramebuffer(c.GL_FRAMEBUFFER, 0);
+    c.glBindTexture(c.GL_TEXTURE_2D, 0);
+    
+    const buffer = try subrenderer.fb.?.getBuffer();
+    @memset(buffer, 0, size);
+    _ = try subrenderer.fb.?.commit();
+  }
+
+  pub fn destroy(self: TextureFbRenderable, subrenderer: *Self) void {
+    _ = subrenderer;
+
+    c.glDeleteFramebuffers(1, &self.fbo);
+  }
 };
 
 const Renderable = union(enum) {
   fb: FbRenderable,
+  tfb: TextureFbRenderable,
 
-  pub fn use(self: Renderable, subrenderer: *Self) void {
+  pub fn use(self: Renderable, subrenderer: *Self) !void {
     return switch (self) {
       .fb => |fb| fb.use(subrenderer),
+      .tfb => |tfb| tfb.use(subrenderer),
     };
   }
 
-  pub fn unuse(self: Renderable, subrenderer: *Self) void {
+  pub fn unuse(self: Renderable, subrenderer: *Self) !void {
     return switch (self) {
       .fb => |fb| fb.unuse(subrenderer),
+      .tfb => |tfb| tfb.unuse(subrenderer),
+    };
+  }
+
+  pub fn destroy(self: Renderable, subrenderer: *Self) void {
+    return switch (self) {
+      .fb => |fb| fb.destroy(subrenderer),
+      .tfb => |tfb| tfb.destroy(subrenderer),
     };
   }
 };
@@ -88,6 +144,58 @@ const Impl = struct {
 
 pub const Type = elemental.Type(Self, Params, Impl);
 
+fn updateFrameBufferEglImage(self: *Self, fb: *FrameBuffer) !bool {
+  const renderer = self.getRenderer();
+  const eglCreateImageKHR = try api.tryResolve(c.PFNEGLCREATEIMAGEKHRPROC, "eglCreateImageKHR");
+  const glEGLImageTargetRenderbufferStorageOES = try api.tryResolve(c.PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC, "glEGLImageTargetRenderbufferStorageOES");
+  const is_set = self.fb != null;
+
+  if (is_set) {
+    self.renderable.?.destroy(self);
+    self.fb.?.unref();
+
+    self.renderable = null;
+    self.fb = null;
+  }
+
+  if (renderer.base.displaykit) |ctx| {
+    const params = try ctx.getEGLImageKHRParameters(fb);
+
+    const image_khr = try (if (eglCreateImageKHR(renderer.display, c.EGL_NO_CONTEXT, params.target, params.buffer, (&params.attribs).ptr)) |value| value else error.InvalidKHR);
+
+    try renderer.useContext();
+    defer renderer.unuseContext();
+
+    var renderable = FbRenderable {
+      .image_khr = image_khr,
+      .rbo = undefined,
+      .fbo = undefined,
+    };
+
+    c.glGenRenderbuffers(1, &renderable.rbo);
+    c.glBindRenderbuffer(c.GL_RENDERBUFFER, renderable.rbo);
+    glEGLImageTargetRenderbufferStorageOES(c.GL_RENDERBUFFER, image_khr);
+    c.glBindRenderbuffer(c.GL_RENDERBUFFER, 0);
+
+    c.glGenFramebuffers(1, &renderable.fbo);
+    c.glBindFramebuffer(c.GL_FRAMEBUFFER, renderable.fbo);
+    c.glFramebufferRenderbuffer(c.GL_FRAMEBUFFER, c.GL_COLOR_ATTACHMENT0, c.GL_RENDERBUFFER, renderable.rbo);
+
+    var status = c.glCheckFramebufferStatus(c.GL_FRAMEBUFFER);
+    c.glBindFramebuffer(c.GL_FRAMEBUFFER, 0);
+
+    if (status != c.GL_FRAMEBUFFER_COMPLETE) return error.FrameBuffer;
+
+    self.renderable = .{
+      .fb = renderable
+    };
+
+    self.fb = try fb.ref(self.type.allocator);
+    return true;
+  }
+  return error.MissingDisplayKit;
+}
+
 @"type": Type,
 base: Base,
 fb: ?*FrameBuffer,
@@ -115,62 +223,61 @@ vtable: Base.VTable = .{
 
       std.debug.assert(if (is_set) self.renderable != null else self.renderable == null);
 
+      var updated: bool = false;
+
       if (surface_type == c.EGL_WINDOW_BIT) {
         if (renderer.hasDisplayExtension("EGL_KHR_image_base")) {
-          const eglCreateImageKHR = try api.tryResolve(c.PFNEGLCREATEIMAGEKHRPROC, "eglCreateImageKHR");
-          const eglDestroyImageKHR = try api.tryResolve(c.PFNEGLDESTROYIMAGEKHRPROC, "eglDestroyImageKHR");
-          const glEGLImageTargetRenderbufferStorageOES = try api.tryResolve(c.PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC, "glEGLImageTargetRenderbufferStorageOES");
 
           if (outdated) {
-            if (is_set) {
-              _ = eglDestroyImageKHR(renderer.display, self.renderable.?.fb.image_khr);
-              self.fb.?.unref();
-
-              self.renderable = null;
-              self.fb = null;
-            }
-
-            if (renderer.base.displaykit) |ctx| {
-              const params = try ctx.getEGLImageKHRParameters(fb);
-
-              const image_khr = try (if (eglCreateImageKHR(renderer.display, c.EGL_NO_CONTEXT, params.target, params.buffer, (&params.attribs).ptr)) |value| value else error.InvalidKHR);
-
-              try renderer.useContext();
-              defer renderer.unuseContext();
-
-              var renderable = FbRenderable {
-                .image_khr = image_khr,
-                .rbo = undefined,
-                .fbo = undefined,
-              };
-
-              c.glGenRenderbuffers(1, &renderable.rbo);
-              c.glBindRenderbuffer(c.GL_RENDERBUFFER, renderable.rbo);
-              glEGLImageTargetRenderbufferStorageOES(c.GL_RENDERBUFFER, image_khr);
-              c.glBindRenderbuffer(c.GL_RENDERBUFFER, 0);
-
-              c.glGenFramebuffers(1, &renderable.fbo);
-              c.glBindFramebuffer(c.GL_FRAMEBUFFER, renderable.fbo);
-              c.glFramebufferRenderbuffer(c.GL_FRAMEBUFFER, c.GL_COLOR_ATTACHMENT0, c.GL_RENDERBUFFER, renderable.rbo);
-
-              var status = c.glCheckFramebufferStatus(c.GL_FRAMEBUFFER);
-              c.glBindFramebuffer(c.GL_FRAMEBUFFER, 0);
-
-              if (status != c.GL_FRAMEBUFFER_COMPLETE) return error.FrameBuffer;
-
-              self.renderable = .{
-                .fb = renderable
-              };
-
-              self.fb = try fb.ref(self.type.allocator);
-            } else {
-              return error.MissingDisplayKit;
-            }
+            updated = updateFrameBufferEglImage(self, fb) catch false;
           }
-          return;
         }
-        return error.MissingExtension;
       }
+
+      if (!updated) {
+        if (self.fb) |_fb| {
+          _fb.unref();
+          self.fb = null;
+        }
+
+        if (self.renderable) |rb| {
+          rb.destroy(self);
+          self.renderable = null;
+        }
+
+        const res = fb.getResolution();
+
+        api.clearError();
+
+        var renderable = TextureFbRenderable {
+          .tex = undefined,
+          .fbo = undefined,
+        };
+
+        c.glGenTextures(1, &renderable.tex);
+        c.glBindTexture(c.GL_TEXTURE_2D, renderable.tex);
+        c.glTexImage2D(c.GL_TEXTURE_2D, 0, c.GL_RGBA, @intCast(c_int, res[0]), @intCast(c_int, res[1]), 0, c.GL_RGBA, c.GL_UNSIGNED_BYTE, null);
+        c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MIN_FILTER, c.GL_LINEAR);
+        c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MAG_FILTER, c.GL_LINEAR);
+        c.glBindTexture(c.GL_TEXTURE_2D, 0);
+
+        c.glGenFramebuffers(1, &renderable.fbo);
+        c.glBindFramebuffer(c.GL_FRAMEBUFFER, renderable.fbo);
+        c.glFramebufferTexture2D(c.GL_FRAMEBUFFER, c.GL_COLOR_ATTACHMENT0, c.GL_TEXTURE_2D, renderable.tex, 0);
+
+        var status = c.glCheckFramebufferStatus(c.GL_FRAMEBUFFER);
+        c.glBindFramebuffer(c.GL_FRAMEBUFFER, 0);
+
+        if (status != c.GL_FRAMEBUFFER_COMPLETE) return api.autoError();
+
+        self.renderable = .{
+          .tfb = renderable
+        };
+
+        self.fb = try fb.ref(self.type.allocator);
+      }
+
+      std.debug.assert(self.renderable != null and self.fb != null);
     }
   }).callback,
   .render = (struct {
@@ -186,7 +293,7 @@ vtable: Base.VTable = .{
       defer renderer.unuseContext();
 
       if (self.renderable) |renderable| {
-        renderable.use(self);
+        try renderable.use(self);
       }
 
       renderer.mutex.lock();
@@ -199,7 +306,7 @@ vtable: Base.VTable = .{
       }
 
       if (self.renderable) |renderable| {
-        renderable.unuse(self);
+        try renderable.unuse(self);
       }
     }
   }).callback,

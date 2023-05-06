@@ -7,8 +7,8 @@ pub const Client = @import("wayland/client.zig");
 pub const Params = struct {
   base: base.Params,
   display: ?[]const u8,
-  width: usize,
-  height: usize,
+  width: i32,
+  height: i32,
 
   pub fn init() Params {
     return .{

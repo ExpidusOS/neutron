@@ -65,14 +65,14 @@ pub fn getFormat(self: *Self) u32 {
 }
 
 pub fn getBuffer(self: *Self) !*anyopaque {
-  return self.getData(*anyopaque, "buffer");
+  return self.getData(anyerror!*anyopaque, "buffer");
 }
 
 pub fn commit(self: *Self) !bool {
   return switch (self.value) {
     .data => false,
     .vtable => |vtable| blk: {
-      try vtable.commit();
+      try vtable.commit(self.type.toOpaque());
       break :blk true;
     },
   };

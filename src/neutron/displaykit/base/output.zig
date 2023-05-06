@@ -1,6 +1,5 @@
 const std = @import("std");
 const elemental = @import("../../elemental.zig");
-const graphics = @import("../../graphics.zig");
 const flutter = @import("../../flutter.zig");
 const Runtime = @import("../../runtime/runtime.zig");
 const Self = @This();
@@ -27,7 +26,6 @@ const Impl = struct {
       .type = t,
       .vtable = params.vtable,
       .context = params.context,
-      .subrenderer = try params.context.renderer.toBase().createSubrenderer(self.getResolution()),
     };
   }
 
@@ -36,13 +34,10 @@ const Impl = struct {
       .type = t,
       .vtable = self.vtable,
       .context = self.context,
-      .subrenderer = try self.subrenderer.ref(t.allocator),
     };
   }
 
   pub fn unref(self: *Self) void {
-    // FIXME: segment faults
-    // self.subrenderer.unref();
     _ = self;
   }
 };
@@ -52,7 +47,6 @@ pub const Type = elemental.Type(Self, Params, Impl);
 @"type": Type,
 vtable: *const VTable,
 context: *Context,
-subrenderer: graphics.subrenderer.Subrenderer,
 
 pub usingnamespace Type.Impl;
 

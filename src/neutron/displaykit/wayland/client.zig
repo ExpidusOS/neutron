@@ -6,11 +6,12 @@ const hardware = @import("../../hardware.zig");
 const graphics = @import("../../graphics.zig");
 const eglApi = @import("../../graphics/api/egl.zig");
 const Runtime = @import("../../runtime/runtime.zig");
-const FrameBuffer = @import("fb.zig");
-const Self = @This();
-
 const Context = @import("../base/context.zig");
+const BaseOutput = @import("../base/output.zig");
 const Client = @import("../base/client.zig");
+const Output = @import("output.zig");
+const View = @import("view.zig");
+const Self = @This();
 
 const wayland = @import("wayland").client;
 const wl = wayland.wl;
@@ -20,12 +21,28 @@ const zwp = wayland.zwp;
 pub const Params = struct {
   renderer: ?graphics.renderer.Params,
   display: ?[]const u8,
-  width: usize,
-  height: usize,
+  width: i32,
+  height: i32,
 };
 
 const vtable = Client.VTable {
-  .context = .{},
+  .context = .{
+    .get_outputs = (struct {
+      fn callback(_context: *anyopaque) !*elemental.TypedList(*BaseOutput) {
+        const context = Context.Type.fromOpaque(_context);
+        const client = @fieldParentPtr(Client, "context", context);
+        const self = @fieldParentPtr(Self, "base_client", client);
+
+        const list = try elemental.TypedList(*BaseOutput).new(.{}, null, self.type.allocator);
+        errdefer list.unref();
+
+        for (self.outputs.items) |output| {
+          try list.append(&output.base_output);
+        }
+        return list;
+      }
+    }).callback,
+  },
 };
 
 const gpu_vtable = hardware.base.device.Gpu.VTable {
@@ -53,13 +70,23 @@ fn registryListener(registry: *wl.Registry, event: wl.Registry.Event, self: *Sel
   switch (event) {
     .global => |global| {
       if (std.cstr.cmp(global.interface, wl.Compositor.getInterface().name) == 0) {
-        self.compositor = registry.bind(global.name, wl.Compositor, 1) catch return;
+        self.compositor = registry.bind(global.name, wl.Compositor, @intCast(u32, wl.Compositor.getInterface().version)) catch return;
       } else if (std.cstr.cmp(global.interface, wl.Shm.getInterface().name) == 0) {
-        self.shm = registry.bind(global.name, wl.Shm, 1) catch return;
+        self.shm = registry.bind(global.name, wl.Shm, @intCast(u32, wl.Shm.getInterface().version)) catch return;
+      } else if (std.cstr.cmp(global.interface, wl.Output.getInterface().name) == 0) {
+        const wl_output = registry.bind(global.name, wl.Output, @intCast(u32, wl.Output.getInterface().version)) catch return;
+        const output = Output.new(.{
+          .context = &self.base_client.context,
+          .value = wl_output,
+        }, null, self.type.allocator) catch return;
+
+        self.outputs.appendOwned(output) catch return;
       } else if (std.cstr.cmp(global.interface, xdg.WmBase.getInterface().name) == 0) {
-        self.wm_base = registry.bind(global.name, xdg.WmBase, 1) catch return;
+        self.wm_base = registry.bind(global.name, xdg.WmBase, @intCast(u32, xdg.WmBase.getInterface().version)) catch return;
       } else if (std.cstr.cmp(global.interface, zwp.LinuxDmabufV1.getInterface().name) == 0) {
-        self.dmabuf = registry.bind(global.name, zwp.LinuxDmabufV1, 1) catch return;
+        self.dmabuf = registry.bind(global.name, zwp.LinuxDmabufV1, @intCast(u32, zwp.LinuxDmabufV1.getInterface().version)) catch return;
+      } else {
+        std.debug.print("{s}\n", .{ global.interface });
       }
     },
     .global_remove => {
@@ -82,8 +109,9 @@ const Impl = struct {
       .shm = null,
       .wm_base = null,
       .dmabuf = null,
-      .surface = undefined,
       .completion = undefined,
+      .outputs = try elemental.TypedList(*Output).new(.{}, null, t.allocator),
+      .view = undefined,
     };
 
     const registry = try self.wl_display.getRegistry();
@@ -91,28 +119,25 @@ const Impl = struct {
     registry.setListener(*Self, registryListener, self);
     if (self.wl_display.roundtrip() != .SUCCESS) return error.RoundtripFailed;
 
-    const compositor = self.compositor orelse return error.NoCompositor;
-    const shm = self.shm orelse return error.NoShm;
-    const wm_base = self.wm_base orelse return error.NoWmBase;
-    const dmabuf = self.dmabuf orelse return error.NoWmBase;
+    if (self.compositor == null) return error.NoCompositor;
+    if (self.shm == null) return error.NoShm;
+    if (self.wm_base == null) return error.NoWmBase;
+    if (self.dmabuf == null) return error.NoWmBase;
 
     _ = try hardware.base.device.Gpu.init(&self.base_gpu, .{
       .vtable = &gpu_vtable,
     }, self, t.allocator);
-
-    _ = shm;
-    _ = wm_base;
-    _ = dmabuf;
-
-    self.surface = try compositor.createSurface();
-    self.surface.commit();
-    if (self.wl_display.roundtrip() != .SUCCESS) return error.RoundtripFailed;
 
     _ = try Client.init(&self.base_client, .{
       .vtable = &vtable,
       .renderer = params.renderer,
       .gpu = &self.base_gpu,
     }, self, self.type.allocator);
+
+    self.view = try View.new(.{
+      .context = &self.base_client.context,
+      .resolution = .{ params.width, params.height },
+    }, null, self.type.allocator);
 
     const runtime = self.getRuntime();
 
@@ -152,16 +177,19 @@ const Impl = struct {
       .dmabuf = self.dmabuf,
       .surface = self.surface,
       .compositor = self.compositor,
+      .outputs = try self.outputs.ref(t.allocator),
+      .view = try self.view.ref(t.allocator),
     };
 
-    _ = try self.base_client.type.refInit(&dest.base_client);
-    _ = try self.base_gpu.type.refInit(&dest.base_gpu);
+    _ = try self.base_client.type.refInit(&dest.base_client, t.allocator);
+    _ = try self.base_gpu.type.refInit(&dest.base_gpu, t.allocator);
   }
 
   pub fn unref(self: *Self) void {
+    self.view.unref();
+    self.outputs.unref();
     self.base_client.unref();
     self.base_gpu.unref();
-    self.surface.destroy();
   }
 };
 
@@ -175,8 +203,9 @@ shm: ?*wl.Shm,
 compositor: ?*wl.Compositor,
 wm_base: ?*xdg.WmBase,
 dmabuf: ?*zwp.LinuxDmabufV1,
-surface: *wl.Surface,
 completion: xev.Completion,
+outputs: *elemental.TypedList(*Output),
+view: *View,
 
 pub usingnamespace Type.Impl;
 

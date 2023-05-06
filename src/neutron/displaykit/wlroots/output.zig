@@ -1,5 +1,6 @@
 const std = @import("std");
 const elemental = @import("../../elemental.zig");
+const graphics = @import("../../graphics.zig");
 const Output = @import("../base/output.zig");
 const Context = @import("../base/context.zig");
 const Compositor = @import("compositor.zig");
@@ -127,7 +128,7 @@ pub fn updateBuffer(self: *Self) !void {
   }
 
   self.scene_buffer.setBuffer(self.fb.?.buffer);
-  try self.base_output.subrenderer.toBase().updateFrameBuffer(&self.fb.?.base);
+  try self.subrenderer.toBase().updateFrameBuffer(&self.fb.?.base);
 }
 
 const Impl = struct {
@@ -168,6 +169,7 @@ const Impl = struct {
       .scene_buffer = try compositor.scene.tree.createSceneBuffer(null),
       .id = try std.fmt.allocPrint(self.type.allocator, "{?s}-{?s}-{?s}-{s}", .{ self.value.serial, self.value.model, self.value.make, self.value.name }),
       .index = compositor.outputs.items.len,
+      .subrenderer = try params.context.renderer.toBase().createSubrenderer(self.base_output.getResolution()),
     };
 
     errdefer self.base_output.unref();
@@ -198,6 +200,7 @@ const Impl = struct {
       .scene_buffer = self.scene_buffer,
       .index = self.index,
       .id = try t.allocator.dupe(u8, self.id),
+      .subrenderer = try self.subrenderer.ref(t.allocator),
     };
 
     _ = try self.base_output.type.refInit(&dest.base_output, t.allocator);
@@ -230,6 +233,7 @@ value: *wlr.Output,
 scene_buffer: *wlr.SceneBuffer,
 id: []const u8,
 index: usize,
+subrenderer: graphics.subrenderer.Subrenderer,
 destroy: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
   fn callback(listener: *wl.Listener(*wlr.Output), _: *wlr.Output) void {
     const self = @fieldParentPtr(Self, "destroy", listener);
@@ -268,7 +272,7 @@ frame: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
     if (scene_output.commit()) {
       scene_output.sendFrameDone(&now);
 
-      self.base_output.subrenderer.toBase().render() catch |err| {
+      self.subrenderer.toBase().render() catch |err| {
         std.debug.print("Failed to render: {s}\n", .{ @errorName(err) });
         std.debug.dumpStackTrace(@errorReturnTrace().?.*);
         return;

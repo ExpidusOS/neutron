@@ -1,33 +1,94 @@
+const std = @import("std");
 const elemental = @import("../../elemental.zig");
 const graphics = @import("../../graphics.zig");
 const hardware = @import("../../hardware.zig");
-const Context = @import("../base/context.zig");
-const eglApi = @import("../../graphics/api/egl.zig");
+const Client = @import("client.zig");
 const Self = @This();
 
 const wl = @import("wayland").client.wl;
 
-const vtable = graphics.FrameBuffer.VTable {};
+const vtable = graphics.FrameBuffer.VTable {
+  .get_resolution = (struct {
+    fn callback(_base: *anyopaque) @Vector(2, i32) {
+      const base = graphics.FrameBuffer.Type.fromOpaque(_base);
+      const self = @fieldParentPtr(Self, "base", base);
+      return self.resolution;
+    }
+  }).callback,
+  .get_stride = (struct {
+    fn callback(_base: *anyopaque) u32 {
+      const base = graphics.FrameBuffer.Type.fromOpaque(_base);
+      const self = @fieldParentPtr(Self, "base", base);
+      return @intCast(u32, self.resolution[0] * self.depth);
+    }
+  }).callback,
+  .get_format = (struct {
+    fn callback(_base: *anyopaque) u32 {
+      const base = graphics.FrameBuffer.Type.fromOpaque(_base);
+      const self = @fieldParentPtr(Self, "base", base);
+      return @intCast(u32, @enumToInt(self.format));
+    }
+  }).callback,
+  .get_buffer = (struct {
+    fn callback(_base: *anyopaque) !*anyopaque {
+      const base = graphics.FrameBuffer.Type.fromOpaque(_base);
+      const self = @fieldParentPtr(Self, "base", base);
+      return self.buffer.ptr;
+    }
+  }).callback,
+  .commit = (struct {
+    fn callback(_: *anyopaque) !void {}
+  }).callback,
+};
 
 pub const Params = struct {
+  client: *Client,
+  resolution: @Vector(2, i32),
+  depth: i8,
+  format: wl.Shm.Format,
 };
 
 const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
-    _ = params;
+    const name = try std.fmt.allocPrint(t.allocator, "neutron-fb-{}x{}-{}-{x}", .{ params.resolution[0], params.resolution[1], params.depth, @ptrToInt(self) });
+    defer t.allocator.free(name);
+
+    const stride = params.resolution[0] * params.depth;
+    const size = params.resolution[1] * stride;
+
+    const fd = try std.os.memfd_create(name, 0);
+    try std.os.ftruncate(fd, @intCast(u64, size));
 
     self.* = .{
       .type = t,
-      .base = try graphics.FrameBuffer.init(&self.base, .{
-        .vtable = &vtable,
-      }, self, t.allocator),
+      .client = params.client,
+      .base = undefined,
+      .resolution = params.resolution,
+      .depth = params.depth,
+      .format = params.format,
+      .fd = fd,
+      .buffer = try std.os.mmap(null, @intCast(usize, size), std.os.PROT.READ | std.os.PROT.WRITE, std.os.MAP.SHARED, fd, 0),
+      .pool = try params.client.shm.?.createPool(fd, size),
+      .wl_buffer = try self.pool.createBuffer(0, params.resolution[0], params.resolution[1], stride, params.format),
     };
+
+    _ = try graphics.FrameBuffer.init(&self.base, .{
+     .vtable = &vtable,
+    }, self, t.allocator);
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
     dest.* = .{
       .type = t,
+      .client = self.client,
       .base = undefined,
+      .resolution = self.resolution,
+      .depth = self.depth,
+      .format = self.format,
+      .fd = self.fd,
+      .buffer = self.buffer,
+      .pool = self.pool,
+      .wl_buffer = self.wl_buffer,
     };
 
     _ = try self.base.type.refInit(&dest.base, t.allocator);
@@ -38,11 +99,23 @@ const Impl = struct {
   }
 
   pub fn destroy(self: *Self) void {
-    _ = self;
+    self.wl_buffer.destroy();
+    self.pool.destroy();
+    std.os.close(self.fd);
   }
 };
 
 pub const Type = elemental.Type(Self, Params, Impl);
 
 @"type": Type,
+client: *Client,
 base: graphics.FrameBuffer,
+resolution: @Vector(2, i32),
+depth: i8,
+format: wl.Shm.Format,
+fd: std.os.fd_t,
+buffer: []align(std.mem.page_size) u8,
+pool: *wl.ShmPool,
+wl_buffer: *wl.Buffer,
+
+pub usingnamespace Type.Impl;
