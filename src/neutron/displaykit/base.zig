@@ -55,8 +55,8 @@ pub const Backend = union(Type) {
     @compileError("Not implemented!");
   }
 
-  pub fn ref(self: *Backend, allocator: ?std.mem.Allocator) !Backend {
-    return switch (self.*) {
+  pub fn ref(self: Backend, allocator: ?std.mem.Allocator) !Backend {
+    return switch (self) {
       .client => |client| .{
         .client = try client.ref(allocator),
       },
@@ -66,15 +66,15 @@ pub const Backend = union(Type) {
     };
   }
 
-  pub fn unref(self: *Backend) !void {
-    return switch (self.*) {
+  pub fn unref(self: Backend) !void {
+    return switch (self) {
       .client => |client| client.unref(),
       .compositor => |compositor| compositor.unref(),
     };
   }
 
-  pub fn toContext(self: *Backend) *Context {
-    return switch (self.*) {
+  pub fn toContext(self: Backend) *Context {
+    return switch (self) {
       .client => |client| &client.context,
       .compositor => |compositor| &compositor.context,
     };

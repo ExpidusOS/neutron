@@ -29,7 +29,31 @@ const DmabufFormatTable = packed struct {
   modifier: u64,
 };
 
-const vtable = View.VTable {};
+const vtable = View.VTable {
+  .get_resolution = (struct {
+    fn callback(_view: *anyopaque) @Vector(2, i32) {
+      const view = View.Type.fromOpaque(_view);
+      const self = Type.fromOpaque(view.type.parent.?.getValue());
+      return self.fb.base.getResolution();
+    }
+  }).callback,
+  .get_position = (struct {
+    fn callback(_view: *anyopaque) @Vector(2, i32) {
+      const view = View.Type.fromOpaque(_view);
+      const self = Type.fromOpaque(view.type.parent.?.getValue());
+      _ = self;
+      return .{ 0, 0 };
+    }
+  }).callback,
+  .get_scale = (struct {
+    fn callback(_view: *anyopaque) f32 {
+      const view = View.Type.fromOpaque(_view);
+      const self = Type.fromOpaque(view.type.parent.?.getValue());
+      _ = self;
+      return 1.0;
+    }
+  }).callback,
+};
 
 fn frameListener(_: *wl.Callback, event: wl.Callback.Event, self: *Self) void {
   _ = event;
@@ -71,6 +95,16 @@ fn xdgToplevelListener(_: *xdg.Toplevel, event: xdg.Toplevel.Event, self: *Self)
           self.fb = old_fb;
           return;
         };
+
+        const client = self.getClient();
+        const runtime = client.getRuntime();
+
+        if (runtime.engine != null) {
+          self.base_view.notifyMetrics(runtime) catch |err| {
+            std.debug.print("Failed to notify the metrics: {s}\n", .{ @errorName(err) });
+            std.debug.dumpStackTrace(@errorReturnTrace().?.*);
+          };
+        }
 
         self.surface.attach(self.fb.wl_buffer, 0, 0);
         self.surface.commit();

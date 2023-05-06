@@ -282,7 +282,7 @@ task_runners: flutter.c.FlutterCustomTaskRunners = .{
 pub usingnamespace Type.Impl;
 
 pub fn notifyDisplays(self: *Self) !void {
-  const outputs = try @constCast(&self.displaykit.toBase()).toContext().getOutputs();
+  const outputs = try self.displaykit.toBase().toContext().getOutputs();
   defer outputs.unref();
 
   if (outputs.items.len == 0) {
@@ -308,7 +308,7 @@ pub fn notifyDisplays(self: *Self) !void {
 }
 
 pub fn notifyInputByKind(self: *Self, comptime kind: displaykit.base.input.Type, event_kind: displaykit.base.input.EventKind(kind), time: usize) !void {
-  const inputs = try @constCast(&self.displaykit.toBase()).toContext().getInputsByKind(kind);
+  const inputs = try self.displaykit.toBase().toContext().getInputsByKind(kind);
   // FIXME: crashes while getting toplevel ref
   // defer inputs.unref();
 
@@ -341,6 +341,14 @@ pub fn run(self: *Self) !void {
 
   try self.notifyDisplays();
   try self.notifyInputs(self.proc_table.GetCurrentTime.?());
+
+  if (self.displaykit.toBase().toContext()._type == .client) {
+    const views = try self.displaykit.toBase().toContext().getViews();
+    defer views.unref();
+
+    std.debug.assert(views.items.len == 1);
+    try views.items[0].notifyMetrics(self);
+  }
 
   try self.loop.run(.until_done);
 }

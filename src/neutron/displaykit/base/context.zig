@@ -7,6 +7,7 @@ const Client = @import("client.zig");
 const base = @import("base.zig");
 const Output = @import("output.zig");
 const input = @import("input.zig");
+const View = @import("view.zig");
 const Self = @This();
 
 pub const EGLImageKHRParameters = struct {
@@ -20,6 +21,7 @@ pub const VTable = struct {
   get_egl_image_khr_parameters: ?*const fn (self: *anyopaque, fb: *graphics.FrameBuffer) anyerror!EGLImageKHRParameters = null,
   get_outputs: ?*const fn (self: *anyopaque) anyerror!*elemental.TypedList(*Output) = null,
   get_inputs: ?*const fn (self: *anyopaque) anyerror!*elemental.TypedList(input.Input) = null,
+  get_views: ?*const fn (self: *anyopaque) anyerror!*elemental.TypedList(*View) = null,
 };
 
 pub const Params = struct {
@@ -122,4 +124,12 @@ pub fn getInputsByKind(self: *Self, comptime kind: input.Type) !*elemental.Typed
     }
   }
   return list;
+}
+
+pub fn getViews(self: *Self) !*elemental.TypedList(*View) {
+  if (self.vtable.get_views) |get_views| {
+    return get_views(self.type.toOpaque());
+  }
+
+  return elemental.TypedList(*View).new(.{}, null, self.type.allocator);
 }

@@ -8,6 +8,7 @@ const eglApi = @import("../../graphics/api/egl.zig");
 const Runtime = @import("../../runtime/runtime.zig");
 const Context = @import("../base/context.zig");
 const BaseOutput = @import("../base/output.zig");
+const BaseView = @import("../base/view.zig");
 const Client = @import("../base/client.zig");
 const Output = @import("output.zig");
 const View = @import("view.zig");
@@ -39,6 +40,19 @@ const vtable = Client.VTable {
         for (self.outputs.items) |output| {
           try list.append(&output.base_output);
         }
+        return list;
+      }
+    }).callback,
+    .get_views = (struct {
+      fn callback(_context: *anyopaque) !*elemental.TypedList(*BaseView) {
+        const context = Context.Type.fromOpaque(_context);
+        const client = @fieldParentPtr(Client, "context", context);
+        const self = @fieldParentPtr(Self, "base_client", client);
+
+        const list = try elemental.TypedList(*BaseView).new(.{}, null, self.type.allocator);
+        errdefer list.unref();
+
+        try list.append(&self.view.base_view);
         return list;
       }
     }).callback,
