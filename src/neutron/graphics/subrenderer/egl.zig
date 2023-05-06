@@ -186,6 +186,7 @@ fn updateFrameBufferImageKHR(self: *Self, fb: *FrameBuffer) !void {
         };
 
         self.fb = try fb.ref(self.type.allocator);
+        return;
       } else {
         return error.MissingDisplayKit;
       }
@@ -222,9 +223,13 @@ vtable: Base.VTable = .{
 
       if (surface_type & c.EGL_WINDOW_BIT == c.EGL_WINDOW_BIT) {
         updated = true;
-        updateFrameBufferImageKHR(self, fb) catch {
+        updateFrameBufferImageKHR(self, fb) catch |err| {
+          std.debug.print("Failed to use EGLImageKHR: {s}\n", .{ @errorName(err) });
+          std.debug.dumpStackTrace(@errorReturnTrace().?.*);
           updated = false;
         };
+
+        if (updated) return;
       }
 
       const is_set = self.fb != null;

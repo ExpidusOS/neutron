@@ -16,6 +16,7 @@ const wayland = @import("wayland").client;
 const wl = wayland.wl;
 const xdg = wayland.xdg;
 const zwp = wayland.zwp;
+const wp = wayland.wp;
 
 pub const Params = struct {
   context: *Context,
@@ -54,6 +55,22 @@ const vtable = View.VTable {
     }
   }).callback,
 };
+
+fn presentationListener(_: *wp.PresentationFeedback, event: wp.PresentationFeedback.Event, self: *Self) void {
+  switch (event) {
+    .presented => |presented| {
+      const runtime = self.getClient().getRuntime();
+
+      const baton = runtime.vsync_baton.swap(0, .AcqRel);
+      if (baton != 0) {
+        const curr_time = runtime.proc_table.GetCurrentTime.?();
+        const frame_time_ns = @intCast(u64, if (presented.refresh == 0) 16600000 else presented.refresh);
+        _ = runtime.proc_table.OnVsync.?(runtime.engine, baton, curr_time, curr_time + frame_time_ns);
+      }
+    },
+    else => {},
+  }
+}
 
 fn frameListener(_: *wl.Callback, event: wl.Callback.Event, self: *Self) void {
   _ = event;
@@ -134,6 +151,7 @@ const Impl = struct {
         .format = .argb8888,
       }, null, t.allocator),
       .subrenderer = try client.base_client.context.renderer.toBase().createSubrenderer(params.resolution),
+      .presentation = null,
       .frame_callback = null,
     };
 
@@ -164,8 +182,8 @@ const Impl = struct {
       .surface = self.surface,
       .xdg_surface = self.xdg_surface,
       .xdg_toplevel = self.xdg_toplevel,
-      .egl_window = self.egl_window,
       .fb = try self.fb.ref(t.allocator),
+      .presentation = self.presentation,
       .subrenderer = try self.subrenderer.ref(t.allocator),
       .frame_callback = self.frame_callback,
     };
@@ -195,6 +213,7 @@ xdg_surface: *xdg.Surface,
 xdg_toplevel: *xdg.Toplevel,
 fb: *FrameBuffer,
 subrenderer: graphics.subrenderer.Subrenderer,
+presentation: ?*wp.PresentationFeedback,
 frame_callback: ?*wl.Callback,
 
 pub usingnamespace Type.Impl;
@@ -209,10 +228,31 @@ pub fn render(self: *Self) !void {
     self.frame_callback = null;
   }
 
+  if (self.presentation) |feedback| {
+    feedback.destroy();
+    self.presentation = null;
+  }
+  
+  const client = self.getClient();
+  const runtime = client.getRuntime();
+
   const res = self.fb.base.getResolution();
   self.surface.damage(0, 0, res[0], res[1]);
 
+  const baton = runtime.vsync_baton.swap(0, .AcqRel);
+  if (baton != 0) {
+    const curr_time = runtime.proc_table.GetCurrentTime.?();
+    _ = runtime.proc_table.OnVsync.?(runtime.engine, baton, curr_time, curr_time + 16600000);
+  }
+
   try self.subrenderer.toBase().render();
+
+  if (client.presentation) |presentation| {
+    const feedback = try presentation.feedback(self.surface);
+    feedback.setListener(*Self, presentationListener, self);
+
+    self.presentation = feedback;
+  }
 
   const cb = try self.surface.frame();
   cb.setListener(*Self, frameListener, self);

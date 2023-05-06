@@ -17,6 +17,7 @@ const Self = @This();
 const wayland = @import("wayland").client;
 const wl = wayland.wl;
 const xdg = wayland.xdg;
+const wp = wayland.wp;
 const zwp = wayland.zwp;
 
 pub const Params = struct {
@@ -99,6 +100,8 @@ fn registryListener(registry: *wl.Registry, event: wl.Registry.Event, self: *Sel
         self.wm_base = registry.bind(global.name, xdg.WmBase, @intCast(u32, xdg.WmBase.getInterface().version)) catch return;
       } else if (std.cstr.cmp(global.interface, zwp.LinuxDmabufV1.getInterface().name) == 0) {
         self.dmabuf = registry.bind(global.name, zwp.LinuxDmabufV1, @intCast(u32, zwp.LinuxDmabufV1.getInterface().version)) catch return;
+      } else if (std.cstr.cmp(global.interface, wp.Presentation.getInterface().name) == 0) {
+        self.presentation = registry.bind(global.name, wp.Presentation, @intCast(u32, wp.Presentation.getInterface().version)) catch return;
       } else {
         std.debug.print("{s}\n", .{ global.interface });
       }
@@ -123,6 +126,7 @@ const Impl = struct {
       .shm = null,
       .wm_base = null,
       .dmabuf = null,
+      .presentation = null,
       .completion = undefined,
       .outputs = try elemental.TypedList(*Output).new(.{}, null, t.allocator),
       .view = undefined,
@@ -191,6 +195,7 @@ const Impl = struct {
       .dmabuf = self.dmabuf,
       .surface = self.surface,
       .compositor = self.compositor,
+      .presentation = self.presentation,
       .outputs = try self.outputs.ref(t.allocator),
       .view = try self.view.ref(t.allocator),
     };
@@ -217,6 +222,7 @@ shm: ?*wl.Shm,
 compositor: ?*wl.Compositor,
 wm_base: ?*xdg.WmBase,
 dmabuf: ?*zwp.LinuxDmabufV1,
+presentation: ?*wp.Presentation,
 completion: xev.Completion,
 outputs: *elemental.TypedList(*Output),
 view: *View,

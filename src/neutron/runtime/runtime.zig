@@ -143,14 +143,17 @@ const Impl = struct {
 
     // TODO: determine a compatible displaykit backend based on the OS
     self.displaykit = try displaykit.Backend.init(if (params.display) |value| value else .{
-      .wlroots = .{
+      .wayland = .{
         .base = .{
-          .type = .compositor,
+          .type = .client,
         },
+        .display = null,
+        .width = 1024,
+        .height = 768,
       },
     }, params.renderer, self, t.allocator);
 
-    self.project_args.compositor = @constCast(&self.displaykit.toBase()).toContext().renderer.toBase().getCompositorImpl();
+    self.project_args.compositor = self.displaykit.toBase().toContext().renderer.toBase().getCompositorImpl();
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
@@ -296,7 +299,7 @@ pub fn notifyDisplays(self: *Self) !void {
         .struct_size = @sizeOf(flutter.c.FlutterEngineDisplay),
         .display_id = output.getId(),
         .single_display = false,
-        .refresh_rate = std.math.lossyCast(f64, output.getRefreshRate()),
+        .refresh_rate = std.math.lossyCast(f64, output.getRefreshRate()) / 1000,
       };
     }
 
@@ -304,7 +307,9 @@ pub fn notifyDisplays(self: *Self) !void {
     if (result != flutter.c.kSuccess) return error.EngineFail;
   }
 
-  for (outputs.items) |output| try output.sendMetrics(self);
+  if (self.displaykit.toBase().toContext()._type == .compositor) {
+    for (outputs.items) |output| try output.notifyMetrics(self);
+  }
 }
 
 pub fn notifyInputByKind(self: *Self, comptime kind: displaykit.base.input.Type, event_kind: displaykit.base.input.EventKind(kind), time: usize) !void {
@@ -336,7 +341,7 @@ pub fn notifyInputs(self: *Self, time: usize) !void {
 }
 
 pub fn run(self: *Self) !void {
-  const result = self.proc_table.Run.?(flutter.c.FLUTTER_ENGINE_VERSION, @constCast(&self.displaykit.toBase()).toContext().renderer.toBase().getEngineImpl(), &self.project_args, self, &self.engine);
+  const result = self.proc_table.Run.?(flutter.c.FLUTTER_ENGINE_VERSION, self.displaykit.toBase().toContext().renderer.toBase().getEngineImpl(), &self.project_args, self, &self.engine);
   if (result != flutter.c.kSuccess) return error.EngineFail;
 
   try self.notifyDisplays();

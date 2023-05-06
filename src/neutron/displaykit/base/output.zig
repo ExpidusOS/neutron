@@ -74,7 +74,7 @@ pub fn getId(self: *Self) u32 {
   return self.vtable.get_id(self.type.toOpaque());
 }
 
-pub fn sendMetrics(self: *Self, runtime: *Runtime) !void {
+pub fn notifyMetrics(self: *Self, runtime: *Runtime) !void {
   if (runtime.engine != null) {
     const res = self.getResolution();
     const pos = self.getPosition();

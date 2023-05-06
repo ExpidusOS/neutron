@@ -188,7 +188,7 @@ const Impl = struct {
       try runtime.notifyDisplays();
     }
 
-    try self.base_output.sendMetrics(runtime);
+    try self.base_output.notifyMetrics(runtime);
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
@@ -305,7 +305,7 @@ mode: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init((struct {
       return;
     };
 
-    self.base_output.sendMetrics(self.getCompositor().getRuntime()) catch |err| {
+    self.base_output.notifyMetrics(self.getCompositor().getRuntime()) catch |err| {
       std.debug.print("Failed to send the metrics: {s}\n", .{ @errorName(err) });
       std.debug.dumpStackTrace(@errorReturnTrace().?.*);
       return;

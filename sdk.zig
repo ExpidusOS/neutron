@@ -82,6 +82,7 @@ pub fn new(builder: *Build, target: std.zig.CrossTarget, optimize: std.builtin.M
 
   if (target.isLinux()) {
     const scanner = ScanProtocolsStep.create(builder, if (options.wayland) |value| value else ScanProtocolsStep.Options.auto(builder));
+    scanner.addSystemProtocol("stable/presentation-time/presentation-time.xml");
     scanner.addSystemProtocol("stable/xdg-shell/xdg-shell.xml");
     scanner.addSystemProtocol("unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml");
 
@@ -91,6 +92,8 @@ pub fn new(builder: *Build, target: std.zig.CrossTarget, optimize: std.builtin.M
     scanner.generate("wl_output", 4);
     scanner.generate("wl_seat", 7);
     scanner.generate("wl_data_device_manager", 3);
+
+    scanner.generate("wp_presentation", 1);
     scanner.generate("xdg_wm_base", 2);
     scanner.generate("zwp_linux_dmabuf_v1", 4);
 
