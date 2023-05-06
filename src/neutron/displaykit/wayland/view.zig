@@ -1,5 +1,4 @@
 const std = @import("std");
-const xev = @import("xev");
 const elemental = @import("../../elemental.zig");
 const graphics = @import("../../graphics.zig");
 const BaseClient = @import("../base/client.zig");
@@ -32,6 +31,16 @@ const DmabufFormatTable = packed struct {
 
 const vtable = View.VTable {};
 
+fn frameListener(_: *wl.Callback, event: wl.Callback.Event, self: *Self) void {
+  _ = event;
+
+  self.render() catch |err| {
+    std.debug.print("Failed to render: {s}\n", .{ @errorName(err) });
+    std.debug.dumpStackTrace(@errorReturnTrace().?.*);
+    return;
+  };
+}
+
 fn xdgSurfaceListener(_: *xdg.Surface, event: xdg.Surface.Event, self: *Self) void {
   switch (event) {
     .configure => |configure| {
@@ -49,7 +58,7 @@ fn xdgToplevelListener(_: *xdg.Toplevel, event: xdg.Toplevel.Event, self: *Self)
           .client = self.getClient(),
           .resolution = .{ configure.width, configure.height },
           .depth = 4,
-          .format = .argb8888,
+          .format = .xrgb8888,
         }, null, self.type.allocator) catch return;
 
         const old_fb = self.fb;
@@ -63,6 +72,8 @@ fn xdgToplevelListener(_: *xdg.Toplevel, event: xdg.Toplevel.Event, self: *Self)
           return;
         };
 
+        self.surface.attach(self.fb.wl_buffer, 0, 0);
+        self.surface.commit();
         old_fb.unref();
       }
     },
@@ -89,7 +100,7 @@ const Impl = struct {
         .format = .argb8888,
       }, null, t.allocator),
       .subrenderer = try client.base_client.context.renderer.toBase().createSubrenderer(params.resolution),
-      .completion = undefined,
+      .frame_callback = null,
     };
 
     _ = try View.init(&self.base_view, .{
@@ -108,30 +119,8 @@ const Impl = struct {
 
     if (client.wl_display.roundtrip() != .SUCCESS) return error.RoundtripFailed;
 
-    client.getRuntime().loop.timer(&self.completion, 500, self, (struct {
-      fn callback(ud: ?*anyopaque, loop: *xev.Loop, completion: *xev.Completion, res: xev.Result) xev.CallbackAction {
-        const view = Type.fromOpaque(ud.?);
-
-        _ = loop;
-        _ = completion;
-        _ = res;
-
-        view.subrenderer.toBase().updateFrameBuffer(&view.fb.base) catch |err| {
-          std.debug.print("Failed to update framebuffer: {s}\n", .{ @errorName(err) });
-          std.debug.dumpStackTrace(@errorReturnTrace().?.*);
-          return .rearm;
-        };
-
-        view.subrenderer.toBase().render() catch |err| {
-          std.debug.print("Failed to render: {s}\n", .{ @errorName(err) });
-          std.debug.dumpStackTrace(@errorReturnTrace().?.*);
-          return .rearm;
-        };
-
-        view.surface.commit();
-        return .rearm;
-      }
-    }).callback);
+    try self.render();
+    if (client.wl_display.roundtrip() != .SUCCESS) return error.RoundtripFailed;
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
@@ -144,7 +133,7 @@ const Impl = struct {
       .egl_window = self.egl_window,
       .fb = try self.fb.ref(t.allocator),
       .subrenderer = try self.subrenderer.ref(t.allocator),
-      .completion = self.completion,
+      .frame_callback = self.frame_callback,
     };
 
     _ = try self.base_view.type.refInit(&dest.base_view, t.allocator);
@@ -172,10 +161,28 @@ xdg_surface: *xdg.Surface,
 xdg_toplevel: *xdg.Toplevel,
 fb: *FrameBuffer,
 subrenderer: graphics.subrenderer.Subrenderer,
-completion: xev.Completion,
+frame_callback: ?*wl.Callback,
 
 pub usingnamespace Type.Impl;
 
 pub fn getClient(self: *Self) *Client {
   return @fieldParentPtr(Client, "base_client", @fieldParentPtr(BaseClient, "context", self.base_view.context));
+}
+
+pub fn render(self: *Self) !void {
+  if (self.frame_callback) |cb| {
+    cb.destroy();
+    self.frame_callback = null;
+  }
+
+  const res = self.fb.base.getResolution();
+  self.surface.damage(0, 0, res[0], res[1]);
+
+  try self.subrenderer.toBase().render();
+
+  const cb = try self.surface.frame();
+  cb.setListener(*Self, frameListener, self);
+  self.frame_callback = cb;
+
+  self.surface.commit();
 }

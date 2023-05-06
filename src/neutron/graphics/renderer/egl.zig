@@ -17,6 +17,11 @@ const Self = @This();
 const c = api.c;
 const GL_BGRA8 = 0x93A1;
 
+pub const Config = struct {
+  id: i32,
+  surface_type: i32,
+};
+
 const vtable = Base.VTable {
   .create_subrenderer = (struct {
     fn callback(_base: *anyopaque, res: @Vector(2, i32)) !subrenderer.Subrenderer {
@@ -492,7 +497,35 @@ pub fn hasDisplayExtension(self: *Self, name: []const u8) bool {
   return api.hasExtension(c.eglQueryString(self.display, c.EGL_EXTENSIONS), name);
 }
 
-pub fn getConfig(self: *Self) !c.EGLConfig {
+pub fn readConfig(self: *Self, cfg: c.EGLConfig) !Config {
+  var config = Config {
+    .id = undefined,
+    .surface_type = undefined,
+  };
+
+  try api.wrap(c.eglGetConfigAttrib(self.display, cfg, c.EGL_CONFIG_ID, &config.id));
+  try api.wrap(c.eglGetConfigAttrib(self.display, cfg, c.EGL_SURFACE_TYPE, &config.surface_type));
+  return config;
+}
+
+pub fn getAllConfigs(self: *Self) ![]c.EGLConfig {
+  var config_count: c.EGLint = undefined;
+  if (c.eglGetConfigs(self.display, null, 0, &config_count) == c.EGL_FALSE or config_count < 1) return error.NoConfigs;
+
+  var configs = try self.type.allocator.alloc(c.EGLConfig, @intCast(usize, config_count));
+
+  var attribs = [_]i32 {
+    c.EGL_NONE
+  };
+
+  var matches: i32 = undefined;
+  if (c.eglChooseConfig(self.display, &attribs, configs.ptr, config_count, &matches) == c.EGL_FALSE or matches == 0) return error.NoMatches;
+
+  configs.len = @intCast(usize, matches);
+  return configs;
+}
+
+pub fn getConfigForSurfaceType(self: *Self, surface_type: i32) !c.EGLConfig {
   var config_count: c.EGLint = undefined;
   if (c.eglGetConfigs(self.display, null, 0, &config_count) == c.EGL_FALSE or config_count < 1) return error.NoConfigs;
 
@@ -500,7 +533,7 @@ pub fn getConfig(self: *Self) !c.EGLConfig {
   defer self.type.allocator.free(configs);
 
   var attribs = [_]i32 {
-    c.EGL_SURFACE_TYPE, c.EGL_PBUFFER_BIT,
+    c.EGL_SURFACE_TYPE, surface_type,
     c.EGL_BUFFER_SIZE, 24,
     c.EGL_RED_SIZE, 8,
     c.EGL_GREEN_SIZE, 8,
@@ -510,16 +543,17 @@ pub fn getConfig(self: *Self) !c.EGLConfig {
   };
 
   var matches: i32 = undefined;
-  if (c.eglChooseConfig(self.display, &attribs, configs.ptr, config_count, &matches) == c.EGL_FALSE or matches == 0) {
-    attribs[1] = c.EGL_PIXMAP_BIT;
-    if (c.eglChooseConfig(self.display, &attribs, configs.ptr, config_count, &matches) == c.EGL_FALSE or matches == 0) {
-      attribs[1] = c.EGL_WINDOW_BIT;
-      if (c.eglChooseConfig(self.display, &attribs, configs.ptr, config_count, &matches) == c.EGL_FALSE or matches == 0) return error.NoMatches;
-    }
-  }
+  if (c.eglChooseConfig(self.display, &attribs, configs.ptr, config_count, &matches) == c.EGL_FALSE or matches == 0) return error.NoMatches;
 
   configs.len = @intCast(usize, matches);
   return configs[0];
+}
+
+pub fn getConfig(self: *Self) !c.EGLConfig {
+  if (self.getConfigForSurfaceType(c.EGL_PBUFFER_BIT) catch null) |config| return config;
+  if (self.getConfigForSurfaceType(c.EGL_PIXMAP_BIT) catch null) |config| return config;
+  if (self.getConfigForSurfaceType(c.EGL_WINDOW_BIT) catch null) |config| return config;
+  return error.NoMatches;
 }
 
 pub fn useContext(self: *Self) !void {

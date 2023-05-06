@@ -11,33 +11,51 @@ const vtable = graphics.FrameBuffer.VTable {
   .get_resolution = (struct {
     fn callback(_base: *anyopaque) @Vector(2, i32) {
       const base = graphics.FrameBuffer.Type.fromOpaque(_base);
-      const self = @fieldParentPtr(Self, "base", base);
+      const self = Type.fromOpaque(base.type.parent.?.getValue());
       return self.resolution;
     }
   }).callback,
   .get_stride = (struct {
     fn callback(_base: *anyopaque) u32 {
       const base = graphics.FrameBuffer.Type.fromOpaque(_base);
-      const self = @fieldParentPtr(Self, "base", base);
+      const self = Type.fromOpaque(base.type.parent.?.getValue());
       return @intCast(u32, self.resolution[0] * self.depth);
     }
   }).callback,
   .get_format = (struct {
     fn callback(_base: *anyopaque) u32 {
       const base = graphics.FrameBuffer.Type.fromOpaque(_base);
-      const self = @fieldParentPtr(Self, "base", base);
+      const self = Type.fromOpaque(base.type.parent.?.getValue());
       return @intCast(u32, @enumToInt(self.format));
     }
   }).callback,
   .get_buffer = (struct {
     fn callback(_base: *anyopaque) !*anyopaque {
       const base = graphics.FrameBuffer.Type.fromOpaque(_base);
-      const self = @fieldParentPtr(Self, "base", base);
-      return self.buffer.ptr;
+      const self = Type.fromOpaque(base.type.parent.?.getValue());
+      return @ptrCast(*anyopaque, @alignCast(@alignOf(anyopaque), self.buffer));
     }
   }).callback,
   .commit = (struct {
-    fn callback(_: *anyopaque) !void {}
+    fn callback(_base: *anyopaque) !void {
+      const base = graphics.FrameBuffer.Type.fromOpaque(_base);
+      const self = Type.fromOpaque(base.type.parent.?.getValue());
+
+      const size = self.resolution[0] * self.resolution[1];
+      const buffer = @ptrCast([*]u32, @alignCast(@alignOf([]u32), self.buffer));
+
+      var i: usize = 0;
+      while (i < size) : (i += 1) {
+        const pixel = buffer[i];
+
+        const red = (pixel & 0xff000000) >> 24;
+        const green = (pixel & 0x00ff0000) >> 16;
+        const blue = (pixel & 0x0000ff00) >> 8;
+        const alpha = (pixel & 0x000000ff) << 24;
+
+        buffer[i] = alpha | red | green | blue;
+      }
+    }
   }).callback,
 };
 
