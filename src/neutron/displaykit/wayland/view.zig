@@ -172,6 +172,7 @@ const Impl = struct {
       .subrenderer = try client.base_client.context.renderer.toBase().createSubrenderer(params.resolution),
       .presentation = null,
       .frame_callback = null,
+      .last_frame = 0,
     };
 
     _ = try View.init(&self.base_view, .{
@@ -200,6 +201,7 @@ const Impl = struct {
       .presentation = self.presentation,
       .subrenderer = try self.subrenderer.ref(t.allocator),
       .frame_callback = self.frame_callback,
+      .last_frame = self.last_frame,
     };
 
     _ = try self.base_view.type.refInit(&dest.base_view, t.allocator);
@@ -229,6 +231,7 @@ fb: *FrameBuffer,
 subrenderer: graphics.subrenderer.Subrenderer,
 presentation: ?*wp.PresentationFeedback,
 frame_callback: ?*wl.Callback,
+last_frame: i128,
 
 pub usingnamespace Type.Impl;
 
@@ -246,6 +249,12 @@ pub fn render(self: *Self) !void {
   const res = self.fb.base.getResolution();
   self.surface.damage(0, 0, res[0], res[1]);
 
+  const now_frame = std.time.nanoTimestamp();
+  const last_frame = self.last_frame;
+  self.last_frame = now_frame;
+  const delta_frame = now_frame - last_frame;
+
+  self.surface.attach(self.fb.wl_buffer, 0, 0);
   try self.subrenderer.toBase().render();
 
   if (client.presentation) |presentation| {
@@ -258,12 +267,9 @@ pub fn render(self: *Self) !void {
     const baton = runtime.vsync_baton.swap(0, .Release);
     if (baton != 0) {
       const curr_time = runtime.proc_table.GetCurrentTime.?();
-      const frame_time_ns = @intCast(u64, 16600000);
-      _ = runtime.proc_table.OnVsync.?(runtime.engine, baton, curr_time, curr_time + frame_time_ns);
+      _ = runtime.proc_table.OnVsync.?(runtime.engine, baton, curr_time, curr_time + std.math.lossyCast(u64, delta_frame));
     }
   }
-
-  self.surface.attach(self.fb.wl_buffer, 0, 0);
 
   const cb = try self.surface.frame();
   cb.setListener(*Self, frameListener, self);
