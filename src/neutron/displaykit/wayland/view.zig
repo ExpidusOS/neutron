@@ -59,13 +59,29 @@ const vtable = View.VTable {
 fn presentationListener(_: *wp.PresentationFeedback, event: wp.PresentationFeedback.Event, self: *Self) void {
   switch (event) {
     .presented => |presented| {
+      if (self.presentation) |feedback| {
+        feedback.destroy();
+        self.presentation = null;
+      }
+
       const runtime = self.getClient().getRuntime();
 
-      const baton = runtime.vsync_baton.swap(0, .AcqRel);
+      const baton = runtime.vsync_baton.swap(0, .Release);
       if (baton != 0) {
         const curr_time = runtime.proc_table.GetCurrentTime.?();
-        const frame_time_ns = @intCast(u64, if (presented.refresh == 0) 16600000 else presented.refresh);
-        _ = runtime.proc_table.OnVsync.?(runtime.engine, baton, curr_time, curr_time + frame_time_ns);
+        _ = runtime.proc_table.OnVsync.?(runtime.engine, baton, curr_time, curr_time + presented.refresh);
+      }
+
+      self.render() catch |err| {
+        std.debug.print("Failed to render: {s}\n", .{ @errorName(err) });
+        std.debug.dumpStackTrace(@errorReturnTrace().?.*);
+        return;
+      };
+    },
+    .discarded => {
+      if (self.presentation) |feedback| {
+        feedback.destroy();
+        self.presentation = null;
       }
     },
     else => {},
@@ -86,7 +102,10 @@ fn xdgSurfaceListener(_: *xdg.Surface, event: xdg.Surface.Event, self: *Self) vo
   switch (event) {
     .configure => |configure| {
       self.xdg_surface.ackConfigure(configure.serial);
-      self.surface.commit();
+      self.render() catch |err| {
+        std.debug.print("Failed to render: {s}\n", .{ @errorName(err) });
+        std.debug.dumpStackTrace(@errorReturnTrace().?.*);
+      };
     },
   }
 }
@@ -99,7 +118,7 @@ fn xdgToplevelListener(_: *xdg.Toplevel, event: xdg.Toplevel.Event, self: *Self)
           .client = self.getClient(),
           .resolution = .{ configure.width, configure.height },
           .depth = 4,
-          .format = .xrgb8888,
+          .format = .argb8888,
         }, null, self.type.allocator) catch return;
 
         const old_fb = self.fb;
@@ -122,7 +141,7 @@ fn xdgToplevelListener(_: *xdg.Toplevel, event: xdg.Toplevel.Event, self: *Self)
             std.debug.dumpStackTrace(@errorReturnTrace().?.*);
           };
         }
-
+ 
         self.surface.attach(self.fb.wl_buffer, 0, 0);
         self.surface.commit();
         old_fb.unref();
@@ -162,11 +181,6 @@ const Impl = struct {
 
     self.xdg_surface.setListener(*Self, xdgSurfaceListener, self);
     self.xdg_toplevel.setListener(*Self, xdgToplevelListener, self);
-    self.surface.commit();
-
-    if (client.wl_display.roundtrip() != .SUCCESS) return error.RoundtripFailed;
-
-    self.surface.attach(self.fb.wl_buffer, 0, 0);
     self.surface.commit();
 
     if (client.wl_display.roundtrip() != .SUCCESS) return error.RoundtripFailed;
@@ -227,23 +241,10 @@ pub fn render(self: *Self) !void {
     cb.destroy();
     self.frame_callback = null;
   }
-
-  if (self.presentation) |feedback| {
-    feedback.destroy();
-    self.presentation = null;
-  }
   
   const client = self.getClient();
-  const runtime = client.getRuntime();
-
   const res = self.fb.base.getResolution();
   self.surface.damage(0, 0, res[0], res[1]);
-
-  const baton = runtime.vsync_baton.swap(0, .AcqRel);
-  if (baton != 0) {
-    const curr_time = runtime.proc_table.GetCurrentTime.?();
-    _ = runtime.proc_table.OnVsync.?(runtime.engine, baton, curr_time, curr_time + 16600000);
-  }
 
   try self.subrenderer.toBase().render();
 
@@ -252,7 +253,17 @@ pub fn render(self: *Self) !void {
     feedback.setListener(*Self, presentationListener, self);
 
     self.presentation = feedback;
+  } else {
+    const runtime = client.getRuntime();
+    const baton = runtime.vsync_baton.swap(0, .Release);
+    if (baton != 0) {
+      const curr_time = runtime.proc_table.GetCurrentTime.?();
+      const frame_time_ns = @intCast(u64, 16600000);
+      _ = runtime.proc_table.OnVsync.?(runtime.engine, baton, curr_time, curr_time + frame_time_ns);
+    }
   }
+
+  self.surface.attach(self.fb.wl_buffer, 0, 0);
 
   const cb = try self.surface.frame();
   cb.setListener(*Self, frameListener, self);

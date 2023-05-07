@@ -40,20 +40,19 @@ const vtable = graphics.FrameBuffer.VTable {
     fn callback(_base: *anyopaque) !void {
       const base = graphics.FrameBuffer.Type.fromOpaque(_base);
       const self = Type.fromOpaque(base.type.parent.?.getValue());
-
       const size = self.resolution[0] * self.resolution[1];
-      const buffer = @ptrCast([*]u32, @alignCast(@alignOf([]u32), self.buffer));
+      const buffer = @ptrCast([*]align(std.mem.page_size) u32, self.buffer);
 
       var i: usize = 0;
       while (i < size) : (i += 1) {
-        const pixel = buffer[i];
+        const pixel = @bitCast(@Vector(4, u8), buffer[i]);
 
-        const red = (pixel & 0xff000000) >> 24;
-        const green = (pixel & 0x00ff0000) >> 16;
-        const blue = (pixel & 0x0000ff00) >> 8;
-        const alpha = (pixel & 0x000000ff) << 24;
-
-        buffer[i] = alpha | red | green | blue;
+        buffer[i] = @bitCast(u32, @Vector(4, u8) {
+          pixel[2],
+          pixel[1],
+          pixel[0],
+          pixel[3],
+        });
       }
     }
   }).callback,

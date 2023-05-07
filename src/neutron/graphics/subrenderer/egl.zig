@@ -10,24 +10,23 @@ const Self = @This();
 
 const c = api.c;
 
-const FbRenderable = struct {
+const ImageFbRenderable = struct {
   image_khr: c.EGLImageKHR,
   rbo: c.GLuint,
   fbo: c.GLuint,
 
-  pub fn use(self: FbRenderable, _: *Self) void {
+  pub fn use(self: ImageFbRenderable, _: *Self) void {
     c.glBindFramebuffer(c.GL_FRAMEBUFFER, self.fbo);
   }
 
-  pub fn unuse(self: FbRenderable, subrenderer: *Self) void {
-    _ = self;
+  pub fn unuse(_: ImageFbRenderable, subrenderer: *Self) void {
     const renderer = subrenderer.getRenderer();
 
     renderer.procs.glDrawBuffers(1, &[_]c.GLenum { c.GL_COLOR_ATTACHMENT0 });
     c.glBindFramebuffer(c.GL_FRAMEBUFFER, 0);
   }
 
-  pub fn destroy(self: FbRenderable, subrenderer: *Self) void {
+  pub fn destroy(self: ImageFbRenderable, subrenderer: *Self) void {
     const renderer = subrenderer.getRenderer();
     const eglDestroyImageKHR = api.tryResolve(c.PFNEGLDESTROYIMAGEKHRPROC, "eglDestroyImageKHR") catch @panic("Not implemented");
 
@@ -37,57 +36,58 @@ const FbRenderable = struct {
   }
 };
 
-const TboRenderable = struct {
-  tex: c.GLuint,
+const FbRenderable = struct {
+  rbo: c.GLuint,
   fbo: c.GLuint,
 
-  pub fn use(self: TboRenderable, _: *Self) void {
+  pub fn use(self: FbRenderable, _: *Self) void {
     c.glBindFramebuffer(c.GL_FRAMEBUFFER, self.fbo);
+    c.glBindRenderbuffer(c.GL_RENDERBUFFER, self.rbo);
   }
 
-  pub fn unuse(self: TboRenderable, subrenderer: *Self) void {
+  pub fn unuse(_: FbRenderable, subrenderer: *Self) void {
     const renderer = subrenderer.getRenderer();
     const res = subrenderer.fb.?.getResolution();
     const buffer = subrenderer.fb.?.getBuffer() catch unreachable;
 
     renderer.procs.glDrawBuffers(1, &[_]c.GLenum { c.GL_COLOR_ATTACHMENT0 });
 
-    c.glBindTexture(c.GL_TEXTURE_2D, self.tex);
+    c.glReadBuffer(c.GL_COLOR_ATTACHMENT0);
     c.glReadPixels(0, 0, res[0], res[1], c.GL_RGBA, c.GL_UNSIGNED_BYTE, buffer);
     _ = subrenderer.fb.?.commit() catch unreachable;
 
-    c.glBindTexture(c.GL_TEXTURE_2D, 0);
     c.glBindFramebuffer(c.GL_FRAMEBUFFER, 0);
+    c.glBindRenderbuffer(c.GL_RENDERBUFFER, 0);
   }
 
-  pub fn destroy(self: TboRenderable, _: *Self) void {
+  pub fn destroy(self: FbRenderable, _: *Self) void {
     c.glDeleteFramebuffers(1, &self.fbo);
-    c.glDeleteTextures(1, &self.tex);
+    c.glDeleteRenderbuffers(1, &self.rbo);
   }
 };
 
 const Renderable = union(enum) {
+  img_fb: ImageFbRenderable,
   fb: FbRenderable,
-  tbo: TboRenderable,
 
   pub fn use(self: Renderable, subrenderer: *Self) void {
     return switch (self) {
+      .img_fb => |img_fb| img_fb.use(subrenderer),
       .fb => |fb| fb.use(subrenderer),
-      .tbo => |tbo| tbo.use(subrenderer),
     };
   }
 
   pub fn unuse(self: Renderable, subrenderer: *Self) void {
     return switch (self) {
+      .img_fb => |img_fb| img_fb.unuse(subrenderer),
       .fb => |fb| fb.unuse(subrenderer),
-      .tbo => |tbo| tbo.unuse(subrenderer),
     };
   }
 
   pub fn destroy(self: Renderable, subrenderer: *Self) void {
     return switch (self) {
+      .img_fb => |img_fb| img_fb.destroy(subrenderer),
       .fb => |fb| fb.destroy(subrenderer),
-      .tbo => |tbo| tbo.destroy(subrenderer),
     };
   }
 };
@@ -161,7 +161,7 @@ fn updateFrameBufferImageKHR(self: *Self, fb: *FrameBuffer) !void {
         try renderer.useContext();
         defer renderer.unuseContext();
 
-        var renderable = FbRenderable {
+        var renderable = ImageFbRenderable {
           .image_khr = image_khr,
           .rbo = undefined,
           .fbo = undefined,
@@ -182,7 +182,7 @@ fn updateFrameBufferImageKHR(self: *Self, fb: *FrameBuffer) !void {
         if (status != c.GL_FRAMEBUFFER_COMPLETE) return error.FrameBuffer;
 
         self.renderable = .{
-          .fb = renderable
+          .img_fb = renderable
         };
 
         self.fb = try fb.ref(self.type.allocator);
@@ -246,8 +246,8 @@ vtable: Base.VTable = .{
 
         const res = fb.getResolution();
 
-        var renderable = TboRenderable {
-          .tex = undefined,
+        var renderable = FbRenderable {
+          .rbo = undefined,
           .fbo = undefined,
         };
 
@@ -256,19 +256,17 @@ vtable: Base.VTable = .{
 
         api.clearError();
 
-        c.glGenTextures(1, &renderable.tex);
-        c.glBindTexture(c.GL_TEXTURE_2D, renderable.tex);
-        c.glTexImage2D(c.GL_TEXTURE_2D, 0, c.GL_RGBA, @intCast(c_int, res[0]), @intCast(c_int, res[1]), 0, c.GL_RGBA, c.GL_UNSIGNED_BYTE, null);
-        c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MIN_FILTER, c.GL_NEAREST);
-        c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MAG_FILTER, c.GL_NEAREST);
-        c.glBindTexture(c.GL_TEXTURE_2D, 0);
+        c.glGenRenderbuffers(1, &renderable.rbo);
+        c.glBindRenderbuffer(c.GL_RENDERBUFFER, renderable.rbo);
+        c.glRenderbufferStorage(c.GL_RENDERBUFFER, c.GL_RGBA8, res[0], res[1]);
+        c.glBindRenderbuffer(c.GL_RENDERBUFFER, 0);
 
         try api.autoError();
         api.clearError();
 
         c.glGenFramebuffers(1, &renderable.fbo);
         c.glBindFramebuffer(c.GL_FRAMEBUFFER, renderable.fbo);
-        c.glFramebufferTexture2D(c.GL_FRAMEBUFFER, c.GL_COLOR_ATTACHMENT0, c.GL_TEXTURE_2D, renderable.tex, 0);
+        c.glFramebufferRenderbuffer(c.GL_FRAMEBUFFER, c.GL_COLOR_ATTACHMENT0, c.GL_RENDERBUFFER, renderable.rbo);
 
         var status = c.glCheckFramebufferStatus(c.GL_FRAMEBUFFER);
         c.glBindFramebuffer(c.GL_FRAMEBUFFER, 0);
@@ -280,7 +278,7 @@ vtable: Base.VTable = .{
         }
 
         self.renderable = .{
-          .tbo = renderable,
+          .fb = renderable,
         };
 
         self.fb = try fb.ref(self.type.allocator);

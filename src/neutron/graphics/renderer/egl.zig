@@ -114,6 +114,9 @@ const Impl = struct {
       }
     }).callback);
 
+    // TODO: use the logger
+    std.debug.print("GL version: {?s}\nGL renderer: {?s}\n", .{ gl.getString(gl.VERSION), gl.getString(gl.RENDERER) });
+
     const x1 = 0.0;
     const x2 = 1.0;
     const y1 = 0.0;
