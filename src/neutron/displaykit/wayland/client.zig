@@ -8,8 +8,10 @@ const eglApi = @import("../../graphics/api/egl.zig");
 const Runtime = @import("../../runtime/runtime.zig");
 const Context = @import("../base/context.zig");
 const BaseOutput = @import("../base/output.zig");
+const base_input = @import("../base/input.zig");
 const BaseView = @import("../base/view.zig");
 const Client = @import("../base/client.zig");
+const input = @import("input.zig");
 const Output = @import("output.zig");
 const View = @import("view.zig");
 const Self = @This();
@@ -40,6 +42,21 @@ const vtable = Client.VTable {
 
         for (self.outputs.items) |output| {
           try list.append(&output.base_output);
+        }
+        return list;
+      }
+    }).callback,
+    .get_inputs = (struct {
+      fn callback(_context: *anyopaque) !*elemental.TypedList(base_input.Input) {
+        const context = Context.Type.fromOpaque(_context);
+        const client = @fieldParentPtr(Client, "context", context);
+        const self = @fieldParentPtr(Self, "base_client", client);
+
+        const list = try elemental.TypedList(base_input.Input).new(.{}, null, self.type.allocator);
+        errdefer list.unref();
+
+        for (self.inputs.items) |i| {
+          try list.append(i.toBase());
         }
         return list;
       }
@@ -81,6 +98,55 @@ const gpu_vtable = hardware.base.device.Gpu.VTable {
   }).callback,
 };
 
+fn seatListener(_: *wl.Seat, event: wl.Seat.Event, self: *Self) void {
+  switch (event) {
+    .capabilities => |capabilities| {
+      if (capabilities.capabilities.pointer) {
+        const pointer = self.seat.?.getPointer() catch unreachable;
+
+        const item = input.Mouse.new(.{
+          .context = &self.base_client.context,
+          .value = pointer,
+        }, null, self.type.allocator) catch unreachable;
+        errdefer item.unref();
+
+        self.inputs.appendOwned(.{
+          .mouse = item,
+        }) catch return;
+      }
+
+      if (capabilities.capabilities.keyboard) {
+        const keyboard = self.seat.?.getKeyboard() catch unreachable;
+
+        const item = input.Keyboard.new(.{
+          .context = &self.base_client.context,
+          .value = keyboard,
+        }, null, self.type.allocator) catch unreachable;
+        errdefer item.unref();
+
+        self.inputs.appendOwned(.{
+          .keyboard = item,
+        }) catch return;
+      }
+
+      if (capabilities.capabilities.touch) {
+        const touch = self.seat.?.getTouch() catch unreachable;
+
+        const item = input.Touch.new(.{
+          .context = &self.base_client.context,
+          .value = touch,
+        }, null, self.type.allocator) catch unreachable;
+        errdefer item.unref();
+
+        self.inputs.appendOwned(.{
+          .touch = item,
+        }) catch return;
+      }
+    },
+    else => {},
+  }
+}
+
 fn registryListener(registry: *wl.Registry, event: wl.Registry.Event, self: *Self) void {
   switch (event) {
     .global => |global| {
@@ -88,6 +154,12 @@ fn registryListener(registry: *wl.Registry, event: wl.Registry.Event, self: *Sel
         self.compositor = registry.bind(global.name, wl.Compositor, @intCast(u32, wl.Compositor.getInterface().version)) catch return;
       } else if (std.cstr.cmp(global.interface, wl.Shm.getInterface().name) == 0) {
         self.shm = registry.bind(global.name, wl.Shm, @intCast(u32, wl.Shm.getInterface().version)) catch return;
+      } else if (std.cstr.cmp(global.interface, wl.Seat.getInterface().name) == 0 and self.seat == null) {
+        const seat = registry.bind(global.name, wl.Seat, @intCast(u32, wl.Seat.getInterface().version)) catch return;
+        seat.setListener(*Self, seatListener, self);
+        self.seat = seat;
+      } else if (std.cstr.cmp(global.interface, wl.DataDeviceManager.getInterface().name) == 0) {
+        self.data_device_mngr = registry.bind(global.name, wl.DataDeviceManager, @intCast(u32, wl.DataDeviceManager.getInterface().version)) catch return;
       } else if (std.cstr.cmp(global.interface, wl.Output.getInterface().name) == 0) {
         const wl_output = registry.bind(global.name, wl.Output, @intCast(u32, wl.Output.getInterface().version)) catch return;
         const output = Output.new(.{
@@ -123,12 +195,15 @@ const Impl = struct {
       .base_gpu = undefined,
       .wl_display = try wl.Display.connect(if (display) |d| d.ptr else null),
       .compositor = null,
+      .seat = null,
+      .data_device_mngr = null,
       .shm = null,
       .wm_base = null,
       .dmabuf = null,
       .presentation = null,
       .completion = undefined,
       .outputs = try elemental.TypedList(*Output).new(.{}, null, t.allocator),
+      .inputs = try elemental.TypedList(input.Input).new(.{}, null, t.allocator),
       .view = undefined,
     };
 
@@ -140,7 +215,9 @@ const Impl = struct {
     if (self.compositor == null) return error.NoCompositor;
     if (self.shm == null) return error.NoShm;
     if (self.wm_base == null) return error.NoWmBase;
-    if (self.dmabuf == null) return error.NoWmBase;
+    if (self.dmabuf == null) return error.NoDmabuf;
+    if (self.seat == null) return error.NoSeat;
+    if (self.data_device_mngr == null) return error.NoDataDeviceManager;
 
     _ = try hardware.base.device.Gpu.init(&self.base_gpu, .{
       .vtable = &gpu_vtable,
@@ -191,12 +268,15 @@ const Impl = struct {
       .wl_display = self.wl_display,
       .shm = self.shm,
       .compositor = self.compositor,
+      .seat = self.seat,
+      .data_device_mngr = self.data_device_mngr,
       .wm_base = self.wm_base,
       .dmabuf = self.dmabuf,
       .surface = self.surface,
       .compositor = self.compositor,
       .presentation = self.presentation,
       .outputs = try self.outputs.ref(t.allocator),
+      .inputs = try self.inputs.ref(t.allocator),
       .view = try self.view.ref(t.allocator),
     };
 
@@ -207,6 +287,7 @@ const Impl = struct {
   pub fn unref(self: *Self) void {
     self.view.unref();
     self.outputs.unref();
+    self.inputs.unref();
     self.base_client.unref();
     self.base_gpu.unref();
   }
@@ -220,11 +301,14 @@ base_gpu: hardware.base.device.Gpu,
 wl_display: *wl.Display,
 shm: ?*wl.Shm,
 compositor: ?*wl.Compositor,
+data_device_mngr: ?*wl.DataDeviceManager,
+seat: ?*wl.Seat,
 wm_base: ?*xdg.WmBase,
 dmabuf: ?*zwp.LinuxDmabufV1,
 presentation: ?*wp.Presentation,
 completion: xev.Completion,
 outputs: *elemental.TypedList(*Output),
+inputs: *elemental.TypedList(input.Input),
 view: *View,
 
 pub usingnamespace Type.Impl;

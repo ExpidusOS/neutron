@@ -38,17 +38,21 @@ const Impl = struct {
 
     self.* = .{
       .type = t,
-      .base_keyboard = try Keyboard.init(&self.base_keyboard, .{
-        .context = params.context,
-      }, self, self.type.allocator),
-      .base = try Base.init(&self.base, .{
-        .base = &self.base_keyboard.base,
-        .device = params.device,
-      }, self, self.type.allocator),
+      .base_keyboard = undefined,
+      .base = undefined,
       .context = context,
       .keymap = keymap,
       .state = try (xkb.State.new(keymap) orelse error.OutOfMemory),
     };
+
+    _ = try Keyboard.init(&self.base_keyboard, .{
+      .context = params.context,
+    }, self, self.type.allocator);
+
+    _ = try Base.init(&self.base, .{
+      .base = &self.base_keyboard.base,
+      .device = params.device,
+    }, self, self.type.allocator);
 
     kb.events.key.add(&self.key);
     kb.events.modifiers.add(&self.modifiers);

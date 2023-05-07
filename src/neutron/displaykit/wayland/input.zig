@@ -1,9 +1,7 @@
 const std = @import("std");
-const wlr = @import("wlroots");
-const Compositor = @import("compositor.zig");
+const Client = @import("client.zig");
 const base = @import("../base/input.zig");
 
-pub const Base = @import("input/base.zig");
 pub const Keyboard = @import("input/keyboard.zig");
 pub const Mouse = @import("input/mouse.zig");
 pub const Touch = @import("input/touch.zig");
@@ -12,30 +10,6 @@ pub const Input = union(base.Type) {
   keyboard: *Keyboard,
   mouse: *Mouse,
   touch: *Touch,
-
-  pub fn init(device: *wlr.InputDevice, compositor: *Compositor, allocator: ?std.mem.Allocator) !Input {
-    return switch (device.type) {
-      .keyboard => .{
-        .keyboard = try Keyboard.new(.{
-          .context = &compositor.base_compositor.context,
-          .device = device,
-        }, null, allocator),
-      },
-      .pointer => .{
-        .mouse = try Mouse.new(.{
-          .context = &compositor.base_compositor.context,
-          .device = device,
-        }, null, allocator),
-      },
-      .touch => .{
-        .touch = try Touch.new(.{
-          .context = &compositor.base_compositor.context,
-          .device = device,
-        }, null, allocator),
-      },
-      else => error.Unsupported,
-    };
-  }
 
   pub fn ref(self: Input, allocator: ?std.mem.Allocator) !Input {
     return switch (self) {
