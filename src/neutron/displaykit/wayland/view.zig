@@ -64,12 +64,20 @@ fn presentationListener(_: *wp.PresentationFeedback, event: wp.PresentationFeedb
         self.presentation = null;
       }
 
-      const runtime = self.getClient().getRuntime();
+      const client = self.getClient();
+      const runtime = client.getRuntime();
 
       const baton = runtime.vsync_baton.swap(0, .Release);
       if (baton != 0) {
+        const presented_time = std.os.timespec {
+          .tv_sec = @intCast(isize, (@intCast(u64, presented.tv_sec_hi) << 32) + presented.tv_sec_lo),
+          .tv_nsec = presented.tv_nsec,
+        };
+
+        const presented_time_ns = @intCast(u64, presented_time.tv_sec * 1000000000 + presented_time.tv_nsec);
+
         const curr_time = runtime.proc_table.GetCurrentTime.?();
-        _ = runtime.proc_table.OnVsync.?(runtime.engine, baton, curr_time, curr_time + presented.refresh);
+        _ = runtime.proc_table.OnVsync.?(runtime.engine, baton, curr_time, presented_time_ns);
       }
 
       self.render() catch |err| {
@@ -141,9 +149,12 @@ fn xdgToplevelListener(_: *xdg.Toplevel, event: xdg.Toplevel.Event, self: *Self)
             std.debug.dumpStackTrace(@errorReturnTrace().?.*);
           };
         }
+
+        self.render() catch |err| {
+          std.debug.print("Failed to render: {s}\n", .{ @errorName(err) });
+          std.debug.dumpStackTrace(@errorReturnTrace().?.*);
+        };
  
-        self.surface.attach(self.fb.wl_buffer, 0, 0);
-        self.surface.commit();
         old_fb.unref();
       }
     },

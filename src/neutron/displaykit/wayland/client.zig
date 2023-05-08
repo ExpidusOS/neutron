@@ -147,6 +147,14 @@ fn seatListener(_: *wl.Seat, event: wl.Seat.Event, self: *Self) void {
   }
 }
 
+fn presentationListener(_: *wp.Presentation, event: wp.Presentation.Event, self: *Self) void {
+  switch (event) {
+    .clock_id => |clock_id| {
+      self.presentation_clock = clock_id.clk_id;
+    },
+  }
+}
+
 fn registryListener(registry: *wl.Registry, event: wl.Registry.Event, self: *Self) void {
   switch (event) {
     .global => |global| {
@@ -173,7 +181,9 @@ fn registryListener(registry: *wl.Registry, event: wl.Registry.Event, self: *Sel
       } else if (std.cstr.cmp(global.interface, zwp.LinuxDmabufV1.getInterface().name) == 0) {
         self.dmabuf = registry.bind(global.name, zwp.LinuxDmabufV1, @intCast(u32, zwp.LinuxDmabufV1.getInterface().version)) catch return;
       } else if (std.cstr.cmp(global.interface, wp.Presentation.getInterface().name) == 0) {
-        self.presentation = registry.bind(global.name, wp.Presentation, @intCast(u32, wp.Presentation.getInterface().version)) catch return;
+        const presentation = registry.bind(global.name, wp.Presentation, @intCast(u32, wp.Presentation.getInterface().version)) catch return;
+        presentation.setListener(*Self, presentationListener, self);
+        self.presentation = presentation;
       } else {
         std.debug.print("{s}\n", .{ global.interface });
       }
@@ -201,6 +211,7 @@ const Impl = struct {
       .wm_base = null,
       .dmabuf = null,
       .presentation = null,
+      .presentation_clock = null,
       .completion = undefined,
       .outputs = try elemental.TypedList(*Output).new(.{}, null, t.allocator),
       .inputs = try elemental.TypedList(input.Input).new(.{}, null, t.allocator),
@@ -275,6 +286,7 @@ const Impl = struct {
       .surface = self.surface,
       .compositor = self.compositor,
       .presentation = self.presentation,
+      .presentation_clock = self.presentation_clock,
       .outputs = try self.outputs.ref(t.allocator),
       .inputs = try self.inputs.ref(t.allocator),
       .view = try self.view.ref(t.allocator),
@@ -306,6 +318,7 @@ seat: ?*wl.Seat,
 wm_base: ?*xdg.WmBase,
 dmabuf: ?*zwp.LinuxDmabufV1,
 presentation: ?*wp.Presentation,
+presentation_clock: ?u32,
 completion: xev.Completion,
 outputs: *elemental.TypedList(*Output),
 inputs: *elemental.TypedList(input.Input),
