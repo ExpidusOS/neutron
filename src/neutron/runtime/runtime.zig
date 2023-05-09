@@ -28,6 +28,19 @@ pub const Params = struct {
   application_path: []const u8,
 };
 
+fn platformMessageCallback(self: *Self, channel_name: []const u8, data: []const u8, handle: ?*const flutter.c.FlutterPlatformMessageResponseHandle) !void {
+  if (self.channels.get(channel_name)) |channel| {
+    if (try channel.receive(data)) |return_data| {
+      const result = self.proc_table.SendPlatformMessageResponse.?(self.engine, handle, return_data.ptr, return_data.len);
+      if (result != flutter.c.kSuccess) return error.EngineFail;
+      return;
+    }
+  }
+
+  const result = self.proc_table.SendPlatformMessageResponse.?(self.engine, handle, null, 0);
+  if (result != flutter.c.kSuccess) return error.EngineFail;
+}
+
 const Impl = struct {
   pub fn construct(self: *Self, params: Params, t: Type) !void {
     var proc_table: flutter.c.FlutterEngineProcTable = undefined;
@@ -55,6 +68,7 @@ const Impl = struct {
       .dir = try (if (params.dir) |value| t.allocator.dupe(u8, value)
         else (if (std.os.getenv("XDG_RUNTIME_DIR")) |xdg_runtime_dir| t.allocator.dupe(u8, xdg_runtime_dir) else std.process.getCwdAlloc(t.allocator))),
       .ipcs = std.ArrayList(ipc.Ipc).init(t.allocator),
+      .channels = flutter.MethodChannels.init(t.allocator),
       .displaykit = undefined,
       .engine = null,
       .project_args = .{
@@ -79,15 +93,10 @@ const Impl = struct {
         }).callback,
         .platform_message_callback = (struct {
           fn callback(message: [*c]const flutter.c.FlutterPlatformMessage, ud: ?*anyopaque) callconv(.C) void {
-            const compositor = Type.fromOpaque(ud.?);
-
-            const data = message.*.message[0..message.*.message_size];
-            if (std.mem.eql(u8, @ptrCast([]const u8, message.*.channel[0..std.mem.len(message.*.channel)]), "flutter/mousecursor")) {
-              // TODO: implement this
-              std.debug.print("{s}\n", .{ data });
-            }
-
-            _ = compositor.proc_table.SendPlatformMessageResponse.?(compositor.engine, message.*.response_handle, null, 0);
+            platformMessageCallback(Type.fromOpaque(ud.?), @ptrCast([]const u8, message.*.channel[0..std.mem.len(message.*.channel)]), message.*.message[0..message.*.message_size], message.*.response_handle) catch |err| {
+              std.debug.print("Failed to handle a platform message: {s}\n", .{ @errorName(err) });
+              std.debug.dumpStackTrace(@errorReturnTrace().?.*);
+            };
           }
         }).callback,
         .log_message_callback = null,
@@ -218,6 +227,7 @@ pub const Type = elemental.Type(Self, Params, Impl);
 dir: []const u8,
 ipcs: std.ArrayList(ipc.Ipc),
 displaykit: displaykit.Backend,
+channels: flutter.MethodChannels,
 mode: Mode,
 vsync_baton: std.atomic.Atomic(i64),
 loop: xev.Loop,
