@@ -89,6 +89,7 @@ const Impl = struct {
       .allocator = allocator,
       .seat = try wlr.Seat.create(self.wl_server, "default"),
       .cursor_mngr = try wlr.XcursorManager.create(null, 24),
+      .input_mngr = try wlr.TextInputManagerV3.create(wl_server),
       .scene = try wlr.Scene.create(),
       .output_layout = try wlr.OutputLayout.create(),
       .outputs = try elemental.TypedList(*Output).new(.{}, null, t.allocator),
@@ -110,6 +111,7 @@ const Impl = struct {
 
     self.backend.events.new_output.add(&self.output_new);
     self.backend.events.new_input.add(&self.input_new);
+    self.input_mngr.events.text_input.add(&self.text_input);
 
     var buff: [11]u8 = undefined;
     self.socket = try self.type.allocator.dupeZ(u8, try self.wl_server.addSocketAuto(&buff));
@@ -160,6 +162,7 @@ const Impl = struct {
       .allocator = self.allocator,
       .seat = self.seat,
       .cursor_mngr = self.cursor_mngr,
+      .input_mngr = self.input_mngr,
       .scene = self.scene,
       .output_layout = self.output_layout,
       .outputs = try self.outputs.type.refInit(t.allocator),
@@ -201,6 +204,14 @@ seat: *wlr.Seat,
 cursor_mngr: *wlr.XcursorManager,
 output_layout: *wlr.OutputLayout,
 scene: *wlr.Scene,
+input_mngr: *wlr.TextInputManagerV3,
+text_input: wl.Listener(*wlr.TextInputV3) = wl.Listener(*wlr.TextInputV3).init((struct {
+  fn callback(listener: *wl.Listener(*wlr.TextInputV3), text_input: *wlr.TextInputV3) void {
+    const self = @fieldParentPtr(Self, "text_input", listener);
+    _ = self;
+    _ = text_input;
+  }
+}).callback),
 completion: xev.Completion,
 outputs: *elemental.TypedList(*Output),
 output_new: wl.Listener(*wlr.Output) = wl.Listener(*wlr.Output).init(output_new),

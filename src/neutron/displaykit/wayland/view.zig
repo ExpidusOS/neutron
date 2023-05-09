@@ -180,6 +180,7 @@ const Impl = struct {
         .depth = 4,
         .format = .argb8888,
       }, null, t.allocator),
+      .text_input = if (client.input_mngr) |mngr| try mngr.getTextInput(client.seat.?) else null,
       .subrenderer = try client.base_client.context.renderer.toBase().createSubrenderer(params.resolution),
       .presentation = null,
       .frame_callback = null,
@@ -208,6 +209,7 @@ const Impl = struct {
       .surface = self.surface,
       .xdg_surface = self.xdg_surface,
       .xdg_toplevel = self.xdg_toplevel,
+      .text_input = self.text_input,
       .fb = try self.fb.ref(t.allocator),
       .presentation = self.presentation,
       .subrenderer = try self.subrenderer.ref(t.allocator),
@@ -242,6 +244,7 @@ fb: *FrameBuffer,
 subrenderer: graphics.subrenderer.Subrenderer,
 presentation: ?*wp.PresentationFeedback,
 frame_callback: ?*wl.Callback,
+text_input: ?*zwp.TextInputV3,
 last_frame: i128,
 
 pub usingnamespace Type.Impl;

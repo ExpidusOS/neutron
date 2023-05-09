@@ -180,6 +180,8 @@ fn registryListener(registry: *wl.Registry, event: wl.Registry.Event, self: *Sel
         self.wm_base = registry.bind(global.name, xdg.WmBase, @intCast(u32, xdg.WmBase.getInterface().version)) catch return;
       } else if (std.cstr.cmp(global.interface, zwp.LinuxDmabufV1.getInterface().name) == 0) {
         self.dmabuf = registry.bind(global.name, zwp.LinuxDmabufV1, @intCast(u32, zwp.LinuxDmabufV1.getInterface().version)) catch return;
+      } else if (std.cstr.cmp(global.interface, zwp.TextInputManagerV3.getInterface().name) == 0) {
+        self.input_mngr = registry.bind(global.name, zwp.TextInputManagerV3, @intCast(u32, zwp.TextInputManagerV3.getInterface().version)) catch return;
       } else if (std.cstr.cmp(global.interface, wp.Presentation.getInterface().name) == 0) {
         const presentation = registry.bind(global.name, wp.Presentation, @intCast(u32, wp.Presentation.getInterface().version)) catch return;
         presentation.setListener(*Self, presentationListener, self);
@@ -207,6 +209,7 @@ const Impl = struct {
       .compositor = null,
       .seat = null,
       .data_device_mngr = null,
+      .input_mngr = null,
       .shm = null,
       .wm_base = null,
       .dmabuf = null,
@@ -281,6 +284,7 @@ const Impl = struct {
       .compositor = self.compositor,
       .seat = self.seat,
       .data_device_mngr = self.data_device_mngr,
+      .input_mngr = self.input_mngr,
       .wm_base = self.wm_base,
       .dmabuf = self.dmabuf,
       .surface = self.surface,
@@ -314,6 +318,7 @@ wl_display: *wl.Display,
 shm: ?*wl.Shm,
 compositor: ?*wl.Compositor,
 data_device_mngr: ?*wl.DataDeviceManager,
+input_mngr: ?*zwp.TextInputManagerV3,
 seat: ?*wl.Seat,
 wm_base: ?*xdg.WmBase,
 dmabuf: ?*zwp.LinuxDmabufV1,

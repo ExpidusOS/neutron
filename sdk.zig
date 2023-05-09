@@ -85,6 +85,7 @@ pub fn new(builder: *Build, target: std.zig.CrossTarget, optimize: std.builtin.M
     scanner.addSystemProtocol("stable/presentation-time/presentation-time.xml");
     scanner.addSystemProtocol("stable/xdg-shell/xdg-shell.xml");
     scanner.addSystemProtocol("unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml");
+    scanner.addSystemProtocol("unstable/text-input/text-input-unstable-v3.xml");
 
     scanner.generate("wl_compositor", 4);
     scanner.generate("wl_subcompositor", 1);
@@ -96,6 +97,7 @@ pub fn new(builder: *Build, target: std.zig.CrossTarget, optimize: std.builtin.M
     scanner.generate("wp_presentation", 1);
     scanner.generate("xdg_wm_base", 2);
     scanner.generate("zwp_linux_dmabuf_v1", 4);
+    scanner.generate("zwp_text_input_manager_v3", 1);
 
     self.wl_scan_protocols = scanner;
     self.step.dependOn(&self.wl_scan_protocols.?.step);
