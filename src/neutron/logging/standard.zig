@@ -94,28 +94,18 @@ pub const Params = struct {
     return params;
   }
 
-  fn formatFile(file: std.fs.File, _: std.fmt.FormatOptions, writer: anytype) !void {
+  fn formatFile(file: std.fs.File, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) @TypeOf(writer).Error!void {
     var buff = [_]u8 {0} ** std.fs.MAX_PATH_BYTES;
-    _ = std.os.getFdPath(file.handle, &buff) catch return error.InvalidArgument;
-    try writer.writeAll(&buff);
+    _ = std.os.getFdPath(file.handle, &buff) catch return;
+    return std.fmt.formatType(&buff, fmt, options, writer, 1);
   }
 
-  pub fn format(self: Params, comptime _: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+  pub fn format(self: Params, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) @TypeOf(writer).Error!void {
     try writer.writeAll("out=");
-    if (self.out) |out| {
-      try formatFile(out, options, writer);
-    } else {
-      // TODO: determine based on OS
-      try writer.writeAll("/dev/stdout");
-    }
+    try formatFile(if (self.out) |out| out else std.io.getStdOut(), fmt, options, writer);
 
     try writer.writeAll(",err=");
-    if (self.err) |err| {
-      try formatFile(err, options, writer);
-    } else {
-      // TODO: determine based on OS
-      try writer.writeAll("/dev/stderr");
-    }
+    try formatFile(if (self.err) |err| err else std.io.getStdErr(), fmt, options, writer);
   }
 };
 
@@ -131,6 +121,8 @@ const Impl = struct {
     _ = try Logger.init(&self.base, .{
       .vtable = &vtable,
     }, self, t.allocator);
+
+    try self.base.fmtDebug("Standard logger initialized with \"{s}\"", .{ params });
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {
