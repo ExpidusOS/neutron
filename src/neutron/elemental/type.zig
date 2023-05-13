@@ -323,7 +323,6 @@ pub fn Type(comptime T: type, comptime P: type, comptime impl: anytype) type {
         if (self.ref.children) |children| {
           for (children.items) |child| {
             const child_type = @fieldParentPtr(OpaqueType, "ref", child);
-            std.debug.print("{}\n", .{ child_type });
             child_type.parent = null;
           }
         }

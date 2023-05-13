@@ -28,7 +28,7 @@ pub const Params = struct {
 };
 
 const Impl = struct {
-  pub fn init(self: *Self, params: Params, t: Type) !void {
+  pub fn construct(self: *Self, params: Params, t: Type) !void {
     self.* = .{
       .type = t,
       .vtable = params.vtable,
@@ -37,7 +37,7 @@ const Impl = struct {
     };
   }
 
-  pub fn ref(self: *Self, dest: *Self, t: Type) !Self {
+  pub fn ref(self: *Self, dest: *Self, t: Type) !void {
     dest.* = .{
       .type = t,
       .vtable = self.vtable,
@@ -60,33 +60,52 @@ debug_info: std.debug.DebugInfo,
 
 pub usingnamespace Type.Impl;
 
-pub fn write(self: *Self, level: std.log.Level,  message: []const u8) !void {
+pub fn write(self: *Self, level: std.log.Level, message: []const u8, addr: usize) !void {
   self.mutex.lock();
   defer self.mutex.unlock();
 
-  const module = try self.debug_info.getModuleForAddress(@returnAddress());
-  defer module.deinit();
+  const module = try self.debug_info.getModuleForAddress(addr);
+  const sym = try module.getSymbolAtAddress(self.type.allocator, addr);
 
-  const sym = try module.getSymbolAtAddress(self.type.allocator, @returnAddress());
-  defer sym.deinit();
-
-  const file = if (sym.line_info) |line| try std.fmt.allocPrint(self.type.allocator, "{}:{}.{}", .{ line.file_name, line.line, line.column })
-    else try std.fmt.allocPrint(self.type.allocator, "{} ({})", .{ sym.symbol_name, sym.compile_unit_name });
+  const file = if (sym.line_info) |line| try std.fmt.allocPrint(self.type.allocator, "{s}:{}.{}", .{ line.file_name, line.line, line.column })
+    else try std.fmt.allocPrint(self.type.allocator, "{s} ({s})", .{ sym.symbol_name, sym.compile_unit_name });
   return self.vtable.write(self.type.toOpaque(), LogMessage.init(level, file, message));
 }
 
-pub inline fn err(self: *Self, message: []const u8) !void {
-  return self.write(.err, message);
+pub fn err(self: *Self, message: []const u8) !void {
+  return self.write(.err, message, @returnAddress());
 }
 
-pub inline fn warn(self: *Self, message: []const u8) !void {
-  return self.write(.warn, message);
+pub fn warn(self: *Self, message: []const u8) !void {
+  return self.write(.warn, message, @returnAddress());
 }
 
-pub inline fn info(self: *Self, message: []const u8) !void {
-  return self.write(.info, message);
+pub fn info(self: *Self, message: []const u8) !void {
+  return self.write(.info, message, @returnAddress());
 }
 
-pub inline fn debug(self: *Self, message: []const u8) !void {
-  return self.write(.debug, message);
+pub fn debug(self: *Self, message: []const u8) !void {
+  return self.write(.debug, message, @returnAddress());
+}
+
+pub fn print(self: *Self, level: std.log.Level, comptime fmt: []const u8, args: anytype, addr: usize) !void {
+  const message = try std.fmt.allocPrint(self.type.allocator, fmt, args);
+  defer self.type.allocator.free(message);
+  try self.write(level, message, addr);
+}
+
+pub fn fmtErr(self: *Self, comptime fmt: []const u8, args: anytype) !void {
+  return self.print(.err, fmt, args, @returnAddress());
+}
+
+pub fn fmtWarn(self: *Self, comptime fmt: []const u8, args: anytype) !void {
+  return self.print(.warn, fmt, args, @returnAddress());
+}
+
+pub fn fmtInfo(self: *Self, comptime fmt: []const u8, args: anytype) !void {
+  return self.print(.info, fmt, args, @returnAddress());
+}
+
+pub fn fmtDebug(self: *Self, comptime fmt: []const u8, args: anytype) !void {
+  return self.print(.debug, fmt, args, @returnAddress());
 }

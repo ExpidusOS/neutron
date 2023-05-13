@@ -187,7 +187,8 @@ fn registryListener(registry: *wl.Registry, event: wl.Registry.Event, self: *Sel
         presentation.setListener(*Self, presentationListener, self);
         self.presentation = presentation;
       } else {
-        std.debug.print("{s}\n", .{ global.interface });
+        const runtime = self.getRuntime();
+        runtime.logger.fmtDebug("Protocol discovered: {s}@{}", .{ global.interface, global.name }) catch return;
       }
     },
     .global_remove => {

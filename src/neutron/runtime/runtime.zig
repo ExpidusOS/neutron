@@ -2,6 +2,7 @@ const std = @import("std");
 const xev = @import("xev");
 const elemental = @import("../elemental.zig");
 const displaykit = @import("../displaykit.zig");
+const logging = @import("../logging.zig");
 const graphics = @import("../graphics.zig");
 const flutter = @import("../flutter.zig");
 const ipc = @import("ipc.zig");
@@ -25,6 +26,7 @@ pub const Params = struct {
   ipcs: ?[]ipc.Params = null,
   display: ?displaykit.Params = null,
   renderer: ?graphics.renderer.Params = null,
+  logger: ?*logging.Base = null,
   application_path: []const u8,
 };
 
@@ -99,7 +101,11 @@ const Impl = struct {
             };
           }
         }).callback,
-        .log_message_callback = null,
+        .log_message_callback = (struct {
+          fn callback(tag: [*c]const u8, message: [*c]const u8, ud: ?*anyopaque,) callconv(.C) void {
+            Type.fromOpaque(ud.?).logger.fmtInfo("{s}: {s}", .{ tag, message }) catch return;
+          }
+        }).callback,
         .log_tag = null,
         .compositor = null,
         .main_path__unused__ = null,
@@ -133,6 +139,7 @@ const Impl = struct {
       .platform_id = std.Thread.getCurrentId(),
       .loop = try xev.Loop.init(.{}),
       .vsync_baton = std.atomic.Atomic(i64).init(0),
+      .logger = if (params.logger) |l| try l.ref(t.allocator) else &(try logging.Standard.new(.{}, null, t.allocator)).base,
     };
 
     self.platform_task_runner.user_data = self;
@@ -173,6 +180,7 @@ const Impl = struct {
       .loop = self.loop,
       .platform_id = self.platform_id,
       .vsync_baton = self.vsync_baton,
+      .logger = try self.logger.ref(t.allocator),
     };
   }
 
@@ -184,6 +192,7 @@ const Impl = struct {
     self.loop.deinit();
 
     self.ipcs.deinit();
+    self.logger.unref();
     self.type.allocator.free(self.dir);
   }
 };
@@ -291,6 +300,7 @@ task_runners: flutter.c.FlutterCustomTaskRunners = .{
   .render_task_runner = null,
   .thread_priority_setter = null,
 },
+logger: *logging.Base,
 
 pub usingnamespace Type.Impl;
 

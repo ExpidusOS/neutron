@@ -23,6 +23,7 @@ const parser = .{
   .ipc = neutron.runtime.ipc.Params.parseArgument,
   .displaykit = neutron.displaykit.Params.parseArgument,
   .renderer = neutron.graphics.renderer.Params.parseArgument,
+  .log = neutron.logging.Standard.Params.parseArgument,
 };
 
 pub fn main() !void {
@@ -37,6 +38,7 @@ pub fn main() !void {
     \\-d, --display <displaykit>  Sets the display configuration for the runtime.
     \\-i, --ipc <ipc>...          Adds an IPC client or server to the runtime.
     \\-g, --renderer <renderer>   Sets the graphics rendering backend.
+    \\-l, --log <log>             Sets the logging options.
     \\
   );
 
@@ -72,6 +74,9 @@ pub fn main() !void {
 
   const runtime_mode = if (res.args.mode) |mode| mode else .application;
 
+  const logger = try neutron.logging.Standard.new(res.args.log orelse .{}, null, allocator);
+  defer logger.unref();
+
   const runtime = try neutron.runtime.Runtime.new(.{
     .dir = res.args.@"runtime-dir",
     .mode = runtime_mode,
@@ -79,6 +84,7 @@ pub fn main() !void {
     .display = res.args.display,
     .renderer = res.args.renderer,
     .application_path = path,
+    .logger = &logger.base,
   }, null, allocator);
   defer runtime.unref();
 
