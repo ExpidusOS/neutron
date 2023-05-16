@@ -23,6 +23,7 @@ pub const Options = struct {
 builder: *Build,
 config: *Build.OptionsStep,
 target: std.zig.CrossTarget,
+lib: *Build.CompileStep,
 optimize: std.builtin.Mode,
 options: Options,
 flutter: *Flutter,
@@ -47,6 +48,29 @@ pub fn new(builder: *Build, target: std.zig.CrossTarget, optimize: std.builtin.M
     .options = options,
     .target = target,
     .optimize = optimize,
+    .lib = if (target.getCpuArch().isWasm())
+        builder.addStaticLibrary(.{
+          .name = "neutron",
+          .root_source_file = .{
+            .path = getPath(&.{
+              "src", "neutron-c.zig",
+            }),
+          },
+          .version = version,
+          .target = target,
+          .optimize = optimize,
+        })
+      else builder.addSharedLibrary(.{
+        .name = "neutron",
+        .root_source_file = .{
+          .path = getPath(&.{
+            "src", "neutron-c.zig",
+          }),
+        },
+        .version = version,
+        .target = target,
+        .optimize = optimize,
+      }),
     .flutter = try Flutter.new(.{
       .builder = builder,
       .target = target,
@@ -113,10 +137,21 @@ pub fn new(builder: *Build, target: std.zig.CrossTarget, optimize: std.builtin.M
     self.docs.addModule(dep.name, dep.module);
   }
 
+  self.lib.addModule("neutron", try self.createModule());
+
   self.docs.emit_docs = .{
     .emit_to = builder.pathJoin(&.{ builder.install_path, "doc" }),
   };
+
+  self.lib.emit_h = true;
+  self.lib.out_h_filename = "neutron.h";
+
+  self.step.dependOn(&self.lib.step);
+
   self.linkLibraries(self.docs);
+  self.linkLibraries(self.lib);
+
+  builder.installArtifact(self.lib);
   return self;
 }
 
@@ -254,7 +289,17 @@ pub fn linkLibraries(self: *Self, artifact: *Build.CompileStep) void {
     artifact.linkSystemLibrary("wlroots");
   }
 
-  artifact.step.dependOn(&self.step);
+  if (blk: {
+    for (self.step.dependencies.items) |s| {
+      if (s == &artifact.step) {
+        break :blk false;
+      }
+    }
+    break :blk true;
+  }) {
+    artifact.step.dependOn(&self.step);
+  }
+
   artifact.addLibraryPathDirectorySource(.{
     .generated = &self.flutter.generated,
   });
