@@ -3,11 +3,11 @@
     "disko": {
       "flake": false,
       "locked": {
-        "lastModified": 1683791560,
-        "narHash": "sha256-iUmALjSur9TTj/MvRsvA+BR+v6F8D9/HR/4DMh9KmvM=",
+        "lastModified": 1684783210,
+        "narHash": "sha256-hxRbwwBTu1G1u1EdI9nEo/n4HIsQIfNi+2BQ1nEoj/o=",
         "owner": "nix-community",
         "repo": "disko",
-        "rev": "834b7b2a3310e19fca299df4b471f5750d485b11",
+        "rev": "f0b9f374bb42fdcd57baa7d4448ac5d4788226bd",
         "type": "github"
       },
       "original": {
@@ -26,11 +26,11 @@
         "zig-overlay": "zig-overlay"
       },
       "locked": {
-        "lastModified": 1683857836,
-        "narHash": "sha256-/89u4W63CmuIsb0S5kDckabl1/TuLBQvwdvJ4zbzY5o=",
+        "lastModified": 1684785475,
+        "narHash": "sha256-4enia6ovIR3uZCzkPA3Ny1AJUwQ37kE74PIudiWvilQ=",
         "owner": "ExpidusOS",
         "repo": "sdk",
-        "rev": "baaa85b0e90ad9e8b84b5cd79cfc574c283eef97",
+        "rev": "0db7eb78a3bbfbc9c82e25072fcc8f268e8d0e60",
         "type": "github"
       },
       "original": {
@@ -149,11 +149,11 @@
     "zig-overlay": {
       "flake": false,
       "locked": {
-        "lastModified": 1683806868,
-        "narHash": "sha256-PHfO3JrEVUbeXtJz7j8So8/9R7SKxJlFbbrW8pq/ngI=",
+        "lastModified": 1684757325,
+        "narHash": "sha256-VdY/GsBJosNJ3l/7RTsAqrUcPkqV8cQ23QhYMt295eI=",
         "owner": "mitchellh",
         "repo": "zig-overlay",
-        "rev": "c82ef5de68165100be7c070541dbb6fc90915a9a",
+        "rev": "a3d48fa30a54c08a76a75265f189e9f4bb9ad617",
         "type": "github"
       },
       "original": {
