@@ -116,8 +116,8 @@ pub const Renderer = union(Type) {
     return Renderer.init(Params.init(), options, allocator);
   }
 
-  pub fn ref(self: *Renderer, allocator: ?std.mem.Allocator) !Renderer {
-    return switch (self.*) {
+  pub fn ref(self: Renderer, allocator: ?std.mem.Allocator) !Renderer {
+    return switch (self) {
       .egl => |egl| .{
         .egl = try egl.ref(allocator),
       },
@@ -127,15 +127,15 @@ pub const Renderer = union(Type) {
     };
   }
 
-  pub fn unref(self: *Renderer) void {
-    return switch (self.*) {
+  pub fn unref(self: Renderer) void {
+    return switch (self) {
       .egl => |egl| egl.unref(),
       .osmesa => |osmesa| osmesa.unref(),
     };
   }
 
-  pub fn toBase(self: *Renderer) *Base {
-    return switch (self.*) {
+  pub fn toBase(self: Renderer) *Base {
+    return switch (self) {
       .egl => |egl| &egl.base,
       .osmesa => |osmesa| &osmesa.base,
     };

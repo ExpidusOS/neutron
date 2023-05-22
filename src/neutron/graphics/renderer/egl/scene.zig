@@ -14,7 +14,7 @@ const c = api.c;
 
 const scene_layer_vtable = SceneLayer.VTable {
   .render = (struct {
-    fn callback(_scene_layer: *anyopaque, renderer: *Renderer) !void {
+    fn callback(_scene_layer: *anyopaque, renderer: Renderer) !void {
       const scene_layer = SceneLayer.Type.fromOpaque(_scene_layer);
 
       api.clearError();
@@ -80,7 +80,7 @@ const vtable = Scene.VTable {
     }
   }).callback,
   .pre_render = (struct {
-    fn callback(_base: *anyopaque, renderer: *Renderer, size: @Vector(2, i32)) !void {
+    fn callback(_base: *anyopaque, renderer: Renderer, size: @Vector(2, i32)) !void {
       const base = Scene.Type.fromOpaque(_base);
       const self = @fieldParentPtr(Self, "base", base);
 
@@ -98,7 +98,7 @@ const vtable = Scene.VTable {
     }
   }).callback,
   .post_render = (struct {
-    fn callback(base: *anyopaque, renderer: *Renderer) !void {
+    fn callback(base: *anyopaque, renderer: Renderer) !void {
       _ = base;
 
       gl.flush();

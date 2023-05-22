@@ -10,7 +10,7 @@ pub const Kind = enum {
 };
 
 pub const VTable = struct {
-  render: ?*const fn (self: *anyopaque, renderer: *Renderer) anyerror!void = null,
+  render: ?*const fn (self: *anyopaque, renderer: Renderer) anyerror!void = null,
 };
 
 pub const Params = struct {
@@ -50,7 +50,7 @@ platform_view: ?flutter.c.FlutterPlatformView,
 
 pub usingnamespace Type.Impl;
 
-pub fn render(self: *Self, renderer: *Renderer) !void {
+pub fn render(self: *Self, renderer: Renderer) !void {
   if (self.vtable) |vtable| {
     if (vtable.render) |_render| {
       return _render(self.type.toOpaque(), renderer);

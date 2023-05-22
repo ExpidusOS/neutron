@@ -7,8 +7,8 @@ const Self = @This();
 
 pub const VTable = struct {
   get_layer_vtable: ?*const fn (self: *anyopaque, layer: *const flutter.c.FlutterLayer) ?*const SceneLayer.VTable = null,
-  pre_render: ?*const fn (self: *anyopaque, renderer: *Renderer, size: @Vector(2, i32)) anyerror!void = null,
-  post_render: ?*const fn (self: *anyopaque, renderer: *Renderer) anyerror!void = null,
+  pre_render: ?*const fn (self: *anyopaque, renderer: Renderer, size: @Vector(2, i32)) anyerror!void = null,
+  post_render: ?*const fn (self: *anyopaque, renderer: Renderer) anyerror!void = null,
 };
 
 pub const Params = struct {
@@ -60,7 +60,7 @@ pub fn addLayer(self: *Self, layer: *const flutter.c.FlutterLayer) !void {
   }, null, self.type.allocator));
 }
 
-pub fn render(self: *Self, renderer: *Renderer, size: @Vector(2, i32)) !void {
+pub fn render(self: *Self, renderer: Renderer, size: @Vector(2, i32)) !void {
   if (self.vtable) |vtable| {
     if (vtable.pre_render) |pre_render| {
       try pre_render(self.type.toOpaque(), renderer, size);

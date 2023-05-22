@@ -38,7 +38,7 @@ const Impl = struct {
     try std.os.getsockname(self.fd, &self.address.any, &socklen);
 
     // TODO: remove when not needed
-    self.base.base.runtime.loop.add(&xev.Completion {
+    self.base.base.runtime.loop.add(@constCast(&xev.Completion {
       .op = .{
         .accept = .{
           .socket = self.fd,
@@ -60,7 +60,7 @@ const Impl = struct {
           return .rearm;
         }
       }).callback,
-    });
+    }));
   }
 
   pub fn ref(self: *Self, dest: *Self, t: Type) !void {

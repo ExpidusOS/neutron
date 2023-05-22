@@ -143,8 +143,8 @@ pub fn new(builder: *Build, target: std.zig.CrossTarget, optimize: std.builtin.M
     .emit_to = builder.pathJoin(&.{ builder.install_path, "doc" }),
   };
 
-  self.lib.emit_h = true;
-  self.lib.out_h_filename = "neutron.h";
+  //self.lib.emit_h = true;
+  //self.lib.out_h_filename = "neutron.h";
 
   self.step.dependOn(&self.lib.step);
 

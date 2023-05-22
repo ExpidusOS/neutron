@@ -305,7 +305,7 @@ vtable: Base.VTable = .{
       defer renderer.mutex.unlock();
 
       if (self.fb) |fb| {
-        try renderer.base.current_scene.render(&.{
+        try renderer.base.current_scene.render(.{
           .egl = renderer,
         }, fb.getResolution());
       }
